@@ -102,42 +102,41 @@ export function useLikeContent() {
         queryKey: ["content", tmdbId, mediaType, "reaction"],
       });
 
+      const key = ["content", tmdbId, mediaType, "reaction"] as const;
       // Snapshot the previous value
-      const previousData = queryClient.getQueryData<ContentReactionResponse>([
-        "content",
-        tmdbId,
-        mediaType,
-        "reaction",
-      ]);
+      const previousData = queryClient.getQueryData<ContentReactionResponse>(key);
 
-      // Optimistically update
+      // Optimistically update (including when cache is empty so UI updates immediately)
       if (previousData) {
         const wasLiked = previousData.isLiked;
         const wasDisliked = previousData.isDisliked;
-        queryClient.setQueryData<ContentReactionResponse>(
-          ["content", tmdbId, mediaType, "reaction"],
-          {
-            isLiked: !wasLiked,
-            isDisliked: false,
-            likeCount: wasLiked
-              ? Math.max(0, previousData.likeCount - 1)
-              : previousData.likeCount + 1,
-            dislikeCount: wasDisliked
-              ? Math.max(0, previousData.dislikeCount - 1)
-              : previousData.dislikeCount,
-          }
-        );
+        queryClient.setQueryData<ContentReactionResponse>(key, {
+          isLiked: !wasLiked,
+          isDisliked: false,
+          likeCount: wasLiked
+            ? Math.max(0, previousData.likeCount - 1)
+            : previousData.likeCount + 1,
+          dislikeCount: wasDisliked
+            ? Math.max(0, previousData.dislikeCount - 1)
+            : previousData.dislikeCount,
+        });
+      } else {
+        queryClient.setQueryData<ContentReactionResponse>(key, {
+          isLiked: true,
+          isDisliked: false,
+          likeCount: 1,
+          dislikeCount: 0,
+        });
       }
 
       return { previousData };
     },
     onError: (err, variables, context) => {
-      // Rollback on error
-      if (context?.previousData) {
-        queryClient.setQueryData(
-          ["content", variables.tmdbId, variables.mediaType, "reaction"],
-          context.previousData
-        );
+      const key = ["content", variables.tmdbId, variables.mediaType, "reaction"] as const;
+      if (context?.previousData !== undefined) {
+        queryClient.setQueryData(key, context.previousData);
+      } else {
+        queryClient.removeQueries({ queryKey: key });
       }
     },
     onSuccess: (_, variables) => {

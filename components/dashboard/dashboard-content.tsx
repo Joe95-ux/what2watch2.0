@@ -28,7 +28,11 @@ import { useFavoriteYouTubeVideos } from "@/hooks/use-favorite-youtube-videos";
 import { useYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
 import { useUserYouTubePlaylists } from "@/hooks/use-user-youtube-playlists";
 import { TrendAlertsWidget } from "@/components/dashboard/trend-alerts-widget";
-import { PickForTonightCard } from "@/components/dashboard/pick-for-tonight-card";
+import {
+  usePickForTonight,
+  PickForTonightButton,
+  PickForTonightResultsRow,
+} from "@/components/dashboard/pick-for-tonight-card";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { SelectServicesModal } from "@/components/browse/select-services-modal";
 import { useQueryClient } from "@tanstack/react-query";
@@ -180,6 +184,7 @@ export default function DashboardContent() {
   const isLoadingYouTubeSection = isLoadingYouTubeFavorites || isLoadingYouTubeWatchlist || isLoadingYouTubePlaylists;
   const isPickForTonightAdmin =
     currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN";
+  const pickForTonight = usePickForTonight();
 
   // Get user's selected providers
   const selectedProviders = preferences?.selectedProviders || [];
@@ -218,17 +223,29 @@ export default function DashboardContent() {
   return (
     <div className="min-h-screen bg-background">
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-        {/* Header with Greeting */}
-        <div className="mb-4 flex items-start justify-between gap-3 sm:mb-6 md:mb-8">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">
-              {greeting}, {displayName}
-            </h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Here&apos;s what&apos;s happening with your watchlist
-            </p>
+        {/* Greeting + Pick for tonight; results row below (same block, no extra card) */}
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">
+                {greeting}, {displayName}
+              </h1>
+              <p className="text-sm sm:text-base text-muted-foreground">
+                Here&apos;s what&apos;s happening with your watchlist
+              </p>
+            </div>
+            {isPickForTonightAdmin && (
+              <PickForTonightButton onClick={pickForTonight.runPick} />
+            )}
           </div>
-          {isPickForTonightAdmin && <PickForTonightCard />}
+          {isPickForTonightAdmin && (
+            <PickForTonightResultsRow
+              showRow={pickForTonight.showRow}
+              loading={pickForTonight.loading}
+              data={pickForTonight.data}
+              insufficientMessage={pickForTonight.insufficientMessage}
+            />
+          )}
         </div>
 
         {/* KPI Stats Grid (link page analytics style) */}

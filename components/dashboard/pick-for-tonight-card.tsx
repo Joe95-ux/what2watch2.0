@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Bookmark, Check, ChevronDown, ChevronUp, Heart, ThumbsUp } from "lucide-react";
+import { Bookmark, Check, ChevronLeft, ChevronRight, Heart, ThumbsUp } from "lucide-react";
+import { RxCheck } from "react-icons/rx";
 import { Button } from "@/components/ui/button";
 import { SheetLoadingDots } from "@/components/ui/sheet-loading-dots";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
@@ -17,10 +18,118 @@ import { useToggleFavorite } from "@/hooks/use-favorites";
 import { useLikeContent, useContentReactions } from "@/hooks/use-content-reactions";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
-
+import { getPosterUrl } from "@/lib/tmdb";
 type ApiPicks = {
   picks: PickForTonightCandidate[];
 };
+
+export function usePickForTonight() {
+  const [showRow, setShowRow] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<ApiPicks | null>(null);
+  const [insufficientMessage, setInsufficientMessage] = useState<string | null>(null);
+
+  const runPick = useCallback(async () => {
+    setShowRow(true);
+    setLoading(true);
+    setData(null);
+    setInsufficientMessage(null);
+    try {
+      const res = await fetch("/api/ai/pick-for-tonight/cards", { method: "POST" });
+      const json = await res.json();
+
+      if (res.status === 403) {
+        if (json.error === "BETA_ADMIN_ONLY") {
+          toast.error(json.message || "This beta is currently admin-only");
+        } else {
+          toast.error(json.message || json.error || "Request blocked");
+        }
+        return;
+      }
+
+      if (!res.ok) {
+        toast.error(json.error || "Something went wrong");
+        return;
+      }
+
+      if (json.insufficientContext) {
+        setInsufficientMessage(json.message || "Add titles to your library first.");
+        return;
+      }
+
+      if (json.picks) {
+        setData(json as ApiPicks);
+        return;
+      }
+
+      toast.error("Unexpected response");
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { showRow, loading, data, insufficientMessage, runPick };
+}
+
+export function PickForTonightButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      className="cursor-pointer border border-primary/15 px-3 text-sm font-medium hover:bg-primary/5"
+      onClick={onClick}
+    >
+      Pick for tonight
+    </Button>
+  );
+}
+
+export function PickForTonightResultsRow({
+  showRow,
+  loading,
+  data,
+  insufficientMessage,
+}: {
+  showRow: boolean;
+  loading: boolean;
+  data: ApiPicks | null;
+  insufficientMessage: string | null;
+}) {
+  if (!showRow) return null;
+
+  return (
+    <div className="mt-4 w-full">
+      {loading && <SheetLoadingDots className="min-h-[10rem] py-2" />}
+
+      {!loading && insufficientMessage && (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground leading-relaxed">{insufficientMessage}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard/my-list">Watchlist</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard/lists">Lists</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard/playlists">Playlists</Link>
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!loading && data?.picks?.length ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {data.picks.map((pick) => (
+            <PickCardItem key={pick.id} item={pick} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function detailHref(pick: PickForTonightCandidate): string {
   return pick.mediaType === "tv" ? `/tv/${pick.tmdbId}` : `/movie/${pick.tmdbId}`;
@@ -82,29 +191,31 @@ function PosterActionButton({
   disabled?: boolean;
 }) {
   return (
-    <Button
+    <button
       type="button"
-      size="icon"
-      variant="ghost"
       disabled={disabled}
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        onClick();
+      }}
       title={title}
       className={cn(
-        "h-8 w-8 rounded-full border border-white/35 bg-black/70 text-white hover:bg-black/80 backdrop-blur-sm",
-        active && "border-primary/80 text-primary",
+        "inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 transition-colors",
+        "ring-0 outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
+        "disabled:pointer-events-none disabled:opacity-50",
+        active
+          ? "bg-yellow-500 text-white shadow-sm hover:bg-yellow-500/90"
+          : "bg-black/55 text-white hover:bg-black/70",
         className
       )}
     >
       {children}
-    </Button>
+    </button>
   );
 }
 
-function PickCardItem({
-  item,
-}: {
-  item: PickForTonightCandidate;
-}) {
+function PickCardItem({ item }: { item: PickForTonightCandidate }) {
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
   const [infoOpen, setInfoOpen] = useState(true);
@@ -112,7 +223,7 @@ function PickCardItem({
   const toggleFavorite = useToggleFavorite();
   const toggleWatchlist = useToggleWatchlist();
   const likeContent = useLikeContent();
-  const { data: reactionData, isLoading: isLoadingReactions } = useContentReactions(item.tmdbId, item.mediaType, isSignedIn);
+  const { data: reactionData } = useContentReactions(item.tmdbId, item.mediaType, isSignedIn);
   const { data: watchedData } = useIsWatched(item.tmdbId, item.mediaType, isSignedIn);
   const quickWatch = useQuickWatch();
   const unwatch = useUnwatch();
@@ -180,41 +291,65 @@ function PickCardItem({
     }
   };
 
+  const handleBookToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setInfoOpen((o) => !o);
+  };
+
   const metadata = [item.releaseYear, item.rated, item.runtimeText].filter(Boolean).join(" • ");
   const provider = item.provider;
   const providerHref = provider?.deepLinkUrl ?? provider?.standardWebUrl ?? "#";
   const isActionPending =
     quickWatch.isPending || unwatch.isPending || toggleFavorite.isLoading || likeContent.isPending || toggleWatchlist.isLoading;
 
+  const posterUrl = item.posterPath
+    ? getPosterUrl(item.posterPath, "w500")
+    : null;
+
   return (
-    <div className="rounded-lg border border-border bg-card p-3 sm:p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-      <div className="flex flex-col gap-3 lg:flex-row lg:gap-4">
-        <div className="group/poster relative h-64 w-full overflow-hidden rounded-md border border-border bg-muted sm:h-64 lg:h-80 lg:w-52 lg:flex-shrink-0">
-          <Link href={detailHref(item)} className="absolute inset-0 block">
-            {item.posterPath ? (
+    <div className="relative flex w-full min-w-0 flex-row overflow-hidden rounded-lg border border-border bg-card transition-all">
+      <div
+        className={cn(
+          "relative z-0 flex min-h-[140px] min-w-0 flex-shrink-0 self-stretch overflow-hidden bg-muted transition-[width] duration-300 ease-out",
+          infoOpen ? "w-24 sm:w-32" : "w-full min-w-0 flex-1"
+        )}
+      >
+        <div className="group/poster relative h-full w-full min-h-0 min-w-0">
+          <Link
+            href={detailHref(item)}
+            className="absolute inset-0 z-0 block"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {posterUrl ? (
               <Image
-                src={`https://image.tmdb.org/t/p/w500${item.posterPath}`}
+                src={posterUrl}
                 alt={item.title}
                 fill
                 className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 220px"
+                sizes="158px"
                 unoptimized
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center px-1 text-center text-[10px] text-muted-foreground">
-                No poster
-              </div>
+              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">No image</div>
             )}
           </Link>
 
-          <div className="absolute left-2 top-2 z-10 flex gap-1.5 opacity-100 transition-all lg:opacity-0 lg:-translate-y-1 lg:group-hover/poster:opacity-100 lg:group-hover/poster:translate-y-0">
+          <div
+            className="absolute left-0 right-7 top-0 z-20 flex items-start justify-between gap-0 px-0.5 pt-0.5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <PosterActionButton
               onClick={handleToggleWatched}
               active={isWatched}
               title={isWatched ? "Marked as seen" : "Mark as seen"}
               disabled={isActionPending}
             >
-              <Check className={cn("h-4 w-4", isWatched && "fill-current")} />
+              {isWatched ? (
+                <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+              ) : (
+                <RxCheck className="h-3.5 w-3.5" />
+              )}
             </PosterActionButton>
             <PosterActionButton
               onClick={handleToggleFavorite}
@@ -222,15 +357,15 @@ function PickCardItem({
               title="Favorite"
               disabled={isActionPending}
             >
-              <Heart className={cn("h-4 w-4", isFavorite && "fill-current")} />
+              <Heart className={cn("h-3.5 w-3.5", isFavorite && "fill-current")} />
             </PosterActionButton>
             <PosterActionButton
               onClick={handleLike}
               active={isLiked}
               title="Like"
-              disabled={isLoadingReactions || likeContent.isPending}
+              disabled={likeContent.isPending}
             >
-              <ThumbsUp className={cn("h-4 w-4", isLiked && "fill-current")} />
+              <ThumbsUp className={cn("h-3.5 w-3.5", isLiked && "fill-current")} />
             </PosterActionButton>
             <PosterActionButton
               onClick={handleToggleWatchlist}
@@ -238,69 +373,86 @@ function PickCardItem({
               title="Watchlist"
               disabled={isActionPending}
             >
-              <Bookmark className={cn("h-4 w-4", inWatchlist && "fill-current")} />
+              <Bookmark className={cn("h-3.5 w-3.5", inWatchlist && "fill-current")} />
             </PosterActionButton>
           </div>
-        </div>
 
-        <div className="min-w-0 flex-1 rounded-md border border-border/70 bg-muted/20">
-          <div className="flex w-full items-center justify-between px-3 py-2 text-left">
-            <Link href={detailHref(item)} className="line-clamp-1 text-base font-semibold hover:underline">
+          <button
+            type="button"
+            onClick={handleBookToggle}
+            className={cn(
+              "absolute right-0 top-0 bottom-0 z-30 flex w-7 flex-col items-center justify-center border-l border-border bg-card/95 shadow-sm",
+              "hover:bg-muted/80 active:bg-muted transition-colors cursor-pointer"
+            )}
+            title={infoOpen ? "Close details" : "Open details"}
+            aria-expanded={infoOpen}
+          >
+            {infoOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          "flex min-w-0 flex-1 flex-col border-l border-border transition-all duration-300 ease-out will-change-transform",
+          infoOpen
+            ? "max-w-full translate-x-0 opacity-100"
+            : "w-0 max-w-0 flex-[0] -translate-x-full border-l-0 p-0 opacity-0 [flex-basis:0] overflow-hidden"
+        )}
+        aria-hidden={!infoOpen}
+      >
+        <div className="min-w-0 p-4 sm:p-6">
+          <div className="mb-2">
+            <Link
+              href={detailHref(item)}
+              className="text-lg font-semibold text-foreground hover:text-primary sm:line-clamp-1"
+              onClick={(e) => e.stopPropagation()}
+            >
               {item.title}
             </Link>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 rounded-full"
-              onClick={() => setInfoOpen((v) => !v)}
-              title={infoOpen ? "Collapse details" : "Expand details"}
-            >
-              {infoOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-            </Button>
           </div>
 
-          {infoOpen && (
-            <div className="space-y-3 border-t border-border/70 px-3 py-3">
-              <p className="text-sm text-muted-foreground">{metadata || "Metadata unavailable"}</p>
-              <p className="line-clamp-3 text-[13px] leading-[1.35] text-muted-foreground">
-                {item.overview || "No synopsis available yet."}
-              </p>
-              <div className="flex items-center gap-2">
-                <IMDBBadge size={24} />
-                <span className="text-sm font-medium">{item.imdbRating ? `${item.imdbRating}/10` : "N/A"}</span>
-              </div>
-              {provider ? (
-                <a
-                  href={providerHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-10 max-w-full items-stretch overflow-hidden rounded-lg bg-muted hover:bg-muted/70 transition-colors"
-                >
-                  {provider.iconUrl ? (
-                    <>
-                      <Image
-                        src={provider.iconUrl}
-                        alt={provider.providerName}
-                        width={40}
-                        height={40}
-                        className="h-10 w-10 object-contain"
-                        unoptimized
-                      />
-                      <span className="flex items-center px-3 text-[14px] font-medium">
-                        {providerLabel(provider.monetizationType)}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="flex items-center px-3 text-[14px] font-medium">
-                      {providerLabel(provider.monetizationType)}
-                    </span>
-                  )}
-                </a>
+          {metadata && <p className="text-sm text-muted-foreground mt-1">{metadata}</p>}
+
+          <p className="line-clamp-3 text-[13px] leading-[1.35] text-muted-foreground mt-2">
+            {item.overview || "No synopsis available yet."}
+          </p>
+
+          <div className="flex items-center gap-2 mt-3">
+            <IMDBBadge size={24} />
+            <span className="text-sm font-medium">{item.imdbRating ? `${item.imdbRating}/10` : "N/A"}</span>
+          </div>
+
+          {provider ? (
+            <a
+              href={providerHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="mt-3 inline-flex h-10 max-w-full items-stretch overflow-hidden rounded-lg border border-border/60 bg-muted hover:bg-muted/80 transition-colors"
+            >
+              {provider.iconUrl ? (
+                <>
+                  <Image
+                    src={provider.iconUrl}
+                    alt={provider.providerName}
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 object-contain"
+                    unoptimized
+                  />
+                  <span className="flex items-center px-3 text-[15px] font-medium">
+                    {providerLabel(provider.monetizationType)}
+                  </span>
+                </>
               ) : (
-                <span className="text-xs text-muted-foreground">Provider info unavailable</span>
+                <span className="flex items-center px-3 text-[15px] font-medium">
+                  {providerLabel(provider.monetizationType)}
+                </span>
               )}
-            </div>
+            </a>
+          ) : (
+            <span className="mt-3 text-xs text-muted-foreground">Provider info unavailable</span>
           )}
         </div>
       </div>
@@ -308,100 +460,18 @@ function PickCardItem({
   );
 }
 
+/** @deprecated use usePickForTonight + PickForTonightButton + PickForTonightResultsRow */
 export function PickForTonightCard() {
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<ApiPicks | null>(null);
-  const [insufficientMessage, setInsufficientMessage] = useState<string | null>(null);
-  const [showRow, setShowRow] = useState(false);
-
-  const runPick = async () => {
-    setShowRow(true);
-    setLoading(true);
-    setData(null);
-    setInsufficientMessage(null);
-    try {
-      const res = await fetch("/api/ai/pick-for-tonight/cards", { method: "POST" });
-      const json = await res.json();
-
-      if (res.status === 403) {
-        if (json.error === "BETA_ADMIN_ONLY") {
-          toast.error(json.message || "This beta is currently admin-only");
-        } else {
-          toast.error(json.message || json.error || "Request blocked");
-        }
-        return;
-      }
-
-      if (!res.ok) {
-        toast.error(json.error || "Something went wrong");
-        return;
-      }
-
-      if (json.insufficientContext) {
-        setInsufficientMessage(json.message || "Add titles to your library first.");
-        return;
-      }
-
-      if (json.picks) {
-        setData(json as ApiPicks);
-        return;
-      }
-
-      toast.error("Unexpected response");
-    } catch {
-      toast.error("Network error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const p = usePickForTonight();
   return (
-    <div className="flex flex-col items-end">
-      <Button
-        type="button"
-        variant="ghost"
-        className="cursor-pointer border border-primary/15 px-3 text-sm font-medium hover:bg-primary/5"
-        onClick={runPick}
-      >
-        Pick for tonight
-      </Button>
-      {showRow && (
-        <div className="mt-4 w-[min(96vw,78rem)] rounded-xl border border-border/80 bg-background p-3 sm:p-4 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="mb-3">
-            <h2 className="text-base font-semibold">Pick for tonight</h2>
-            <p className="text-xs text-muted-foreground sm:text-sm">
-              Grounded picks from your watchlist, lists, playlists, and title chat context.
-            </p>
-          </div>
-
-          {loading && <SheetLoadingDots className="min-h-[10rem] py-2" />}
-
-          {!loading && insufficientMessage && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground leading-relaxed">{insufficientMessage}</p>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/dashboard/my-list">Watchlist</Link>
-                </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/dashboard/lists">Lists</Link>
-                </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/dashboard/playlists">Playlists</Link>
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {!loading && data?.picks?.length ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {data.picks.map((pick) => (
-                <PickCardItem key={pick.id} item={pick} />
-              ))}
-            </div>
-          ) : null}
-        </div>
-      )}
+    <div className="flex w-full max-w-md flex-col items-end">
+      <PickForTonightButton onClick={p.runPick} />
+      <PickForTonightResultsRow
+        showRow={p.showRow}
+        loading={p.loading}
+        data={p.data}
+        insufficientMessage={p.insufficientMessage}
+      />
     </div>
   );
 }

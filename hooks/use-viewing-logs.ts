@@ -324,6 +324,22 @@ export function useQuickWatch() {
       
       return log;
     },
+    onMutate: async (params) => {
+      const { tmdbId, mediaType } = params;
+      const key = ["is-watched", tmdbId, mediaType] as const;
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<{ isWatched: boolean; logId: string | null }>(key);
+      queryClient.setQueryData(key, { isWatched: true, logId: "optimistic" });
+      return { previous, key };
+    },
+    onError: (_err, _params, context) => {
+      if (!context?.key) return;
+      if (context.previous !== undefined) {
+        queryClient.setQueryData(context.key, context.previous);
+      } else {
+        queryClient.removeQueries({ queryKey: context.key });
+      }
+    },
     onSuccess: () => {
       // Invalidate viewing logs and watched status queries
       queryClient.invalidateQueries({ queryKey: ["viewing-logs"] });
@@ -339,6 +355,25 @@ export function useUnwatch() {
   return useMutation({
     mutationFn: async (logId: string) => {
       await deleteViewingLog(logId);
+    },
+    onMutate: async (logId) => {
+      await queryClient.cancelQueries({ queryKey: ["is-watched"] });
+      const previousSnapshots: { queryKey: readonly unknown[]; data: { isWatched: boolean; logId: string | null } }[] = [];
+      const all = queryClient.getQueriesData<{ isWatched: boolean; logId: string | null }>({
+        queryKey: ["is-watched"],
+      });
+      for (const [queryKey, data] of all) {
+        if (data?.logId === logId) {
+          previousSnapshots.push({ queryKey, data: { ...data } });
+          queryClient.setQueryData(queryKey, { isWatched: false, logId: null });
+        }
+      }
+      return { previousSnapshots };
+    },
+    onError: (_err, _logId, context) => {
+      context?.previousSnapshots?.forEach(({ queryKey, data }) => {
+        queryClient.setQueryData(queryKey, data);
+      });
     },
     onSuccess: () => {
       // Invalidate viewing logs and watched status queries
