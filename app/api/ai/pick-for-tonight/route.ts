@@ -56,11 +56,20 @@ export async function POST() {
 
     const user = await db.user.findUnique({
       where: { clerkId: clerkUserId },
-      select: { id: true, chatQuota: true, stripeSubscriptionStatus: true },
+      select: { id: true, role: true, chatQuota: true, stripeSubscriptionStatus: true },
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        {
+          error: "BETA_ADMIN_ONLY",
+          message: "Pick for tonight is currently in admin-only beta.",
+        },
+        { status: 403 }
+      );
     }
 
     const totalQuestionCount = await db.aiChatEvent.count({

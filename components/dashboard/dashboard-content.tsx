@@ -32,12 +32,14 @@ import { PickForTonightCard } from "@/components/dashboard/pick-for-tonight-card
 import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { SelectServicesModal } from "@/components/browse/select-services-modal";
 import { useQueryClient } from "@tanstack/react-query";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function DashboardContent() {
   const { user } = useUser();
+  const { data: currentUser } = useCurrentUser();
   const queryClient = useQueryClient();
   const { data: favorites = [], isLoading: isLoadingFavorites } = useFavorites();
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
@@ -176,6 +178,8 @@ export default function DashboardContent() {
   }, [favoriteYouTubeVideos.length, youtubeWatchlist.length, youtubePlaylists.length]);
 
   const isLoadingYouTubeSection = isLoadingYouTubeFavorites || isLoadingYouTubeWatchlist || isLoadingYouTubePlaylists;
+  const isPickForTonightAdmin =
+    currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN";
 
   // Get user's selected providers
   const selectedProviders = preferences?.selectedProviders || [];
@@ -215,16 +219,17 @@ export default function DashboardContent() {
     <div className="min-h-screen bg-background">
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* Header with Greeting */}
-        <div className="mb-4 sm:mb-6 md:mb-8">
-          <h1 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">
-            {greeting}, {displayName}
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Here&apos;s what&apos;s happening with your watchlist
-          </p>
+        <div className="mb-4 flex items-start justify-between gap-3 sm:mb-6 md:mb-8">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">
+              {greeting}, {displayName}
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Here&apos;s what&apos;s happening with your watchlist
+            </p>
+          </div>
+          {isPickForTonightAdmin && <PickForTonightCard />}
         </div>
-
-        <PickForTonightCard />
 
         {/* KPI Stats Grid (link page analytics style) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border border-border rounded-lg overflow-hidden mb-4 sm:mb-6 md:mb-8">
