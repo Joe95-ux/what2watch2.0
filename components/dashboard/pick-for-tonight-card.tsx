@@ -1,135 +1,305 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Bookmark, Check, ChevronDown, ChevronUp, Heart, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { SheetLoadingDots } from "@/components/ui/sheet-loading-dots";
-import { Badge } from "@/components/ui/badge";
+import { IMDBBadge } from "@/components/ui/imdb-badge";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
-import type { PickForTonightPick } from "@/lib/pick-for-tonight-types";
+import type { PickForTonightCandidate } from "@/lib/pick-for-tonight-types";
 import { cn } from "@/lib/utils";
+import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
+import { useToggleFavorite } from "@/hooks/use-favorites";
+import { useLikeContent, useContentReactions } from "@/hooks/use-content-reactions";
+import { useToggleWatchlist } from "@/hooks/use-watchlist";
+import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 
 type ApiPicks = {
-  picks: { primary: PickForTonightPick; alternates: PickForTonightPick[] };
-  questionCount: number;
-  maxQuestions: number;
-  usedAi: boolean;
+  picks: PickForTonightCandidate[];
 };
 
-function posterUrl(posterPath: string | null): string | null {
-  if (!posterPath) return null;
-  return `https://image.tmdb.org/t/p/w300${posterPath}`;
-}
-
-function detailHref(pick: PickForTonightPick): string {
+function detailHref(pick: PickForTonightCandidate): string {
   return pick.mediaType === "tv" ? `/tv/${pick.tmdbId}` : `/movie/${pick.tmdbId}`;
 }
 
-function ExpandableText({
-  text,
-  className,
-}: {
-  text: string;
-  className?: string;
-}) {
-  const [expanded, setExpanded] = useState(false);
+function providerLabel(monetizationType?: string | null): string {
+  if (monetizationType === "buy") return "Buy now";
+  if (monetizationType === "rent") return "Rent now";
+  return "Watch now";
+}
 
+function toTMDBShape(item: PickForTonightCandidate): TMDBMovie | TMDBSeries {
+  if (item.mediaType === "movie") {
+    return {
+      id: item.tmdbId,
+      title: item.title,
+      original_title: item.title,
+      overview: item.overview ?? "",
+      poster_path: item.posterPath,
+      backdrop_path: item.backdropPath,
+      release_date: item.releaseDate ?? "",
+      vote_average: item.imdbRating ?? 0,
+      vote_count: 0,
+      genre_ids: [],
+      popularity: 0,
+      adult: false,
+      original_language: "en",
+    };
+  }
+  return {
+    id: item.tmdbId,
+    name: item.title,
+    original_name: item.title,
+    overview: item.overview ?? "",
+    poster_path: item.posterPath,
+    backdrop_path: item.backdropPath,
+    first_air_date: item.firstAirDate ?? "",
+    vote_average: item.imdbRating ?? 0,
+    vote_count: 0,
+    genre_ids: [],
+    popularity: 0,
+    original_language: "en",
+  };
+}
+
+function PosterActionButton({
+  onClick,
+  active,
+  title,
+  children,
+  className,
+  disabled,
+}: {
+  onClick: () => void;
+  active?: boolean;
+  title: string;
+  children: ReactNode;
+  className?: string;
+  disabled?: boolean;
+}) {
   return (
-    <div className="space-y-1">
-      <p
-        className={cn(
-          "text-sm text-muted-foreground leading-relaxed",
-          !expanded && "line-clamp-3",
-          className
-        )}
-      >
-        {text}
-      </p>
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="inline-flex items-center gap-1 text-xs text-foreground/80 hover:text-foreground transition-colors"
-      >
-        {expanded ? (
-          <>
-            <ChevronUp className="h-3.5 w-3.5" /> Show less
-          </>
-        ) : (
-          <>
-            <ChevronDown className="h-3.5 w-3.5" /> Show more
-          </>
-        )}
-      </button>
-    </div>
+    <Button
+      type="button"
+      size="icon"
+      variant="ghost"
+      disabled={disabled}
+      onClick={onClick}
+      title={title}
+      className={cn(
+        "h-8 w-8 rounded-full border border-white/35 bg-black/70 text-white hover:bg-black/80 backdrop-blur-sm",
+        active && "border-primary/80 text-primary",
+        className
+      )}
+    >
+      {children}
+    </Button>
   );
 }
 
 function PickCardItem({
-  pick,
-  rank,
-  onNavigate,
+  item,
 }: {
-  pick: PickForTonightPick;
-  rank: "tonight" | "alt";
-  onNavigate: () => void;
+  item: PickForTonightCandidate;
 }) {
-  const img = useMemo(() => posterUrl(pick.posterPath), [pick.posterPath]);
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
+  const [infoOpen, setInfoOpen] = useState(true);
+
+  const toggleFavorite = useToggleFavorite();
+  const toggleWatchlist = useToggleWatchlist();
+  const likeContent = useLikeContent();
+  const { data: reactionData, isLoading: isLoadingReactions } = useContentReactions(item.tmdbId, item.mediaType, isSignedIn);
+  const { data: watchedData } = useIsWatched(item.tmdbId, item.mediaType, isSignedIn);
+  const quickWatch = useQuickWatch();
+  const unwatch = useUnwatch();
+
+  const isWatched = watchedData?.isWatched ?? false;
+  const watchedLogId = watchedData?.logId ?? null;
+  const isLiked = reactionData?.isLiked ?? false;
+  const inWatchlist = toggleWatchlist.isInWatchlist(item.tmdbId, item.mediaType);
+  const isFavorite = toggleFavorite.isFavorite(item.tmdbId, item.mediaType);
+
+  const mediaItem = useMemo(() => toTMDBShape(item), [item]);
+
+  const promptSignIn = () => {
+    toast.info("Sign in to use quick actions.");
+    openSignIn?.({
+      afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+    });
+  };
+
+  const handleToggleWatched = async () => {
+    if (!isSignedIn) return promptSignIn();
+    try {
+      if (isWatched && watchedLogId) {
+        await unwatch.mutateAsync(watchedLogId);
+      } else {
+        await quickWatch.mutateAsync({
+          tmdbId: item.tmdbId,
+          mediaType: item.mediaType,
+          title: item.title,
+          posterPath: item.posterPath,
+          backdropPath: item.backdropPath,
+          releaseDate: item.releaseDate,
+          firstAirDate: item.firstAirDate,
+        });
+      }
+    } catch {
+      toast.error("Failed to update seen status");
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!isSignedIn) return promptSignIn();
+    try {
+      await toggleFavorite.toggle(mediaItem, item.mediaType);
+    } catch {
+      toast.error("Failed to update favorites");
+    }
+  };
+
+  const handleLike = async () => {
+    if (!isSignedIn) return promptSignIn();
+    try {
+      await likeContent.mutateAsync({ tmdbId: item.tmdbId, mediaType: item.mediaType });
+    } catch {
+      toast.error("Failed to update like");
+    }
+  };
+
+  const handleToggleWatchlist = async () => {
+    if (!isSignedIn) return promptSignIn();
+    try {
+      await toggleWatchlist.toggle(mediaItem, item.mediaType);
+    } catch {
+      toast.error("Failed to update watchlist");
+    }
+  };
+
+  const metadata = [item.releaseYear, item.rated, item.runtimeText].filter(Boolean).join(" • ");
+  const provider = item.provider;
+  const providerHref = provider?.deepLinkUrl ?? provider?.standardWebUrl ?? "#";
+  const isActionPending =
+    quickWatch.isPending || unwatch.isPending || toggleFavorite.isLoading || likeContent.isPending || toggleWatchlist.isLoading;
 
   return (
-    <div
-      className={cn(
-        "rounded-lg border border-border bg-muted/30 p-3 sm:p-4",
-        rank === "tonight" && "ring-1 ring-primary/25 bg-primary/5"
-      )}
-    >
-      <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-        <Link
-          href={detailHref(pick)}
-          className="relative h-48 w-full flex-shrink-0 overflow-hidden rounded-md border border-border bg-muted sm:h-36 sm:w-24"
-          onClick={onNavigate}
-        >
-          {img ? (
-            <Image src={img} alt={pick.title} fill className="object-cover" sizes="(max-width: 640px) 100vw, 96px" unoptimized />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center px-1 text-center text-[10px] text-muted-foreground">
-              No poster
-            </div>
-          )}
-        </Link>
-
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {rank === "tonight" ? (
-              <Badge variant="default" className="text-xs">Tonight</Badge>
+    <div className="rounded-lg border border-border bg-card p-3 sm:p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+      <div className="flex flex-col gap-3 lg:flex-row lg:gap-4">
+        <div className="group/poster relative h-64 w-full overflow-hidden rounded-md border border-border bg-muted sm:h-64 lg:h-80 lg:w-52 lg:flex-shrink-0">
+          <Link href={detailHref(item)} className="absolute inset-0 block">
+            {item.posterPath ? (
+              <Image
+                src={`https://image.tmdb.org/t/p/w500${item.posterPath}`}
+                alt={item.title}
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 220px"
+                unoptimized
+              />
             ) : (
-              <Badge variant="secondary" className="text-xs">Alternate</Badge>
+              <div className="flex h-full w-full items-center justify-center px-1 text-center text-[10px] text-muted-foreground">
+                No poster
+              </div>
             )}
-            <Badge variant="outline" className="text-xs capitalize">{pick.mediaType}</Badge>
-            <Link
-              href={detailHref(pick)}
-              className="font-semibold text-foreground hover:underline line-clamp-2 break-words"
-              onClick={onNavigate}
+          </Link>
+
+          <div className="absolute left-2 top-2 z-10 flex gap-1.5 opacity-100 transition-all lg:opacity-0 lg:-translate-y-1 lg:group-hover/poster:opacity-100 lg:group-hover/poster:translate-y-0">
+            <PosterActionButton
+              onClick={handleToggleWatched}
+              active={isWatched}
+              title={isWatched ? "Marked as seen" : "Mark as seen"}
+              disabled={isActionPending}
             >
-              {pick.title}
+              <Check className={cn("h-4 w-4", isWatched && "fill-current")} />
+            </PosterActionButton>
+            <PosterActionButton
+              onClick={handleToggleFavorite}
+              active={isFavorite}
+              title="Favorite"
+              disabled={isActionPending}
+            >
+              <Heart className={cn("h-4 w-4", isFavorite && "fill-current")} />
+            </PosterActionButton>
+            <PosterActionButton
+              onClick={handleLike}
+              active={isLiked}
+              title="Like"
+              disabled={isLoadingReactions || likeContent.isPending}
+            >
+              <ThumbsUp className={cn("h-4 w-4", isLiked && "fill-current")} />
+            </PosterActionButton>
+            <PosterActionButton
+              onClick={handleToggleWatchlist}
+              active={inWatchlist}
+              title="Watchlist"
+              disabled={isActionPending}
+            >
+              <Bookmark className={cn("h-4 w-4", inWatchlist && "fill-current")} />
+            </PosterActionButton>
+          </div>
+        </div>
+
+        <div className="min-w-0 flex-1 rounded-md border border-border/70 bg-muted/20">
+          <div className="flex w-full items-center justify-between px-3 py-2 text-left">
+            <Link href={detailHref(item)} className="line-clamp-1 text-base font-semibold hover:underline">
+              {item.title}
             </Link>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-full"
+              onClick={() => setInfoOpen((v) => !v)}
+              title={infoOpen ? "Collapse details" : "Expand details"}
+            >
+              {infoOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </Button>
           </div>
 
-          <ExpandableText text={pick.reason} />
-
-          {pick.sources.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {pick.sources.map((s, idx) => (
-                <span
-                  key={`${pick.id}-source-${idx}`}
-                  className="inline-flex max-w-full items-center rounded-md border border-border bg-background/80 px-2 py-0.5 text-xs text-foreground/90"
-                  title={s}
+          {infoOpen && (
+            <div className="space-y-3 border-t border-border/70 px-3 py-3">
+              <p className="text-sm text-muted-foreground">{metadata || "Metadata unavailable"}</p>
+              <p className="line-clamp-3 text-[13px] leading-[1.35] text-muted-foreground">
+                {item.overview || "No synopsis available yet."}
+              </p>
+              <div className="flex items-center gap-2">
+                <IMDBBadge size={24} />
+                <span className="text-sm font-medium">{item.imdbRating ? `${item.imdbRating}/10` : "N/A"}</span>
+              </div>
+              {provider ? (
+                <a
+                  href={providerHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 max-w-full items-stretch overflow-hidden rounded-lg bg-muted hover:bg-muted/70 transition-colors"
                 >
-                  <span className="truncate">{s}</span>
-                </span>
-              ))}
+                  {provider.iconUrl ? (
+                    <>
+                      <Image
+                        src={provider.iconUrl}
+                        alt={provider.providerName}
+                        width={40}
+                        height={40}
+                        className="h-10 w-10 object-contain"
+                        unoptimized
+                      />
+                      <span className="flex items-center px-3 text-[14px] font-medium">
+                        {providerLabel(provider.monetizationType)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="flex items-center px-3 text-[14px] font-medium">
+                      {providerLabel(provider.monetizationType)}
+                    </span>
+                  )}
+                </a>
+              ) : (
+                <span className="text-xs text-muted-foreground">Provider info unavailable</span>
+              )}
             </div>
           )}
         </div>
@@ -139,35 +309,31 @@ function PickCardItem({
 }
 
 export function PickForTonightCard() {
-  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ApiPicks | null>(null);
   const [insufficientMessage, setInsufficientMessage] = useState<string | null>(null);
+  const [showRow, setShowRow] = useState(false);
 
   const runPick = async () => {
-    setOpen(true);
+    setShowRow(true);
     setLoading(true);
     setData(null);
     setInsufficientMessage(null);
     try {
-      const res = await fetch("/api/ai/pick-for-tonight", { method: "POST" });
+      const res = await fetch("/api/ai/pick-for-tonight/cards", { method: "POST" });
       const json = await res.json();
 
       if (res.status === 403) {
-        if (json.error === "QUESTION_LIMIT_REACHED") {
-          toast.error(json.message || "AI question limit reached");
-        } else if (json.error === "BETA_ADMIN_ONLY") {
+        if (json.error === "BETA_ADMIN_ONLY") {
           toast.error(json.message || "This beta is currently admin-only");
         } else {
           toast.error(json.message || json.error || "Request blocked");
         }
-        setOpen(false);
         return;
       }
 
       if (!res.ok) {
         toast.error(json.error || "Something went wrong");
-        setOpen(false);
         return;
       }
 
@@ -182,17 +348,15 @@ export function PickForTonightCard() {
       }
 
       toast.error("Unexpected response");
-      setOpen(false);
     } catch {
       toast.error("Network error");
-      setOpen(false);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <>
+    <div className="flex flex-col items-end">
       <Button
         type="button"
         variant="ghost"
@@ -201,63 +365,43 @@ export function PickForTonightCard() {
       >
         Pick for tonight
       </Button>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg p-0 sm:max-w-xl">
-          <div className="sticky top-0 z-10 border-b border-border bg-background px-4 py-3 sm:px-6">
-            <h2 className="text-base font-semibold sm:text-lg">Pick for tonight</h2>
-            <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-              Choices are limited to your library so recommendations stay grounded in what you already saved.
+      {showRow && (
+        <div className="mt-4 w-[min(96vw,78rem)] rounded-xl border border-border/80 bg-background p-3 sm:p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="mb-3">
+            <h2 className="text-base font-semibold">Pick for tonight</h2>
+            <p className="text-xs text-muted-foreground sm:text-sm">
+              Grounded picks from your watchlist, lists, playlists, and title chat context.
             </p>
           </div>
 
-          <div className="max-h-[70vh] overflow-y-auto scrollbar-thin px-4 pb-4 pt-3 sm:px-6 sm:pb-6 sm:pt-4">
-            {loading && <SheetLoadingDots className="min-h-[12rem] py-4" />}
+          {loading && <SheetLoadingDots className="min-h-[10rem] py-2" />}
 
-            {!loading && insufficientMessage && (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground leading-relaxed">{insufficientMessage}</p>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href="/dashboard/my-list" onClick={() => setOpen(false)}>
-                      Watchlist
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href="/dashboard/lists" onClick={() => setOpen(false)}>
-                      Lists
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href="/dashboard/playlists" onClick={() => setOpen(false)}>
-                      Playlists
-                    </Link>
-                  </Button>
-                </div>
+          {!loading && insufficientMessage && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground leading-relaxed">{insufficientMessage}</p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/dashboard/my-list">Watchlist</Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/dashboard/lists">Lists</Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/dashboard/playlists">Playlists</Link>
+                </Button>
               </div>
-            )}
+            </div>
+          )}
 
-            {!loading && data?.picks && (
-              <div className="space-y-4 pt-1">
-                <PickCardItem pick={data.picks.primary} rank="tonight" onNavigate={() => setOpen(false)} />
-                {data.picks.alternates.map((p, idx) => (
-                  <PickCardItem key={`${p.id}-${idx}`} pick={p} rank="alt" onNavigate={() => setOpen(false)} />
-                ))}
-                {data.usedAi === false && data.picks.alternates.length === 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    No AI call was used for this result (library too small or only one title without extra context).
-                  </p>
-                )}
-                {typeof data.maxQuestions === "number" && data.maxQuestions !== -1 && (
-                  <p className="text-xs text-muted-foreground">
-                    AI questions used: {data.questionCount} / {data.maxQuestions}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          {!loading && data?.picks?.length ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {data.picks.map((pick) => (
+                <PickCardItem key={pick.id} item={pick} />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      )}
+    </div>
   );
 }

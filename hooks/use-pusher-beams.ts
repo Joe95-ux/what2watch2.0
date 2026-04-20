@@ -55,6 +55,24 @@ export function usePusherBeams() {
           await beamsClient.setUserId(currentUser.id, tokenProvider);
         }
       } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : typeof error === "string"
+              ? error
+              : "";
+        const isAuthFailure =
+          message.includes("401") ||
+          message.toLowerCase().includes("unauthorized") ||
+          message.includes("Could not parse JWT");
+
+        if (isAuthFailure) {
+          try {
+            await beamsClient.clearAllState();
+          } catch (clearError) {
+            console.error("[Beams] Failed to clear state after auth error:", clearError);
+          }
+        }
         console.error("[Beams] Failed to sync browser state:", error);
       }
     };
