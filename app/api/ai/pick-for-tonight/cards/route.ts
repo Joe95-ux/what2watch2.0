@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
@@ -115,8 +115,16 @@ async function enrichCandidate(c: BaseCandidate): Promise<PickForTonightCandidat
   }
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
+    let onlyUnseen = false;
+    try {
+      const body = (await request.json()) as { onlyUnseen?: unknown } | null;
+      if (body && body.onlyUnseen === true) onlyUnseen = true;
+    } catch {
+      // empty or invalid body — treat as default picks
+    }
+
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -202,6 +210,17 @@ export async function POST() {
       }
     }
 
+    if (onlyUnseen) {
+      const logs = await db.viewingLog.findMany({
+        where: { userId: user.id },
+        select: { tmdbId: true, mediaType: true },
+      });
+      const watched = new Set(logs.map((l) => candidateId(l.tmdbId, l.mediaType)));
+      for (const id of [...byId.keys()]) {
+        if (watched.has(id)) byId.delete(id);
+      }
+    }
+
     const ranked = Array.from(byId.values())
       .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
       .slice(0, 6);
@@ -209,7 +228,9 @@ export async function POST() {
     if (ranked.length === 0) {
       return NextResponse.json({
         insufficientContext: true,
-        message: "Add titles to your watchlist, lists, or playlists to generate tonight picks.",
+        message: onlyUnseen
+          ? "No unseen titles found in your library—everything here is already logged as watched, or add more lists and try again."
+          : "Add titles to your watchlist, lists, or playlists to generate tonight picks.",
       });
     }
 

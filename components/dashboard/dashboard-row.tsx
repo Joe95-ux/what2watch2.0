@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -17,16 +17,18 @@ interface DashboardRowProps {
   href?: string;
 }
 
+const EMBLA_OPTIONS = {
+  align: "start" as const,
+  slidesToScroll: 5,
+  breakpoints: {
+    "(max-width: 640px)": { slidesToScroll: 2 },
+    "(max-width: 1024px)": { slidesToScroll: 3 },
+    "(max-width: 1280px)": { slidesToScroll: 4 },
+  },
+};
+
 export default function DashboardRow({ title, items, type, isLoading, href }: DashboardRowProps) {
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    align: "start",
-    slidesToScroll: 5,
-    breakpoints: {
-      "(max-width: 640px)": { slidesToScroll: 2 },
-      "(max-width: 1024px)": { slidesToScroll: 3 },
-      "(max-width: 1280px)": { slidesToScroll: 4 },
-    },
-  });
+  const [emblaRef, emblaApi] = useEmblaCarousel(EMBLA_OPTIONS);
 
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
@@ -35,12 +37,18 @@ export default function DashboardRow({ title, items, type, isLoading, href }: Da
   const scrollPrev = () => emblaApi?.scrollPrev();
   const scrollNext = () => emblaApi?.scrollNext();
 
+  const handleCardOpen = useCallback((clickedItem: TMDBMovie | TMDBSeries, clickedType: "movie" | "tv") => {
+    setSelectedItem({ item: clickedItem, type: clickedType });
+  }, []);
+
   useEffect(() => {
     if (!emblaApi) return;
 
     const updateScrollState = () => {
-      setCanScrollPrev(emblaApi.canScrollPrev());
-      setCanScrollNext(emblaApi.canScrollNext());
+      const prev = emblaApi.canScrollPrev();
+      const next = emblaApi.canScrollNext();
+      setCanScrollPrev((p) => (p === prev ? p : prev));
+      setCanScrollNext((n) => (n === next ? n : next));
     };
 
     updateScrollState();
@@ -113,12 +121,7 @@ export default function DashboardRow({ title, items, type, isLoading, href }: Da
                     variant="dashboard"
                     canScrollPrev={canScrollPrev}
                     canScrollNext={canScrollNext}
-                    onCardClick={(clickedItem, clickedType) =>
-                      setSelectedItem({
-                        item: clickedItem,
-                        type: clickedType,
-                      })
-                    }
+                    onCardClick={handleCardOpen}
                   />
                 </div>
               </div>

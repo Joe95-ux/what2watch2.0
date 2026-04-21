@@ -1,12 +1,19 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Bookmark, Check, ChevronLeft, ChevronRight, Heart, ThumbsUp } from "lucide-react";
+import { Bookmark, Check, Heart, MoreVertical, ThumbsUp } from "lucide-react";
 import { RxCheck } from "react-icons/rx";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SheetLoadingDots } from "@/components/ui/sheet-loading-dots";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useUser, useClerk } from "@clerk/nextjs";
@@ -28,61 +35,158 @@ export function usePickForTonight() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ApiPicks | null>(null);
   const [insufficientMessage, setInsufficientMessage] = useState<string | null>(null);
+  const [picksHidden, setPicksHidden] = useState(false);
+  const [onlyUnseen, setOnlyUnseen] = useState(false);
+  const pickInFlightRef = useRef(false);
 
-  const runPick = useCallback(async () => {
-    setShowRow(true);
-    setLoading(true);
-    setData(null);
-    setInsufficientMessage(null);
-    try {
-      const res = await fetch("/api/ai/pick-for-tonight/cards", { method: "POST" });
-      const json = await res.json();
+  const runPick = useCallback(
+    async (options?: { onlyUnseen?: boolean }) => {
+      if (pickInFlightRef.current) return;
+      pickInFlightRef.current = true;
+      const unseenFlag = options?.onlyUnseen !== undefined ? options.onlyUnseen : onlyUnseen;
+      setShowRow(true);
+      setLoading(true);
+      setData(null);
+      setInsufficientMessage(null);
+      try {
+        const res = await fetch("/api/ai/pick-for-tonight/cards", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ onlyUnseen: unseenFlag }),
+        });
+        const json = await res.json();
 
-      if (res.status === 403) {
-        if (json.error === "BETA_ADMIN_ONLY") {
-          toast.error(json.message || "This beta is currently admin-only");
-        } else {
-          toast.error(json.message || json.error || "Request blocked");
+        if (res.status === 403) {
+          if (json.error === "BETA_ADMIN_ONLY") {
+            toast.error(json.message || "This beta is currently admin-only");
+          } else {
+            toast.error(json.message || json.error || "Request blocked");
+          }
+          return;
         }
-        return;
+
+        if (!res.ok) {
+          toast.error(json.error || "Something went wrong");
+          return;
+        }
+
+        if (json.insufficientContext) {
+          setInsufficientMessage(json.message || "Add titles to your library first.");
+          return;
+        }
+
+        if (json.picks) {
+          setData(json as ApiPicks);
+          return;
+        }
+
+        toast.error("Unexpected response");
+      } catch {
+        toast.error("Network error");
+      } finally {
+        setLoading(false);
+        pickInFlightRef.current = false;
       }
+    },
+    [onlyUnseen]
+  );
 
-      if (!res.ok) {
-        toast.error(json.error || "Something went wrong");
-        return;
-      }
-
-      if (json.insufficientContext) {
-        setInsufficientMessage(json.message || "Add titles to your library first.");
-        return;
-      }
-
-      if (json.picks) {
-        setData(json as ApiPicks);
-        return;
-      }
-
-      toast.error("Unexpected response");
-    } catch {
-      toast.error("Network error");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  return { showRow, loading, data, insufficientMessage, runPick };
+  return {
+    showRow,
+    loading,
+    data,
+    insufficientMessage,
+    runPick,
+    picksHidden,
+    setPicksHidden,
+    onlyUnseen,
+    setOnlyUnseen,
+  };
 }
 
-export function PickForTonightButton({ onClick }: { onClick: () => void }) {
+export function PickForTonightButton({
+  onClick,
+  disabled,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+}) {
   return (
     <Button
       type="button"
       variant="ghost"
-      className="cursor-pointer border border-primary/15 px-3 text-sm font-medium hover:bg-primary/5"
+      disabled={disabled}
+      className="cursor-pointer border border-primary/15 px-3 text-sm font-medium hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
       onClick={onClick}
     >
-      Pick for tonight
+      {disabled ? "Picking…" : "Pick for tonight"}
     </Button>
+  );
+}
+
+export function PickForTonightActionsMenu({
+  picksHidden,
+  onPicksHiddenChange,
+  onlyUnseen,
+  onOnlyUnseenChange,
+  showRow,
+  runPick,
+  loading,
+}: {
+  picksHidden: boolean;
+  onPicksHiddenChange: (hidden: boolean) => void;
+  onlyUnseen: boolean;
+  onOnlyUnseenChange: (value: boolean) => void;
+  showRow: boolean;
+  runPick: (options?: { onlyUnseen?: boolean }) => Promise<void>;
+  loading: boolean;
+}) {
+  if (!showRow) return null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          disabled={loading}
+          className="h-9 w-9 shrink-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label="Pick for tonight options"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onClick={() => onPicksHiddenChange(!picksHidden)}
+        >
+          {picksHidden ? "Show picks" : "Hide picks"}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="cursor-pointer gap-2.5 py-2 pl-2 pr-2"
+          onSelect={(e) => {
+            e.preventDefault();
+            const next = !onlyUnseen;
+            onOnlyUnseenChange(next);
+            if (showRow) void runPick({ onlyUnseen: next });
+          }}
+        >
+          <span
+            className={cn(
+              "flex h-4 w-4 shrink-0 items-center justify-center rounded border border-muted-foreground/50 bg-background",
+              onlyUnseen && "border-primary bg-primary/15 text-primary"
+            )}
+            aria-hidden
+          >
+            {onlyUnseen ? <Check className="h-3 w-3" strokeWidth={2.5} /> : null}
+          </span>
+          <span className="text-sm text-foreground">Not seen only</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -121,7 +225,7 @@ export function PickForTonightResultsRow({
       )}
 
       {!loading && data?.picks?.length ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {data.picks.map((pick) => (
             <PickCardItem key={pick.id} item={pick} />
           ))}
@@ -135,10 +239,34 @@ function detailHref(pick: PickForTonightCandidate): string {
   return pick.mediaType === "tv" ? `/tv/${pick.tmdbId}` : `/movie/${pick.tmdbId}`;
 }
 
-function providerLabel(monetizationType?: string | null): string {
-  if (monetizationType === "buy") return "Buy now";
-  if (monetizationType === "rent") return "Rent now";
-  return "Watch now";
+function truncateToWords(text: string, maxWords: number): string {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  return words.slice(0, maxWords).join(" ");
+}
+
+/** Trim and collapse whitespace so length limits apply to “real” words, not padding. */
+function normalizeLabelWhitespace(text: string): string {
+  return text.trim().replace(/\s+/g, " ");
+}
+
+/** At most `max` characters after normalizing spaces; ellipsis counts as one character. */
+function truncateToMaxChars(text: string, max: number): string {
+  const normalized = normalizeLabelWhitespace(text);
+  if (normalized.length <= max) return normalized;
+  if (max <= 1) return "…";
+  let body = normalized.slice(0, max - 1);
+  body = body.replace(/\s+$/, "");
+  if (!body) return "…";
+  return `${body}…`;
+}
+
+/** e.g. "watch on netflix" → CSS `capitalize` yields "Watch On Netflix" */
+function providerWatchLabel(provider: NonNullable<PickForTonightCandidate["provider"]>): string {
+  const name = truncateToWords(provider.providerName?.trim() || "Provider", 3);
+  const t = provider.monetizationType;
+  if (t === "buy") return `buy on ${name}`;
+  if (t === "rent") return `rent on ${name}`;
+  return `watch on ${name}`;
 }
 
 function toTMDBShape(item: PickForTonightCandidate): TMDBMovie | TMDBSeries {
@@ -175,16 +303,16 @@ function toTMDBShape(item: PickForTonightCandidate): TMDBMovie | TMDBSeries {
   };
 }
 
+const iconActiveClass = "text-yellow-400 fill-yellow-400 stroke-yellow-400";
+
 function PosterActionButton({
   onClick,
-  active,
   title,
   children,
   className,
   disabled,
 }: {
   onClick: () => void;
-  active?: boolean;
   title: string;
   children: ReactNode;
   className?: string;
@@ -202,11 +330,9 @@ function PosterActionButton({
       title={title}
       className={cn(
         "inline-flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 transition-colors",
+        "bg-black/55 text-white hover:bg-black/70",
         "ring-0 outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
         "disabled:pointer-events-none disabled:opacity-50",
-        active
-          ? "bg-yellow-500 text-white shadow-sm hover:bg-yellow-500/90"
-          : "bg-black/55 text-white hover:bg-black/70",
         className
       )}
     >
@@ -218,7 +344,6 @@ function PosterActionButton({
 function PickCardItem({ item }: { item: PickForTonightCandidate }) {
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
-  const [infoOpen, setInfoOpen] = useState(true);
 
   const toggleFavorite = useToggleFavorite();
   const toggleWatchlist = useToggleWatchlist();
@@ -291,15 +416,20 @@ function PickCardItem({ item }: { item: PickForTonightCandidate }) {
     }
   };
 
-  const handleBookToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    setInfoOpen((o) => !o);
-  };
-
   const metadata = [item.releaseYear, item.rated, item.runtimeText].filter(Boolean).join(" • ");
   const provider = item.provider;
   const providerHref = provider?.deepLinkUrl ?? provider?.standardWebUrl ?? "#";
+
+  const providerLinkLabels = useMemo(() => {
+    if (!provider) return null;
+    const full = normalizeLabelWhitespace(providerWatchLabel(provider));
+    return {
+      full,
+      mobile: truncateToWords(full, 3),
+      desktop: truncateToMaxChars(full, 18),
+    };
+  }, [provider]);
+
   const isActionPending =
     quickWatch.isPending || unwatch.isPending || toggleFavorite.isLoading || likeContent.isPending || toggleWatchlist.isLoading;
 
@@ -308,14 +438,9 @@ function PickCardItem({ item }: { item: PickForTonightCandidate }) {
     : null;
 
   return (
-    <div className="relative flex w-full min-w-0 flex-row overflow-hidden rounded-lg border border-border bg-card transition-all">
-      <div
-        className={cn(
-          "relative z-0 flex min-h-[140px] min-w-0 flex-shrink-0 self-stretch overflow-hidden bg-muted transition-[width] duration-300 ease-out",
-          infoOpen ? "w-24 sm:w-32" : "w-full min-w-0 flex-1"
-        )}
-      >
-        <div className="group/poster relative h-full w-full min-h-0 min-w-0">
+    <div className="relative flex h-[200px] w-full min-w-0 flex-row overflow-hidden rounded-lg border border-border bg-card">
+      <div className="relative z-0 h-full w-[135px] shrink-0 overflow-hidden bg-muted">
+        <div className="group/poster relative h-full w-full">
           <Link
             href={detailHref(item)}
             className="absolute inset-0 z-0 block"
@@ -327,7 +452,7 @@ function PickCardItem({ item }: { item: PickForTonightCandidate }) {
                 alt={item.title}
                 fill
                 className="object-cover"
-                sizes="158px"
+                sizes="135px"
                 unoptimized
               />
             ) : (
@@ -336,123 +461,98 @@ function PickCardItem({ item }: { item: PickForTonightCandidate }) {
           </Link>
 
           <div
-            className="absolute left-0 right-7 top-0 z-20 flex items-start justify-between gap-0 px-0.5 pt-0.5"
+            className={cn(
+              "absolute inset-x-0 top-0 z-20 flex items-start justify-between p-2 transition-opacity duration-200",
+              "opacity-100 lg:opacity-0 lg:pointer-events-none lg:group-hover/poster:pointer-events-auto lg:group-hover/poster:opacity-100"
+            )}
             onClick={(e) => e.stopPropagation()}
           >
             <PosterActionButton
               onClick={handleToggleWatched}
-              active={isWatched}
               title={isWatched ? "Marked as seen" : "Mark as seen"}
               disabled={isActionPending}
             >
               {isWatched ? (
-                <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                <Check className={cn("h-3.5 w-3.5", iconActiveClass)} strokeWidth={2.5} />
               ) : (
-                <RxCheck className="h-3.5 w-3.5" />
+                <RxCheck className="h-3.5 w-3.5 text-white" />
               )}
             </PosterActionButton>
-            <PosterActionButton
-              onClick={handleToggleFavorite}
-              active={isFavorite}
-              title="Favorite"
-              disabled={isActionPending}
-            >
-              <Heart className={cn("h-3.5 w-3.5", isFavorite && "fill-current")} />
+            <PosterActionButton onClick={handleToggleFavorite} title="Favorite" disabled={isActionPending}>
+              <Heart className={cn("h-3.5 w-3.5 text-white", isFavorite && iconActiveClass)} />
             </PosterActionButton>
-            <PosterActionButton
-              onClick={handleLike}
-              active={isLiked}
-              title="Like"
-              disabled={likeContent.isPending}
-            >
-              <ThumbsUp className={cn("h-3.5 w-3.5", isLiked && "fill-current")} />
+            <PosterActionButton onClick={handleLike} title="Like" disabled={likeContent.isPending}>
+              <ThumbsUp className={cn("h-3.5 w-3.5 text-white", isLiked && iconActiveClass)} />
             </PosterActionButton>
-            <PosterActionButton
-              onClick={handleToggleWatchlist}
-              active={inWatchlist}
-              title="Watchlist"
-              disabled={isActionPending}
-            >
-              <Bookmark className={cn("h-3.5 w-3.5", inWatchlist && "fill-current")} />
+            <PosterActionButton onClick={handleToggleWatchlist} title="Watchlist" disabled={isActionPending}>
+              <Bookmark className={cn("h-3.5 w-3.5 text-white", inWatchlist && iconActiveClass)} />
             </PosterActionButton>
           </div>
-
-          <button
-            type="button"
-            onClick={handleBookToggle}
-            className={cn(
-              "absolute right-0 top-0 bottom-0 z-30 flex w-7 flex-col items-center justify-center border-l border-border bg-card/95 shadow-sm",
-              "hover:bg-muted/80 active:bg-muted transition-colors cursor-pointer"
-            )}
-            title={infoOpen ? "Close details" : "Open details"}
-            aria-expanded={infoOpen}
-          >
-            {infoOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </button>
         </div>
       </div>
 
-      <div
-        className={cn(
-          "flex min-w-0 flex-1 flex-col border-l border-border transition-all duration-300 ease-out will-change-transform",
-          infoOpen
-            ? "max-w-full translate-x-0 opacity-100"
-            : "w-0 max-w-0 flex-[0] -translate-x-full border-l-0 p-0 opacity-0 [flex-basis:0] overflow-hidden"
-        )}
-        aria-hidden={!infoOpen}
-      >
-        <div className="min-w-0 p-4 sm:p-6">
-          <div className="mb-2">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-l border-border">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-between overflow-y-auto p-4">
+          <div className="mb-1.5">
             <Link
               href={detailHref(item)}
-              className="text-lg font-semibold text-foreground hover:text-primary sm:line-clamp-1"
+              className="line-clamp-1 text-base font-semibold text-foreground hover:text-primary"
               onClick={(e) => e.stopPropagation()}
             >
               {item.title}
             </Link>
           </div>
 
-          {metadata && <p className="text-sm text-muted-foreground mt-1">{metadata}</p>}
+          {metadata && <p className="text-xs text-muted-foreground">{metadata}</p>}
 
-          <p className="line-clamp-3 text-[13px] leading-[1.35] text-muted-foreground mt-2">
+          <p className="line-clamp-2 text-[13px] leading-snug text-muted-foreground mt-1.5">
             {item.overview || "No synopsis available yet."}
           </p>
 
-          <div className="flex items-center gap-2 mt-3">
-            <IMDBBadge size={24} />
-            <span className="text-sm font-medium">{item.imdbRating ? `${item.imdbRating}/10` : "N/A"}</span>
+          <div className="flex items-center gap-1.5 mt-2">
+            <IMDBBadge size={20} />
+            <span className="text-xs font-medium">{item.imdbRating ? `${item.imdbRating}/10` : "N/A"}</span>
           </div>
 
-          {provider ? (
+          {provider && providerLinkLabels ? (
             <a
               href={providerHref}
               target="_blank"
               rel="noopener noreferrer"
+              title={providerLinkLabels.full}
               onClick={(e) => e.stopPropagation()}
-              className="mt-3 inline-flex h-10 max-w-full items-stretch overflow-hidden rounded-lg border border-border/60 bg-muted hover:bg-muted/80 transition-colors"
+              className="mt-2 inline-flex h-8 max-w-full min-w-0 items-stretch overflow-hidden rounded-md border border-border/60 bg-muted capitalize text-[14px] font-medium leading-none hover:bg-muted/80 transition-colors"
             >
               {provider.iconUrl ? (
                 <>
                   <Image
                     src={provider.iconUrl}
                     alt={provider.providerName}
-                    width={40}
-                    height={40}
-                    className="h-10 w-10 object-contain"
+                    width={32}
+                    height={32}
+                    className="h-8 w-8 shrink-0 object-contain"
                     unoptimized
                   />
-                  <span className="flex items-center px-3 text-[15px] font-medium">
-                    {providerLabel(provider.monetizationType)}
+                  <span className="flex min-w-0 flex-1 items-center truncate px-2.5 sm:hidden">
+                    {providerLinkLabels.mobile}
+                  </span>
+                  <span className="hidden min-w-0 flex-1 items-center truncate px-2.5 sm:flex">
+                    {providerLinkLabels.desktop}
                   </span>
                 </>
               ) : (
-                <span className="flex items-center px-3 text-[15px] font-medium">
-                  {providerLabel(provider.monetizationType)}
-                </span>
+                <>
+                  <span className="flex min-w-0 flex-1 items-center truncate px-2.5 sm:hidden">
+                    {providerLinkLabels.mobile}
+                  </span>
+                  <span className="hidden min-w-0 flex-1 items-center truncate px-2.5 sm:flex">
+                    {providerLinkLabels.desktop}
+                  </span>
+                </>
               )}
             </a>
           ) : (
-            <span className="mt-3 text-xs text-muted-foreground">Provider info unavailable</span>
+            <span className="mt-2 text-[11px] text-muted-foreground">Provider info unavailable</span>
           )}
         </div>
       </div>
@@ -465,13 +565,26 @@ export function PickForTonightCard() {
   const p = usePickForTonight();
   return (
     <div className="flex w-full max-w-md flex-col items-end">
-      <PickForTonightButton onClick={p.runPick} />
-      <PickForTonightResultsRow
-        showRow={p.showRow}
-        loading={p.loading}
-        data={p.data}
-        insufficientMessage={p.insufficientMessage}
-      />
+      <div className="flex items-center gap-0.5">
+        <PickForTonightButton onClick={() => void p.runPick()} disabled={p.loading} />
+        <PickForTonightActionsMenu
+          picksHidden={p.picksHidden}
+          onPicksHiddenChange={p.setPicksHidden}
+          onlyUnseen={p.onlyUnseen}
+          onOnlyUnseenChange={p.setOnlyUnseen}
+          showRow={p.showRow}
+          runPick={p.runPick}
+          loading={p.loading}
+        />
+      </div>
+      {!p.picksHidden && (
+        <PickForTonightResultsRow
+          showRow={p.showRow}
+          loading={p.loading}
+          data={p.data}
+          insufficientMessage={p.insufficientMessage}
+        />
+      )}
     </div>
   );
 }

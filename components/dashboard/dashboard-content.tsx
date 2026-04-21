@@ -31,6 +31,7 @@ import { TrendAlertsWidget } from "@/components/dashboard/trend-alerts-widget";
 import {
   usePickForTonight,
   PickForTonightButton,
+  PickForTonightActionsMenu,
   PickForTonightResultsRow,
 } from "@/components/dashboard/pick-for-tonight-card";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
@@ -41,11 +42,17 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/** Avoid `data ?? []` default in render — a new `[]` each time forces downstream memos & Embla to churn. */
+function useStableQueryArray<T>(data: T[] | undefined): T[] {
+  return useMemo(() => data ?? [], [data]);
+}
+
 export default function DashboardContent() {
   const { user } = useUser();
   const { data: currentUser } = useCurrentUser();
   const queryClient = useQueryClient();
-  const { data: favorites = [], isLoading: isLoadingFavorites } = useFavorites();
+  const { data: favoritesData, isLoading: isLoadingFavorites } = useFavorites();
+  const favorites = useStableQueryArray(favoritesData);
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
   const { data: recentlyViewed, isLoading: isLoadingRecentlyViewed } = useRecentlyViewed();
   const { data: playlistAnalytics, isLoading: isLoadingPlaylistAnalytics } = usePlaylistAnalytics(); // Show all data by default
@@ -90,9 +97,20 @@ export default function DashboardContent() {
     return (preferences?.preferredTypes || []) as ("movie" | "tv")[];
   }, [preferences]);
 
-  const { data: personalizedContent = [], isLoading: isLoadingPersonalized } = usePersonalizedContent(
+  const personalizedMediaTypes = useMemo(
+    () => (preferredTypes.length > 0 ? preferredTypes : (["movie", "tv"] as ("movie" | "tv")[])),
+    [preferredTypes]
+  );
+
+  const { data: personalizedData, isLoading: isLoadingPersonalized } = usePersonalizedContent(
     favoriteGenres,
-    preferredTypes.length > 0 ? preferredTypes : ["movie", "tv"]
+    personalizedMediaTypes
+  );
+  const personalizedContent = useStableQueryArray(personalizedData);
+
+  const personalizedRowItems = useMemo(
+    () => personalizedContent.slice(0, 20),
+    [personalizedContent]
   );
 
   // Convert recently viewed to TMDB format
@@ -225,7 +243,7 @@ export default function DashboardContent() {
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* Greeting + Pick for tonight; results row below (same block, no extra card) */}
         <div className="mb-4 sm:mb-6 md:mb-8">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">
                 {greeting}, {displayName}
@@ -235,10 +253,24 @@ export default function DashboardContent() {
               </p>
             </div>
             {isPickForTonightAdmin && (
-              <PickForTonightButton onClick={pickForTonight.runPick} />
+              <div className="flex items-center gap-0.5">
+                <PickForTonightButton
+                  onClick={() => void pickForTonight.runPick()}
+                  disabled={pickForTonight.loading}
+                />
+                <PickForTonightActionsMenu
+                  picksHidden={pickForTonight.picksHidden}
+                  onPicksHiddenChange={pickForTonight.setPicksHidden}
+                  onlyUnseen={pickForTonight.onlyUnseen}
+                  onOnlyUnseenChange={pickForTonight.setOnlyUnseen}
+                  showRow={pickForTonight.showRow}
+                  runPick={pickForTonight.runPick}
+                  loading={pickForTonight.loading}
+                />
+              </div>
             )}
           </div>
-          {isPickForTonightAdmin && (
+          {isPickForTonightAdmin && !pickForTonight.picksHidden && (
             <PickForTonightResultsRow
               showRow={pickForTonight.showRow}
               loading={pickForTonight.loading}
@@ -477,7 +509,7 @@ export default function DashboardContent() {
           ) : personalizedContent.length > 0 ? (
             <DashboardRow
               title={`Made for ${displayName}`}
-              items={personalizedContent.slice(0, 20)}
+              items={personalizedRowItems}
               type={preferredTypes.length === 1 ? preferredTypes[0] : "movie"}
             />
           ) : null
