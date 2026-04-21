@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SheetLoadingDots } from "@/components/ui/sheet-loading-dots";
-import { IMDBBadge } from "@/components/ui/imdb-badge";
+import { PickForTonightConfidenceRow } from "@/components/dashboard/pick-for-tonight-confidence-row";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import type { PickForTonightCandidate } from "@/lib/pick-for-tonight-types";
@@ -37,13 +37,15 @@ export function usePickForTonight() {
   const [insufficientMessage, setInsufficientMessage] = useState<string | null>(null);
   const [picksHidden, setPicksHidden] = useState(false);
   const [onlyUnseen, setOnlyUnseen] = useState(false);
+  const [trendingToday, setTrendingToday] = useState(false);
   const pickInFlightRef = useRef(false);
 
   const runPick = useCallback(
-    async (options?: { onlyUnseen?: boolean }) => {
+    async (options?: { onlyUnseen?: boolean; trendingToday?: boolean }) => {
       if (pickInFlightRef.current) return;
       pickInFlightRef.current = true;
       const unseenFlag = options?.onlyUnseen !== undefined ? options.onlyUnseen : onlyUnseen;
+      const trendingFlag = options?.trendingToday !== undefined ? options.trendingToday : trendingToday;
       setShowRow(true);
       setLoading(true);
       setData(null);
@@ -52,7 +54,7 @@ export function usePickForTonight() {
         const res = await fetch("/api/ai/pick-for-tonight/cards", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ onlyUnseen: unseenFlag }),
+          body: JSON.stringify({ onlyUnseen: unseenFlag, trendingToday: trendingFlag }),
         });
         const json = await res.json();
 
@@ -88,7 +90,7 @@ export function usePickForTonight() {
         pickInFlightRef.current = false;
       }
     },
-    [onlyUnseen]
+    [onlyUnseen, trendingToday]
   );
 
   return {
@@ -101,6 +103,8 @@ export function usePickForTonight() {
     setPicksHidden,
     onlyUnseen,
     setOnlyUnseen,
+    trendingToday,
+    setTrendingToday,
   };
 }
 
@@ -129,6 +133,8 @@ export function PickForTonightActionsMenu({
   onPicksHiddenChange,
   onlyUnseen,
   onOnlyUnseenChange,
+  trendingToday,
+  onTrendingTodayChange,
   showRow,
   runPick,
   loading,
@@ -137,8 +143,10 @@ export function PickForTonightActionsMenu({
   onPicksHiddenChange: (hidden: boolean) => void;
   onlyUnseen: boolean;
   onOnlyUnseenChange: (value: boolean) => void;
+  trendingToday: boolean;
+  onTrendingTodayChange: (value: boolean) => void;
   showRow: boolean;
-  runPick: (options?: { onlyUnseen?: boolean }) => Promise<void>;
+  runPick: (options?: { onlyUnseen?: boolean; trendingToday?: boolean }) => Promise<void>;
   loading: boolean;
 }) {
   if (!showRow) return null;
@@ -160,6 +168,18 @@ export function PickForTonightActionsMenu({
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuItem
           className="cursor-pointer"
+          onSelect={(e) => {
+            e.preventDefault();
+            onOnlyUnseenChange(false);
+            onTrendingTodayChange(false);
+            if (showRow) void runPick({ onlyUnseen: false, trendingToday: false });
+          }}
+        >
+          Custom picks
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="cursor-pointer"
           onClick={() => onPicksHiddenChange(!picksHidden)}
         >
           {picksHidden ? "Show picks" : "Hide picks"}
@@ -171,7 +191,7 @@ export function PickForTonightActionsMenu({
             e.preventDefault();
             const next = !onlyUnseen;
             onOnlyUnseenChange(next);
-            if (showRow) void runPick({ onlyUnseen: next });
+            if (showRow) void runPick({ onlyUnseen: next, trendingToday });
           }}
         >
           <span
@@ -184,6 +204,26 @@ export function PickForTonightActionsMenu({
             {onlyUnseen ? <Check className="h-3 w-3" strokeWidth={2.5} /> : null}
           </span>
           <span className="text-sm text-foreground">Not seen only</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="cursor-pointer gap-2.5 py-2 pl-2 pr-2"
+          onSelect={(e) => {
+            e.preventDefault();
+            const next = !trendingToday;
+            onTrendingTodayChange(next);
+            if (showRow) void runPick({ trendingToday: next, onlyUnseen });
+          }}
+        >
+          <span
+            className={cn(
+              "flex h-4 w-4 shrink-0 items-center justify-center rounded border border-muted-foreground/50 bg-background",
+              trendingToday && "border-primary bg-primary/15 text-primary"
+            )}
+            aria-hidden
+          >
+            {trendingToday ? <Check className="h-3 w-3" strokeWidth={2.5} /> : null}
+          </span>
+          <span className="text-sm text-foreground">Trending today</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -509,10 +549,12 @@ function PickCardItem({ item }: { item: PickForTonightCandidate }) {
             {item.overview || "No synopsis available yet."}
           </p>
 
-          <div className="flex items-center gap-1.5 mt-2">
-            <IMDBBadge size={20} />
-            <span className="text-xs font-medium">{item.imdbRating ? `${item.imdbRating}/10` : "N/A"}</span>
-          </div>
+          <PickForTonightConfidenceRow
+            justwatchRank24h={item.justwatchRank24h}
+            justwatchRankDelta24h={item.justwatchRankDelta24h}
+            justwatchRankUrl={item.justwatchRankUrl}
+            imdbRating={item.imdbRating}
+          />
 
           {provider && providerLinkLabels ? (
             <a
@@ -572,6 +614,8 @@ export function PickForTonightCard() {
           onPicksHiddenChange={p.setPicksHidden}
           onlyUnseen={p.onlyUnseen}
           onOnlyUnseenChange={p.setOnlyUnseen}
+          trendingToday={p.trendingToday}
+          onTrendingTodayChange={p.setTrendingToday}
           showRow={p.showRow}
           runPick={p.runPick}
           loading={p.loading}

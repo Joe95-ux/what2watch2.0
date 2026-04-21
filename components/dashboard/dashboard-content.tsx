@@ -263,6 +263,8 @@ export default function DashboardContent() {
                   onPicksHiddenChange={pickForTonight.setPicksHidden}
                   onlyUnseen={pickForTonight.onlyUnseen}
                   onOnlyUnseenChange={pickForTonight.setOnlyUnseen}
+                  trendingToday={pickForTonight.trendingToday}
+                  onTrendingTodayChange={pickForTonight.setTrendingToday}
                   showRow={pickForTonight.showRow}
                   runPick={pickForTonight.runPick}
                   loading={pickForTonight.loading}

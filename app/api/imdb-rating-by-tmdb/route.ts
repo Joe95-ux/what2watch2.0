@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const tmdbId = searchParams.get("tmdbId");
-    const type = searchParams.get("type"); // "movie" or "tv"
+    const typeRaw = searchParams.get("type"); // "movie" or "tv"
+    const type = (typeRaw ?? "").toLowerCase();
 
     if (!tmdbId || !type) {
       return NextResponse.json(
@@ -55,7 +56,13 @@ export async function GET(request: NextRequest) {
     // Try to fetch from OMDB if IMDb ID is available
     let imdbRating = null;
     if (imdbId) {
-      imdbRating = await getIMDBRating(imdbId);
+      try {
+        imdbRating = await getIMDBRating(imdbId);
+      } catch (error) {
+        // Never fail this endpoint because OMDB had no rating or errored.
+        console.warn("OMDB lookup failed for imdb-rating-by-tmdb; falling back:", error);
+        imdbRating = null;
+      }
     }
 
     if (imdbRating) {

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
+import {
+  getMovieDetails,
+  getTVDetails,
+  getTrendingMovies,
+} from "@/lib/tmdb";
 import { getOMDBFullData } from "@/lib/omdb";
 import { getJustWatchAvailability } from "@/lib/justwatch";
 import type { PickForTonightCandidate } from "@/lib/pick-for-tonight-types";
@@ -28,6 +32,17 @@ function yearFromDate(date: string | null | undefined): string | null {
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return null;
   return String(d.getFullYear());
+}
+
+function isDateReleased(date: string | null | undefined): boolean {
+  if (!date) return false;
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return false;
+  const now = new Date();
+  // Compare by local date to avoid edge-case timezone drift around midnight.
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const candidate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return candidate.getTime() <= today.getTime();
 }
 
 type BaseCandidate = {
@@ -87,6 +102,10 @@ async function enrichCandidate(c: BaseCandidate): Promise<PickForTonightCandidat
       runtimeText: formatRuntime(runtimeMinutes),
       overview: details.overview ?? null,
       imdbRating: omdb?.imdbRating ?? (details.vote_average > 0 ? Number(details.vote_average.toFixed(1)) : null),
+      justwatchRank24h: availability?.ranks?.["1d"]?.rank ?? null,
+      justwatchRankDelta24h: availability?.ranks?.["1d"]?.delta ?? null,
+      justwatchRankUrl: availability?.fullPath ? `https://www.justwatch.com${availability.fullPath}` : null,
+      isTrendingTodayPick: c.hints.includes("Trending today"),
       provider: primaryProvider
         ? {
             providerName: primaryProvider.providerName,
@@ -109,6 +128,10 @@ async function enrichCandidate(c: BaseCandidate): Promise<PickForTonightCandidat
       runtimeText: null,
       overview: null,
       imdbRating: null,
+      justwatchRank24h: null,
+      justwatchRankDelta24h: null,
+      justwatchRankUrl: null,
+      isTrendingTodayPick: c.hints.includes("Trending today"),
       provider: null,
       hints: c.hints,
     };
@@ -118,9 +141,11 @@ async function enrichCandidate(c: BaseCandidate): Promise<PickForTonightCandidat
 export async function POST(request: NextRequest) {
   try {
     let onlyUnseen = false;
+    let trendingToday = false;
     try {
-      const body = (await request.json()) as { onlyUnseen?: unknown } | null;
+      const body = (await request.json()) as { onlyUnseen?: unknown; trendingToday?: unknown } | null;
       if (body && body.onlyUnseen === true) onlyUnseen = true;
+      if (body && body.trendingToday === true) trendingToday = true;
     } catch {
       // empty or invalid body — treat as default picks
     }
@@ -162,51 +187,66 @@ export async function POST(request: NextRequest) {
     ]);
 
     const byId = new Map<string, BaseCandidate>();
-    for (const list of lists) {
-      for (const it of list.items) {
+    if (trendingToday) {
+      const trending = await getTrendingMovies("day", 1);
+      const releasedTrending = (trending.results ?? []).filter((movie) => isDateReleased(movie.release_date));
+      for (const [index, movie] of releasedTrending.slice(0, 5).entries()) {
         const base = {
-          id: candidateId(it.tmdbId, it.mediaType),
-          tmdbId: it.tmdbId,
-          mediaType: normMedia(it.mediaType),
-          title: it.title,
-          posterPath: it.posterPath ?? null,
+          id: candidateId(movie.id, "movie"),
+          tmdbId: movie.id,
+          mediaType: "movie" as const,
+          title: movie.title,
+          posterPath: movie.poster_path ?? null,
         };
-        addHint(byId, base, `List: ${list.name}`, 3);
-        if (it.note?.trim()) addHint(byId, base, "Has personal note", 4);
+        addHint(byId, base, "Trending today", 100 - index);
       }
-    }
-    for (const pl of playlists) {
-      for (const it of pl.items) {
+    } else {
+      for (const list of lists) {
+        for (const it of list.items) {
+          const base = {
+            id: candidateId(it.tmdbId, it.mediaType),
+            tmdbId: it.tmdbId,
+            mediaType: normMedia(it.mediaType),
+            title: it.title,
+            posterPath: it.posterPath ?? null,
+          };
+          addHint(byId, base, `List: ${list.name}`, 3);
+          if (it.note?.trim()) addHint(byId, base, "Has personal note", 4);
+        }
+      }
+      for (const pl of playlists) {
+        for (const it of pl.items) {
+          const base = {
+            id: candidateId(it.tmdbId, it.mediaType),
+            tmdbId: it.tmdbId,
+            mediaType: normMedia(it.mediaType),
+            title: it.title,
+            posterPath: it.posterPath ?? null,
+          };
+          addHint(byId, base, `Playlist: ${pl.name}`, 2);
+          if (it.note?.trim()) addHint(byId, base, "Has personal note", 4);
+        }
+      }
+      for (const fav of favorites) {
         const base = {
-          id: candidateId(it.tmdbId, it.mediaType),
-          tmdbId: it.tmdbId,
-          mediaType: normMedia(it.mediaType),
-          title: it.title,
-          posterPath: it.posterPath ?? null,
+          id: candidateId(fav.tmdbId, fav.mediaType),
+          tmdbId: fav.tmdbId,
+          mediaType: normMedia(fav.mediaType),
+          title: fav.title,
+          posterPath: fav.posterPath ?? null,
         };
-        addHint(byId, base, `Playlist: ${pl.name}`, 2);
-        if (it.note?.trim()) addHint(byId, base, "Has personal note", 4);
+        addHint(byId, base, "Watchlist", 1);
       }
-    }
-    for (const fav of favorites) {
-      const base = {
-        id: candidateId(fav.tmdbId, fav.mediaType),
-        tmdbId: fav.tmdbId,
-        mediaType: normMedia(fav.mediaType),
-        title: fav.title,
-        posterPath: fav.posterPath ?? null,
-      };
-      addHint(byId, base, "Watchlist", 1);
-    }
 
-    for (const s of sessions) {
-      const meta = (s.metadata as { tmdbId?: number; mediaType?: string } | null) ?? {};
-      if (typeof meta.tmdbId !== "number" || !meta.mediaType) continue;
-      const id = candidateId(meta.tmdbId, meta.mediaType);
-      const prev = byId.get(id);
-      if (prev) {
-        prev.score += 2;
-        if (!prev.hints.includes("Recent title chat")) prev.hints.push("Recent title chat");
+      for (const s of sessions) {
+        const meta = (s.metadata as { tmdbId?: number; mediaType?: string } | null) ?? {};
+        if (typeof meta.tmdbId !== "number" || !meta.mediaType) continue;
+        const id = candidateId(meta.tmdbId, meta.mediaType);
+        const prev = byId.get(id);
+        if (prev) {
+          prev.score += 2;
+          if (!prev.hints.includes("Recent title chat")) prev.hints.push("Recent title chat");
+        }
       }
     }
 
@@ -228,9 +268,11 @@ export async function POST(request: NextRequest) {
     if (ranked.length === 0) {
       return NextResponse.json({
         insufficientContext: true,
-        message: onlyUnseen
-          ? "No unseen titles found in your library—everything here is already logged as watched, or add more lists and try again."
-          : "Add titles to your watchlist, lists, or playlists to generate tonight picks.",
+        message: trendingToday
+          ? "No unseen titles were found in today's TMDB trending top picks."
+          : onlyUnseen
+            ? "No unseen titles found in your library—everything here is already logged as watched, or add more lists and try again."
+            : "Add titles to your watchlist, lists, or playlists to generate tonight picks.",
       });
     }
 

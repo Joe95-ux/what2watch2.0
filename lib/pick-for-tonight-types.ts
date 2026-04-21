@@ -22,6 +22,10 @@ export type PickForTonightCandidate = {
   runtimeText: string | null;
   overview: string | null;
   imdbRating: number | null;
+  justwatchRank24h: number | null;
+  justwatchRankDelta24h: number | null;
+  justwatchRankUrl: string | null;
+  isTrendingTodayPick: boolean;
   provider: PickForTonightProvider | null;
   hints: string[];
 };
