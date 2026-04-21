@@ -272,7 +272,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
     [isSignedIn, promptSignIn]
   );
 
-  if (isMobile) {
+  // Keep dashboard cards stable during viewport changes.
+  if (isMobile && variant !== "dashboard") {
     return (
       <MoreLikeThisCard
         item={item}

@@ -582,18 +582,18 @@ export default function DashboardContent() {
               <Carousel
                 opts={{
                   align: "start",
-                  slidesToScroll: 5,
+                  slidesToScroll: 1,
                   breakpoints: {
-                    "(max-width: 640px)": { slidesToScroll: 2 },
-                    "(max-width: 1024px)": { slidesToScroll: 3 },
-                    "(max-width: 1280px)": { slidesToScroll: 4 },
+                    "(max-width: 600px)": { slidesToScroll: 1, dragFree: true },
+                    "(min-width: 601px)": { slidesToScroll: 2 },
+                    "(min-width: 1025px)": { slidesToScroll: 3 },
                   },
                 }}
                 className="w-full"
               >
-                <CarouselContent className="-ml-2 md:-ml-4 gap-3">
+                <CarouselContent className="-ml-2 md:-ml-4 gap-0">
                   {Array.from({ length: 8 }).map((_, i) => (
-                    <CarouselItem key={i} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
+                    <CarouselItem key={i} className="pl-2 md:pl-4 basis-1/1 sm:basis-1/2 lg:basis-1/3">
                       <Skeleton className="aspect-[3/4] w-full rounded-lg !bg-gray-200 dark:!bg-accent" />
                     </CarouselItem>
                   ))}
@@ -613,18 +613,18 @@ export default function DashboardContent() {
               <Carousel
                 opts={{
                   align: "start",
-                  slidesToScroll: 5,
+                  slidesToScroll: 1,
                   breakpoints: {
-                    "(max-width: 640px)": { slidesToScroll: 2 },
-                    "(max-width: 1024px)": { slidesToScroll: 3 },
-                    "(max-width: 1280px)": { slidesToScroll: 4 },
+                    "(max-width: 600px)": { slidesToScroll: 1, dragFree: true },
+                    "(min-width: 601px)": { slidesToScroll: 2 },
+                    "(min-width: 1025px)": { slidesToScroll: 3 },
                   },
                 }}
                 className="w-full"
               >
-                <CarouselContent className="-ml-2 md:-ml-4 gap-3">
+                <CarouselContent className="-ml-2 md:-ml-4 gap-0">
                   {playlists.slice(0, 10).map((playlist) => (
-                    <CarouselItem key={playlist.id} className="pl-2 md:pl-4 basis-[180px] sm:basis-[200px]">
+                    <CarouselItem key={playlist.id} className="pl-2 md:pl-4 basis-1/1 sm:basis-1/2 lg:basis-1/3">
                       <PlaylistCard playlist={playlist} variant="carousel" />
                     </CarouselItem>
                   ))}
