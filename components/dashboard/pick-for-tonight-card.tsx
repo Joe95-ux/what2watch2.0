@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Bookmark, Check, Heart, MoreVertical, ThumbsUp } from "lucide-react";
+import { ArrowLeft, Bookmark, Check, Heart, MoreVertical, ThumbsUp } from "lucide-react";
 import { RxCheck } from "react-icons/rx";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +29,7 @@ import { getPosterUrl } from "@/lib/tmdb";
 type ApiPicks = {
   picks: PickForTonightCandidate[];
 };
+type RerankMode = "lighter" | "shorter" | "intense" | "different";
 
 export function usePickForTonight() {
   const [showRow, setShowRow] = useState(false);
@@ -41,7 +42,7 @@ export function usePickForTonight() {
   const pickInFlightRef = useRef(false);
 
   const runPick = useCallback(
-    async (options?: { onlyUnseen?: boolean; trendingToday?: boolean }) => {
+    async (options?: { onlyUnseen?: boolean; trendingToday?: boolean; rerankMode?: RerankMode; avoidTmdbId?: number }) => {
       if (pickInFlightRef.current) return;
       pickInFlightRef.current = true;
       const unseenFlag = options?.onlyUnseen !== undefined ? options.onlyUnseen : onlyUnseen;
@@ -54,7 +55,12 @@ export function usePickForTonight() {
         const res = await fetch("/api/ai/pick-for-tonight/cards", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ onlyUnseen: unseenFlag, trendingToday: trendingFlag }),
+          body: JSON.stringify({
+            onlyUnseen: unseenFlag,
+            trendingToday: trendingFlag,
+            rerankMode: options?.rerankMode,
+            avoidTmdbId: options?.avoidTmdbId,
+          }),
         });
         const json = await res.json();
 
@@ -146,7 +152,7 @@ export function PickForTonightActionsMenu({
   trendingToday: boolean;
   onTrendingTodayChange: (value: boolean) => void;
   showRow: boolean;
-  runPick: (options?: { onlyUnseen?: boolean; trendingToday?: boolean }) => Promise<void>;
+  runPick: (options?: { onlyUnseen?: boolean; trendingToday?: boolean; rerankMode?: RerankMode; avoidTmdbId?: number }) => Promise<void>;
   loading: boolean;
 }) {
   if (!showRow) return null;
@@ -265,7 +271,7 @@ export function PickForTonightResultsRow({
       )}
 
       {!loading && data?.picks?.length ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {data.picks.map((pick) => (
             <PickCardItem key={pick.id} item={pick} />
           ))}
@@ -307,6 +313,13 @@ function providerWatchLabel(provider: NonNullable<PickForTonightCandidate["provi
   if (t === "buy") return `buy on ${name}`;
   if (t === "rent") return `rent on ${name}`;
   return `watch on ${name}`;
+}
+
+function pickIntentQuote(item: PickForTonightCandidate): string {
+  const hints = item.hints?.filter(Boolean) ?? [];
+  if (hints.length >= 2) return `“Because ${hints[0].toLowerCase()} and ${hints[1].toLowerCase()}.”`;
+  if (hints.length === 1) return `“Because ${hints[0].toLowerCase()}.”`;
+  return "“Because this best matches your recent taste signals tonight.”";
 }
 
 function toTMDBShape(item: PickForTonightCandidate): TMDBMovie | TMDBSeries {
@@ -478,7 +491,7 @@ function PickCardItem({ item }: { item: PickForTonightCandidate }) {
     : null;
 
   return (
-    <div className="relative flex h-[200px] w-full min-w-0 flex-row overflow-hidden rounded-lg border border-border bg-card">
+    <div className="relative flex min-h-[240px] w-full min-w-0 flex-row overflow-hidden rounded-lg border border-border bg-card sm:min-h-0 sm:h-[200px]">
       <div className="relative z-0 h-full w-[135px] shrink-0 overflow-hidden bg-muted">
         <div className="group/poster relative h-full w-full">
           <Link
@@ -545,8 +558,8 @@ function PickCardItem({ item }: { item: PickForTonightCandidate }) {
 
           {metadata && <p className="text-xs text-muted-foreground">{metadata}</p>}
 
-          <p className="line-clamp-2 text-[13px] leading-snug text-muted-foreground mt-1.5">
-            {item.overview || "No synopsis available yet."}
+          <p className="mt-1.5 rounded-md border-l-2 border-primary/40 bg-muted/40 px-2.5 py-2 text-[12px] italic leading-snug text-muted-foreground">
+            {pickIntentQuote(item)}
           </p>
 
           <PickForTonightConfidenceRow
@@ -563,7 +576,7 @@ function PickCardItem({ item }: { item: PickForTonightCandidate }) {
               rel="noopener noreferrer"
               title={providerLinkLabels.full}
               onClick={(e) => e.stopPropagation()}
-              className="mt-2 inline-flex h-8 max-w-full min-w-0 items-stretch overflow-hidden rounded-md border border-border/60 bg-muted capitalize text-[14px] font-medium leading-none hover:bg-muted/80 transition-colors"
+              className="mt-2 inline-flex h-8 w-fit max-w-max items-stretch overflow-hidden rounded-md border border-border/60 bg-muted capitalize text-[14px] font-medium leading-none hover:bg-muted/80 transition-colors"
             >
               {provider.iconUrl ? (
                 <>
@@ -598,6 +611,181 @@ function PickCardItem({ item }: { item: PickForTonightCandidate }) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+const RERANK_CHIPS: Array<{ id: "lighter" | "shorter" | "intense" | "different" | "more"; label: string }> = [
+  { id: "lighter", label: "Something lighter" },
+  { id: "shorter", label: "Shorter runtime" },
+  { id: "intense", label: "More intense" },
+  { id: "different", label: "Totally different" },
+  { id: "more", label: "See more picks" },
+];
+const RERANK_MODE_CHIPS: Array<{ id: RerankMode; label: string }> = RERANK_CHIPS.filter(
+  (chip): chip is { id: RerankMode; label: string } => chip.id !== "more"
+);
+
+export function PickForTonightSilentSurface({
+  loading,
+  data,
+  insufficientMessage,
+  runPick,
+  onlyUnseen,
+  trendingToday,
+}: {
+  loading: boolean;
+  data: ApiPicks | null;
+  insufficientMessage: string | null;
+  runPick: (options?: { onlyUnseen?: boolean; trendingToday?: boolean; rerankMode?: RerankMode; avoidTmdbId?: number }) => Promise<void>;
+  onlyUnseen: boolean;
+  trendingToday: boolean;
+}) {
+  const didAutoloadRef = useRef(false);
+  const [activeChip, setActiveChip] = useState<null | "lighter" | "shorter" | "intense" | "different">(null);
+  const [showMore, setShowMore] = useState(false);
+  const [displayedPick, setDisplayedPick] = useState<PickForTonightCandidate | null>(null);
+  const [previousPick, setPreviousPick] = useState<PickForTonightCandidate | null>(null);
+  const [pendingChip, setPendingChip] = useState<RerankMode | null>(null);
+
+  useEffect(() => {
+    if (didAutoloadRef.current) return;
+    didAutoloadRef.current = true;
+    void runPick();
+  }, [runPick]);
+
+  useEffect(() => {
+    if (!data?.picks?.length) return;
+    if (activeChip) {
+      setDisplayedPick(data.picks[0] ?? null);
+      return;
+    }
+    if (!displayedPick) setDisplayedPick(data.picks[0] ?? null);
+  }, [activeChip, data, displayedPick]);
+
+  const handleRerank = async (mode: RerankMode) => {
+    if (loading) return;
+    setPreviousPick(displayedPick);
+    setActiveChip(mode);
+    setShowMore(false);
+    setPendingChip(mode);
+    try {
+      await runPick({
+        onlyUnseen,
+        trendingToday,
+        rerankMode: mode,
+        avoidTmdbId: mode === "different" ? displayedPick?.tmdbId : undefined,
+      });
+    } finally {
+      setPendingChip(null);
+    }
+  };
+
+  const goBack = () => {
+    setActiveChip(null);
+    setShowMore(false);
+    if (previousPick) setDisplayedPick(previousPick);
+  };
+
+  return (
+    <div className="mt-3 w-full space-y-3">
+      {loading && <SheetLoadingDots className="min-h-[8rem] py-2" />}
+
+      {!loading && insufficientMessage && (
+        <div className="space-y-3">
+          <p className="text-sm leading-relaxed text-muted-foreground">{insufficientMessage}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard/my-list">Watchlist</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard/lists">Lists</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard/playlists">Playlists</Link>
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!loading && displayedPick && (
+        <>
+          {activeChip && (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={goBack}
+                className="h-8 w-8 cursor-pointer rounded-full border border-border/70"
+                aria-label="Back to previous pick"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex flex-wrap gap-2">
+                {RERANK_MODE_CHIPS.map((chip) => (
+                  <Button
+                    key={chip.id}
+                    type="button"
+                    variant="ghost"
+                    disabled={loading}
+                    onClick={() => void handleRerank(chip.id)}
+                    className={cn(
+                      "h-8 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted",
+                      chip.id === activeChip && "border-primary/50 text-foreground"
+                    )}
+                  >
+                    {pendingChip === chip.id ? "Reranking…" : chip.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="w-full max-w-[530px]">
+            <PickCardItem item={displayedPick} />
+          </div>
+
+          {!activeChip && (
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold tracking-wide text-muted-foreground">NOT FEELING IT?</p>
+              <div className="flex flex-wrap gap-2">
+                {RERANK_CHIPS.map((chip) => (
+                  <Button
+                    key={chip.id}
+                    type="button"
+                    variant="ghost"
+                    disabled={loading}
+                    onClick={() =>
+                      chip.id === "more"
+                        ? setShowMore((v) => !v)
+                        : void handleRerank(chip.id)
+                    }
+                    className={cn(
+                      "h-8 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted",
+                      chip.id !== "more" && activeChip === chip.id && "border-primary/50 text-foreground"
+                    )}
+                  >
+                    {chip.id !== "more" && pendingChip === chip.id
+                      ? "Reranking…"
+                      : chip.id === "more" && loading
+                        ? "Loading…"
+                        : chip.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {showMore && data?.picks?.length ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {data.picks.map((pick) => (
+                <PickCardItem key={pick.id} item={pick} />
+              ))}
+            </div>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }

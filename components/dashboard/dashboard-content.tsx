@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
@@ -30,9 +30,7 @@ import { useUserYouTubePlaylists } from "@/hooks/use-user-youtube-playlists";
 import { TrendAlertsWidget } from "@/components/dashboard/trend-alerts-widget";
 import {
   usePickForTonight,
-  PickForTonightButton,
-  PickForTonightActionsMenu,
-  PickForTonightResultsRow,
+  PickForTonightSilentSurface,
 } from "@/components/dashboard/pick-for-tonight-card";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { SelectServicesModal } from "@/components/browse/select-services-modal";
@@ -203,6 +201,29 @@ export default function DashboardContent() {
   const isPickForTonightAdmin =
     currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN";
   const pickForTonight = usePickForTonight();
+  const [pickTimestamp, setPickTimestamp] = useState(() =>
+    new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date())
+  );
+
+  useEffect(() => {
+    const update = () =>
+      setPickTimestamp(
+        new Intl.DateTimeFormat("en-US", {
+          weekday: "long",
+          hour: "numeric",
+          minute: "2-digit",
+        }).format(new Date())
+      );
+    update();
+    const timer = window.setInterval(update, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const hasTonightPick = Boolean(pickForTonight.data?.picks?.length);
 
   // Get user's selected providers
   const selectedProviders = preferences?.selectedProviders || [];
@@ -249,35 +270,23 @@ export default function DashboardContent() {
                 {greeting}, {displayName}
               </h1>
               <p className="text-sm sm:text-base text-muted-foreground">
-                Here&apos;s what&apos;s happening with your watchlist
+                {hasTonightPick
+                  ? "Here is your pick for tonight"
+                  : "Here&apos;s what&apos;s happening with your watchlist"}
               </p>
             </div>
             {isPickForTonightAdmin && (
-              <div className="flex items-center gap-0.5">
-                <PickForTonightButton
-                  onClick={() => void pickForTonight.runPick()}
-                  disabled={pickForTonight.loading}
-                />
-                <PickForTonightActionsMenu
-                  picksHidden={pickForTonight.picksHidden}
-                  onPicksHiddenChange={pickForTonight.setPicksHidden}
-                  onlyUnseen={pickForTonight.onlyUnseen}
-                  onOnlyUnseenChange={pickForTonight.setOnlyUnseen}
-                  trendingToday={pickForTonight.trendingToday}
-                  onTrendingTodayChange={pickForTonight.setTrendingToday}
-                  showRow={pickForTonight.showRow}
-                  runPick={pickForTonight.runPick}
-                  loading={pickForTonight.loading}
-                />
-              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground">{pickTimestamp}</p>
             )}
           </div>
           {isPickForTonightAdmin && !pickForTonight.picksHidden && (
-            <PickForTonightResultsRow
-              showRow={pickForTonight.showRow}
+            <PickForTonightSilentSurface
               loading={pickForTonight.loading}
               data={pickForTonight.data}
               insufficientMessage={pickForTonight.insufficientMessage}
+              runPick={pickForTonight.runPick}
+              onlyUnseen={pickForTonight.onlyUnseen}
+              trendingToday={pickForTonight.trendingToday}
             />
           )}
         </div>
@@ -630,10 +639,10 @@ export default function DashboardContent() {
                   ))}
                 </CarouselContent>
                 <CarouselPrevious 
-                  className="left-0 h-full w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+                  className="left-0 h-[225px] w-[45px] rounded-l-lg rounded-r-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
                 />
                 <CarouselNext 
-                  className="right-0 h-full w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
+                  className="right-0 h-[225px] w-[45px] rounded-r-lg rounded-l-none border-0 bg-black/60 hover:bg-black/80 backdrop-blur-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-200 hidden md:flex items-center justify-center cursor-pointer"
                 />
               </Carousel>
             </div>

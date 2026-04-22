@@ -11,6 +11,7 @@ import { getJustWatchAvailability } from "@/lib/justwatch";
 import type { PickForTonightCandidate } from "@/lib/pick-for-tonight-types";
 
 type Media = "movie" | "tv";
+type RerankMode = "lighter" | "shorter" | "intense" | "different";
 
 function normMedia(m: string): Media {
   return m === "tv" ? "tv" : "movie";
@@ -43,6 +44,48 @@ function isDateReleased(date: string | null | undefined): boolean {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const candidate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   return candidate.getTime() <= today.getTime();
+}
+
+function parseRuntimeToMinutes(runtimeText: string | null | undefined): number | null {
+  if (!runtimeText) return null;
+  const hMatch = runtimeText.match(/(\d+)\s*h/i);
+  const mMatch = runtimeText.match(/(\d+)\s*m/i);
+  const h = hMatch ? Number.parseInt(hMatch[1], 10) : 0;
+  const m = mMatch ? Number.parseInt(mMatch[1], 10) : 0;
+  const total = h * 60 + m;
+  return Number.isFinite(total) && total > 0 ? total : null;
+}
+
+function isMatureRating(rated: string | null | undefined): boolean {
+  if (!rated) return false;
+  const r = rated.toUpperCase();
+  return r.includes("R") || r.includes("NC-17") || r.includes("TV-MA");
+}
+
+function rerankPicks(
+  picks: PickForTonightCandidate[],
+  mode: RerankMode | null
+): PickForTonightCandidate[] {
+  if (!mode) return picks;
+  const score = (p: PickForTonightCandidate): number => {
+    const runtime = parseRuntimeToMinutes(p.runtimeText) ?? 120;
+    const mature = isMatureRating(p.rated);
+    switch (mode) {
+      case "shorter":
+        return -runtime;
+      case "lighter":
+        return (mature ? -30 : 20) - runtime * 0.08 + (p.imdbRating ?? 0);
+      case "intense":
+        return (mature ? 40 : 0) + runtime * 0.06 + (p.imdbRating ?? 0);
+      case "different":
+        // Preserve quality but push away from obvious baseline.
+        return (p.imdbRating ?? 0) - runtime * 0.01 + (mature ? 3 : 0);
+      default:
+        return 0;
+    }
+  };
+
+  return [...picks].sort((a, b) => score(b) - score(a) || a.title.localeCompare(b.title));
 }
 
 type BaseCandidate = {
@@ -142,10 +185,30 @@ export async function POST(request: NextRequest) {
   try {
     let onlyUnseen = false;
     let trendingToday = false;
+    let rerankMode: RerankMode | null = null;
+    let avoidTmdbId: number | null = null;
     try {
-      const body = (await request.json()) as { onlyUnseen?: unknown; trendingToday?: unknown } | null;
+      const body = (await request.json()) as {
+        onlyUnseen?: unknown;
+        trendingToday?: unknown;
+        rerankMode?: unknown;
+        avoidTmdbId?: unknown;
+      } | null;
       if (body && body.onlyUnseen === true) onlyUnseen = true;
       if (body && body.trendingToday === true) trendingToday = true;
+      if (
+        body &&
+        typeof body.rerankMode === "string" &&
+        (body.rerankMode === "lighter" ||
+          body.rerankMode === "shorter" ||
+          body.rerankMode === "intense" ||
+          body.rerankMode === "different")
+      ) {
+        rerankMode = body.rerankMode;
+      }
+      if (body && typeof body.avoidTmdbId === "number" && Number.isFinite(body.avoidTmdbId)) {
+        avoidTmdbId = body.avoidTmdbId;
+      }
     } catch {
       // empty or invalid body — treat as default picks
     }
@@ -260,10 +323,15 @@ export async function POST(request: NextRequest) {
         if (watched.has(id)) byId.delete(id);
       }
     }
+    if (avoidTmdbId != null) {
+      for (const [id, candidate] of [...byId.entries()]) {
+        if (candidate.tmdbId === avoidTmdbId) byId.delete(id);
+      }
+    }
 
     const ranked = Array.from(byId.values())
       .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
-      .slice(0, 6);
+      .slice(0, 20);
 
     if (ranked.length === 0) {
       return NextResponse.json({
@@ -277,7 +345,8 @@ export async function POST(request: NextRequest) {
     }
 
     const enriched = await Promise.all(ranked.map((c) => enrichCandidate(c)));
-    return NextResponse.json({ picks: enriched });
+    const reranked = rerankPicks(enriched, rerankMode).slice(0, 6);
+    return NextResponse.json({ picks: reranked });
   } catch (error) {
     console.error("pick-for-tonight/cards error:", error);
     return NextResponse.json({ error: "Failed to generate picks" }, { status: 500 });
