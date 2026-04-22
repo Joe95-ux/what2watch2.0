@@ -15,6 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SheetLoadingDots } from "@/components/ui/sheet-loading-dots";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { PickForTonightConfidenceRow } from "@/components/dashboard/pick-for-tonight-confidence-row";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
@@ -37,7 +39,8 @@ export function usePickForTonight() {
   const [data, setData] = useState<ApiPicks | null>(null);
   const [insufficientMessage, setInsufficientMessage] = useState<string | null>(null);
   const [picksHidden, setPicksHidden] = useState(false);
-  const [onlyUnseen, setOnlyUnseen] = useState(false);
+  /** Default on: “tonight” picks should not surface titles already logged as watched. */
+  const [onlyUnseen, setOnlyUnseen] = useState(true);
   const [trendingToday, setTrendingToday] = useState(false);
   const pickInFlightRef = useRef(false);
 
@@ -315,11 +318,37 @@ function providerWatchLabel(provider: NonNullable<PickForTonightCandidate["provi
   return `watch on ${name}`;
 }
 
-function pickIntentQuote(item: PickForTonightCandidate): string {
+function pickIntentFallback(item: PickForTonightCandidate): string {
   const hints = item.hints?.filter(Boolean) ?? [];
-  if (hints.length >= 2) return `“Because ${hints[0].toLowerCase()} and ${hints[1].toLowerCase()}.”`;
-  if (hints.length === 1) return `“Because ${hints[0].toLowerCase()}.”`;
-  return "“Because this best matches your recent taste signals tonight.”";
+  if (hints.length >= 2) {
+    return `Why tonight: It keeps showing up from ${hints[0].toLowerCase()} and ${hints[1].toLowerCase()}.`;
+  }
+  if (hints.length === 1) {
+    return `Why tonight: It keeps surfacing from ${hints[0].toLowerCase()}.`;
+  }
+  return "Why tonight: It bubbled up from your library signals—worth a look tonight.";
+}
+
+function whyTonightDisplay(item: PickForTonightCandidate): string {
+  const w = item.whyTonight?.trim();
+  if (w) return w;
+  return pickIntentFallback(item);
+}
+
+function WhyTonightBlurb({ text }: { text: string }) {
+  const prefix = "Why tonight:";
+  const body = text.startsWith(prefix) ? text.slice(prefix.length).trim() : text;
+  return (
+    <p className="mt-1.5 rounded-md border-l-2 border-primary/30 bg-muted/40 px-2.5 py-2 text-[12px] leading-snug text-foreground/80 dark:border-primary/40 dark:bg-muted/40 dark:text-muted-foreground">
+      <span className="font-semibold not-italic text-foreground dark:text-foreground">{prefix}</span>
+      {body ? (
+        <>
+          {" "}
+          <span className="italic">{body}</span>
+        </>
+      ) : null}
+    </p>
+  );
 }
 
 function toTMDBShape(item: PickForTonightCandidate): TMDBMovie | TMDBSeries {
@@ -491,9 +520,14 @@ function PickCardItem({ item }: { item: PickForTonightCandidate }) {
     : null;
 
   return (
-    <div className="relative flex min-h-[240px] w-full min-w-0 flex-row overflow-hidden rounded-lg border border-border bg-card sm:min-h-0 sm:h-[200px]">
-      <div className="relative z-0 h-full w-[135px] shrink-0 overflow-hidden bg-muted">
-        <div className="group/poster relative h-full w-full">
+    <div className="relative flex w-full min-w-0 flex-row items-stretch overflow-hidden rounded-lg border border-border bg-card">
+      {/*
+        Do not use h-full on the poster column on mobile: the card only sets min-height, so
+        percentage height is indefinite and can collapse to 0. The image lives in an absolute
+        inset-0 link, so it does not establish intrinsic height—flex stretch fixes the column.
+      */}
+      <div className="relative z-0 w-[135px] shrink-0 self-stretch overflow-hidden bg-muted">
+        <div className="group/poster relative h-full min-h-[203px] w-full">
           <Link
             href={detailHref(item)}
             className="absolute inset-0 z-0 block"
@@ -544,7 +578,7 @@ function PickCardItem({ item }: { item: PickForTonightCandidate }) {
         </div>
       </div>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-l border-border">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-l border-border bg-muted/35 dark:bg-transparent">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-between overflow-y-auto p-4">
           <div className="mb-1.5">
             <Link
@@ -558,9 +592,7 @@ function PickCardItem({ item }: { item: PickForTonightCandidate }) {
 
           {metadata && <p className="text-xs text-muted-foreground">{metadata}</p>}
 
-          <p className="mt-1.5 rounded-md border-l-2 border-primary/40 bg-muted/40 px-2.5 py-2 text-[12px] italic leading-snug text-muted-foreground">
-            {pickIntentQuote(item)}
-          </p>
+          <WhyTonightBlurb text={whyTonightDisplay(item)} />
 
           <PickForTonightConfidenceRow
             justwatchRank24h={item.justwatchRank24h}
@@ -632,6 +664,7 @@ export function PickForTonightSilentSurface({
   insufficientMessage,
   runPick,
   onlyUnseen,
+  onOnlyUnseenChange,
   trendingToday,
 }: {
   loading: boolean;
@@ -639,6 +672,7 @@ export function PickForTonightSilentSurface({
   insufficientMessage: string | null;
   runPick: (options?: { onlyUnseen?: boolean; trendingToday?: boolean; rerankMode?: RerankMode; avoidTmdbId?: number }) => Promise<void>;
   onlyUnseen: boolean;
+  onOnlyUnseenChange: (onlyUnseen: boolean) => void;
   trendingToday: boolean;
 }) {
   const didAutoloadRef = useRef(false);
@@ -687,8 +721,37 @@ export function PickForTonightSilentSurface({
     if (previousPick) setDisplayedPick(previousPick);
   };
 
+  const includeWatched = !onlyUnseen;
+
+  const handleIncludeWatchedChange = (checked: boolean) => {
+    const nextOnlyUnseen = !checked;
+    onOnlyUnseenChange(nextOnlyUnseen);
+    setActiveChip(null);
+    setShowMore(false);
+    void runPick({ onlyUnseen: nextOnlyUnseen, trendingToday });
+  };
+
   return (
     <div className="mt-3 w-full space-y-3">
+      <div className="flex max-w-[530px] flex-col gap-1.5 rounded-lg border border-border/60 bg-muted/25 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 dark:border-border/50 dark:bg-muted/15">
+        <div className="min-w-0 flex-1 space-y-0.5">
+          <Label htmlFor="pick-include-watched" className="cursor-pointer text-sm font-medium leading-snug text-foreground">
+            {"Include titles I've already seen"}
+          </Label>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Off by default so {"tonight's"} pick stays fresh; turn on for rewatches.
+          </p>
+        </div>
+        <Switch
+          id="pick-include-watched"
+          checked={includeWatched}
+          disabled={loading}
+          onCheckedChange={handleIncludeWatchedChange}
+          className="shrink-0 sm:mt-0.5"
+          aria-label="Include titles I have already seen"
+        />
+      </div>
+
       {loading && <SheetLoadingDots className="min-h-[8rem] py-2" />}
 
       {!loading && insufficientMessage && (
@@ -756,6 +819,7 @@ export function PickForTonightSilentSurface({
                     type="button"
                     variant="ghost"
                     disabled={loading}
+                    aria-pressed={chip.id === "more" ? showMore : undefined}
                     onClick={() =>
                       chip.id === "more"
                         ? setShowMore((v) => !v)
@@ -763,7 +827,10 @@ export function PickForTonightSilentSurface({
                     }
                     className={cn(
                       "h-8 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted",
-                      chip.id !== "more" && activeChip === chip.id && "border-primary/50 text-foreground"
+                      chip.id !== "more" && activeChip === chip.id && "border-primary/50 text-foreground",
+                      chip.id === "more" &&
+                        showMore &&
+                        "border-primary/50 bg-muted/60 text-foreground shadow-sm dark:bg-muted/40"
                     )}
                   >
                     {chip.id !== "more" && pendingChip === chip.id

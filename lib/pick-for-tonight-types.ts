@@ -21,6 +21,10 @@ export type PickForTonightCandidate = {
   rated: string | null;
   runtimeText: string | null;
   overview: string | null;
+  /** TMDB genre names (first is used for “why tonight” flavor). */
+  genreNames: string[];
+  /** Short narrative explaining why this title surfaced tonight. */
+  whyTonight: string;
   imdbRating: number | null;
   justwatchRank24h: number | null;
   justwatchRankDelta24h: number | null;

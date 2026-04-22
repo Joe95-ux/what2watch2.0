@@ -9,6 +9,14 @@ import {
 import { getOMDBFullData } from "@/lib/omdb";
 import { getJustWatchAvailability } from "@/lib/justwatch";
 import type { PickForTonightCandidate } from "@/lib/pick-for-tonight-types";
+import {
+  EMPTY_PICK_TONIGHT_ANCHOR,
+  buildWhyTonight,
+  mergeListTouch,
+  mergePlaylistTouch,
+  mergeWatchlistTouch,
+  type PickTonightAnchor,
+} from "@/lib/pick-for-tonight-why-tonight";
 
 type Media = "movie" | "tv";
 type RerankMode = "lighter" | "shorter" | "intense" | "different";
@@ -132,8 +140,14 @@ async function enrichCandidate(c: BaseCandidate): Promise<PickForTonightCandidat
       availability?.allOffers?.[0] ??
       null;
 
+    const genreNames = ((details as { genres?: { name?: string }[] }).genres ?? [])
+      .map((g) => g.name?.trim())
+      .filter((x): x is string => Boolean(x));
+
     return {
       ...c,
+      genreNames,
+      whyTonight: "",
       backdropPath: details.backdrop_path ?? null,
       releaseDate: c.mediaType === "movie" ? (details as { release_date?: string }).release_date ?? null : null,
       firstAirDate: c.mediaType === "tv" ? (details as { first_air_date?: string }).first_air_date ?? null : null,
@@ -163,6 +177,8 @@ async function enrichCandidate(c: BaseCandidate): Promise<PickForTonightCandidat
   } catch {
     return {
       ...c,
+      genreNames: [],
+      whyTonight: "",
       backdropPath: null,
       releaseDate: null,
       firstAirDate: null,
@@ -228,18 +244,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const anchorById = new Map<string, PickTonightAnchor>();
+
     const [lists, playlists, favorites, sessions] = await Promise.all([
       db.list.findMany({
         where: { userId: user.id },
-        select: { name: true, items: { select: { tmdbId: true, mediaType: true, title: true, note: true, posterPath: true } } },
+        select: {
+          name: true,
+          items: {
+            select: {
+              tmdbId: true,
+              mediaType: true,
+              title: true,
+              note: true,
+              posterPath: true,
+              createdAt: true,
+            },
+          },
+        },
       }),
       db.playlist.findMany({
         where: { userId: user.id },
-        select: { name: true, items: { select: { tmdbId: true, mediaType: true, title: true, note: true, posterPath: true } } },
+        select: {
+          name: true,
+          items: {
+            select: {
+              tmdbId: true,
+              mediaType: true,
+              title: true,
+              note: true,
+              posterPath: true,
+              createdAt: true,
+            },
+          },
+        },
       }),
       db.favorite.findMany({
         where: { userId: user.id },
-        select: { tmdbId: true, mediaType: true, title: true, posterPath: true },
+        select: { tmdbId: true, mediaType: true, title: true, posterPath: true, createdAt: true },
       }),
       db.aiChatSession.findMany({
         where: { userId: user.id, mode: "movie-details" },
@@ -274,6 +316,7 @@ export async function POST(request: NextRequest) {
             posterPath: it.posterPath ?? null,
           };
           addHint(byId, base, `List: ${list.name}`, 3);
+          mergeListTouch(anchorById, base.id, list.name, it.createdAt);
           if (it.note?.trim()) addHint(byId, base, "Has personal note", 4);
         }
       }
@@ -287,6 +330,7 @@ export async function POST(request: NextRequest) {
             posterPath: it.posterPath ?? null,
           };
           addHint(byId, base, `Playlist: ${pl.name}`, 2);
+          mergePlaylistTouch(anchorById, base.id, pl.name, it.createdAt);
           if (it.note?.trim()) addHint(byId, base, "Has personal note", 4);
         }
       }
@@ -299,6 +343,7 @@ export async function POST(request: NextRequest) {
           posterPath: fav.posterPath ?? null,
         };
         addHint(byId, base, "Watchlist", 1);
+        mergeWatchlistTouch(anchorById, base.id, fav.createdAt);
       }
 
       for (const s of sessions) {
@@ -345,7 +390,19 @@ export async function POST(request: NextRequest) {
     }
 
     const enriched = await Promise.all(ranked.map((c) => enrichCandidate(c)));
-    const reranked = rerankPicks(enriched, rerankMode).slice(0, 6);
+    const reranked = rerankPicks(enriched, rerankMode)
+      .slice(0, 6)
+      .map((e) => ({
+        ...e,
+        whyTonight: buildWhyTonight(
+          {
+            hints: e.hints,
+            isTrendingTodayPick: e.isTrendingTodayPick,
+            genreNames: e.genreNames,
+          },
+          anchorById.get(e.id) ?? EMPTY_PICK_TONIGHT_ANCHOR
+        ),
+      }));
     return NextResponse.json({ picks: reranked });
   } catch (error) {
     console.error("pick-for-tonight/cards error:", error);

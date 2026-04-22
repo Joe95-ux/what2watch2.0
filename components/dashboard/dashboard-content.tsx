@@ -272,7 +272,7 @@ export default function DashboardContent() {
               <p className="text-sm sm:text-base text-muted-foreground">
                 {hasTonightPick
                   ? "Here is your pick for tonight"
-                  : "Here&apos;s what&apos;s happening with your watchlist"}
+                  : "Here's whats happening with your watchlist"}
               </p>
             </div>
             {isPickForTonightAdmin && (
@@ -286,6 +286,7 @@ export default function DashboardContent() {
               insufficientMessage={pickForTonight.insufficientMessage}
               runPick={pickForTonight.runPick}
               onlyUnseen={pickForTonight.onlyUnseen}
+              onOnlyUnseenChange={pickForTonight.setOnlyUnseen}
               trendingToday={pickForTonight.trendingToday}
             />
           )}
