@@ -73,27 +73,43 @@ function isMatureRating(rated: string | null | undefined): boolean {
 function rerankPicks(
   picks: PickForTonightCandidate[],
   mode: RerankMode | null
-): PickForTonightCandidate[] {
-  if (!mode) return picks;
+): Array<{ pick: PickForTonightCandidate; score: number }> {
   const score = (p: PickForTonightCandidate): number => {
     const runtime = parseRuntimeToMinutes(p.runtimeText) ?? 120;
     const mature = isMatureRating(p.rated);
+    const base = (p.imdbRating ?? 6.5) * 6 + p.hints.length * 8 + (p.justwatchRank24h ? Math.max(0, 30 - p.justwatchRank24h) : 0);
+    if (!mode) return base;
     switch (mode) {
       case "shorter":
-        return -runtime;
+        return base + (140 - runtime) * 0.8;
       case "lighter":
-        return (mature ? -30 : 20) - runtime * 0.08 + (p.imdbRating ?? 0);
+        return base + (mature ? -16 : 16) - runtime * 0.12;
       case "intense":
-        return (mature ? 40 : 0) + runtime * 0.06 + (p.imdbRating ?? 0);
+        return base + (mature ? 20 : 0) + runtime * 0.08;
       case "different":
         // Preserve quality but push away from obvious baseline.
-        return (p.imdbRating ?? 0) - runtime * 0.01 + (mature ? 3 : 0);
+        return base + (mature ? 3 : 0) - runtime * 0.03;
       default:
-        return 0;
+        return base;
     }
   };
 
-  return [...picks].sort((a, b) => score(b) - score(a) || a.title.localeCompare(b.title));
+  return [...picks]
+    .map((pick) => ({ pick, score: score(pick) }))
+    .sort((a, b) => b.score - a.score || a.pick.title.localeCompare(b.pick.title));
+}
+
+function matchPercentsForScores(scores: number[]): number[] {
+  if (scores.length === 0) return [];
+  const min = Math.min(...scores);
+  const max = Math.max(...scores);
+  if (max === min) {
+    return scores.map((_, i) => Math.max(70, 96 - i * 4));
+  }
+  return scores.map((s) => {
+    const t = (s - min) / (max - min);
+    return Math.round(70 + t * 29);
+  });
 }
 
 type BaseCandidate = {
@@ -148,6 +164,7 @@ async function enrichCandidate(c: BaseCandidate): Promise<PickForTonightCandidat
       ...c,
       genreNames,
       whyTonight: "",
+      matchPercent: 0,
       backdropPath: details.backdrop_path ?? null,
       releaseDate: c.mediaType === "movie" ? (details as { release_date?: string }).release_date ?? null : null,
       firstAirDate: c.mediaType === "tv" ? (details as { first_air_date?: string }).first_air_date ?? null : null,
@@ -179,6 +196,7 @@ async function enrichCandidate(c: BaseCandidate): Promise<PickForTonightCandidat
       ...c,
       genreNames: [],
       whyTonight: "",
+      matchPercent: 0,
       backdropPath: null,
       releaseDate: null,
       firstAirDate: null,
@@ -390,10 +408,11 @@ export async function POST(request: NextRequest) {
     }
 
     const enriched = await Promise.all(ranked.map((c) => enrichCandidate(c)));
-    const reranked = rerankPicks(enriched, rerankMode)
-      .slice(0, 6)
-      .map((e) => ({
+    const rerankedWithScores = rerankPicks(enriched, rerankMode).slice(0, 6);
+    const percents = matchPercentsForScores(rerankedWithScores.map((x) => x.score));
+    const reranked = rerankedWithScores.map(({ pick: e }, idx) => ({
         ...e,
+        matchPercent: percents[idx] ?? 70,
         whyTonight: buildWhyTonight(
           {
             hints: e.hints,

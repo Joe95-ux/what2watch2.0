@@ -25,6 +25,8 @@ export type PickForTonightCandidate = {
   genreNames: string[];
   /** Short narrative explaining why this title surfaced tonight. */
   whyTonight: string;
+  /** Relative mood-aware relevance score for UI display. */
+  matchPercent: number;
   imdbRating: number | null;
   justwatchRank24h: number | null;
   justwatchRankDelta24h: number | null;

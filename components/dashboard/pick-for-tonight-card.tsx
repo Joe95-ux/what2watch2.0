@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SheetLoadingDots } from "@/components/ui/sheet-loading-dots";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PickForTonightConfidenceRow } from "@/components/dashboard/pick-for-tonight-confidence-row";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
@@ -32,6 +34,7 @@ type ApiPicks = {
   picks: PickForTonightCandidate[];
 };
 type RerankMode = "lighter" | "shorter" | "intense" | "different";
+type ExploreViewMode = "cards" | "table";
 
 export function usePickForTonight() {
   const [showRow, setShowRow] = useState(false);
@@ -335,15 +338,43 @@ function whyTonightDisplay(item: PickForTonightCandidate): string {
   return pickIntentFallback(item);
 }
 
-function WhyTonightBlurb({ text }: { text: string }) {
+function adjustedIntentCopy(mode: RerankMode): string {
+  if (mode === "lighter") {
+    return "Adjusted for lighter mood: Tender and warm, but still has the craft and emotional depth you gravitate to.";
+  }
+  if (mode === "shorter") {
+    return "Adjusted for shorter runtime: Quicker watch, still aligned with the tone and quality you usually save.";
+  }
+  if (mode === "intense") {
+    return "Adjusted for more intensity: Sharper stakes and stronger edge, while keeping the cinematic style you lean toward.";
+  }
+  return "Adjusted for something different: A deliberate pivot from your last pick, while preserving quality and relevance.";
+}
+
+function matchPercentTone(p: number): string {
+  if (p >= 90) return "text-emerald-600 bg-emerald-500/10 border-emerald-500/30";
+  if (p >= 75) return "text-amber-600 bg-amber-500/10 border-amber-500/30";
+  return "text-muted-foreground bg-muted border-border/60";
+}
+
+function providerActionLabel(provider: PickForTonightCandidate["provider"]): string {
+  if (!provider) return "N/A";
+  const t = provider.monetizationType;
+  if (t === "buy") return "Buy";
+  if (t === "rent") return "Rent";
+  if (t === "flatrate") return "Watch";
+  return "Open";
+}
+
+function WhyTonightBlurb({ text, label = "Why tonight:" }: { text: string; label?: string | null }) {
   const prefix = "Why tonight:";
   const body = text.startsWith(prefix) ? text.slice(prefix.length).trim() : text;
   return (
     <p className="mt-1.5 rounded-md border-l-2 border-primary/30 bg-muted/40 px-2.5 py-2 text-[12px] leading-snug text-foreground/80 dark:border-primary/40 dark:bg-muted/40 dark:text-muted-foreground">
-      <span className="font-semibold not-italic text-foreground dark:text-foreground">{prefix}</span>
+      {label ? <span className="font-semibold not-italic text-foreground dark:text-foreground">{label}</span> : null}
       {body ? (
         <>
-          {" "}
+          {label ? " " : ""}
           <span className="italic">{body}</span>
         </>
       ) : null}
@@ -423,7 +454,123 @@ function PosterActionButton({
   );
 }
 
-function PickCardItem({ item }: { item: PickForTonightCandidate }) {
+function PickCardSkeleton() {
+  return (
+    <div className="relative flex w-full min-w-0 flex-row items-stretch overflow-hidden rounded-lg border border-border bg-card">
+      <div className="relative z-0 w-[135px] shrink-0 self-stretch overflow-hidden bg-muted">
+        <Skeleton className="h-full min-h-[203px] w-full rounded-none" />
+      </div>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-l border-border bg-muted/35 p-4 dark:bg-transparent">
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-3 w-1/2" />
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-8 w-40" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PickExploreTable({
+  picks,
+  activeChip,
+}: {
+  picks: PickForTonightCandidate[];
+  activeChip: RerankMode | null;
+}) {
+  return (
+    <div className="w-full overflow-hidden rounded-lg border border-border/70 bg-card">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Title</TableHead>
+            <TableHead className="hidden sm:table-cell">Meta</TableHead>
+            <TableHead className="hidden sm:table-cell">Provider</TableHead>
+            <TableHead className="text-right">Match</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {picks.map((pick) => {
+            const meta = [pick.releaseYear, pick.rated, pick.runtimeText].filter(Boolean).join(" • ") || "—";
+            const provider = pick.provider;
+            const providerHref = provider?.deepLinkUrl ?? provider?.standardWebUrl ?? null;
+            return (
+              <TableRow key={`row-${pick.id}`}>
+                <TableCell className="max-w-[280px]">
+                  <div className="flex items-center gap-2.5">
+                    <div className="relative h-12 w-8 shrink-0 overflow-hidden rounded-sm bg-muted">
+                      {pick.posterPath ? (
+                        <Image
+                          src={getPosterUrl(pick.posterPath, "w200")}
+                          alt={pick.title}
+                          fill
+                          className="object-cover"
+                          sizes="32px"
+                          unoptimized
+                        />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0">
+                      <Link
+                        href={detailHref(pick)}
+                        className="line-clamp-1 text-sm font-medium text-foreground hover:text-primary"
+                      >
+                        {pick.title}
+                      </Link>
+                      <p className="line-clamp-1 hidden text-[11px] text-muted-foreground sm:block">
+                        {activeChip ? adjustedIntentCopy(activeChip) : whyTonightDisplay(pick)}
+                      </p>
+                      <p className="line-clamp-1 text-[11px] text-muted-foreground sm:hidden">{meta}</p>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden text-xs text-muted-foreground sm:table-cell">{meta}</TableCell>
+                <TableCell className="hidden text-xs sm:table-cell">
+                  {providerHref ? (
+                    <a
+                      href={providerHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="cursor-pointer text-foreground hover:text-primary"
+                    >
+                      {providerActionLabel(provider)} {provider?.providerName ? `on ${provider.providerName}` : ""}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">Unavailable</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <span
+                    className={cn(
+                      "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none",
+                      matchPercentTone(pick.matchPercent)
+                    )}
+                  >
+                    {pick.matchPercent}%
+                  </span>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function PickCardItem({
+  item,
+  rationaleMode = "primary",
+  rerankMode,
+  showMatchPercent = false,
+}: {
+  item: PickForTonightCandidate;
+  rationaleMode?: "primary" | "adjusted";
+  rerankMode?: RerankMode | null;
+  showMatchPercent?: boolean;
+}) {
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
 
@@ -518,6 +665,9 @@ function PickCardItem({ item }: { item: PickForTonightCandidate }) {
   const posterUrl = item.posterPath
     ? getPosterUrl(item.posterPath, "w500")
     : null;
+  const rationaleText =
+    rationaleMode === "adjusted" && rerankMode ? adjustedIntentCopy(rerankMode) : whyTonightDisplay(item);
+  const rationaleLabel = rationaleMode === "adjusted" ? null : "Why tonight:";
 
   return (
     <div className="relative flex w-full min-w-0 flex-row items-stretch overflow-hidden rounded-lg border border-border bg-card">
@@ -590,9 +740,34 @@ function PickCardItem({ item }: { item: PickForTonightCandidate }) {
             </Link>
           </div>
 
-          {metadata && <p className="text-xs text-muted-foreground">{metadata}</p>}
+          {metadata ? (
+            <div className="flex items-center justify-between gap-2">
+              <p className="truncate text-xs text-muted-foreground">{metadata}</p>
+              {showMatchPercent ? (
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none",
+                    matchPercentTone(item.matchPercent)
+                  )}
+                >
+                  {item.matchPercent}% match
+                </span>
+              ) : null}
+            </div>
+          ) : showMatchPercent ? (
+            <div className="flex items-center justify-end">
+              <span
+                className={cn(
+                  "shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none",
+                  matchPercentTone(item.matchPercent)
+                )}
+              >
+                {item.matchPercent}% match
+              </span>
+            </div>
+          ) : null}
 
-          <WhyTonightBlurb text={whyTonightDisplay(item)} />
+          <WhyTonightBlurb text={rationaleText} label={rationaleLabel} />
 
           <PickForTonightConfidenceRow
             justwatchRank24h={item.justwatchRank24h}
@@ -677,7 +852,8 @@ export function PickForTonightSilentSurface({
 }) {
   const didAutoloadRef = useRef(false);
   const [activeChip, setActiveChip] = useState<null | "lighter" | "shorter" | "intense" | "different">(null);
-  const [showMore, setShowMore] = useState(false);
+  const [isExploreMode, setIsExploreMode] = useState(false);
+  const [exploreView, setExploreView] = useState<ExploreViewMode>("cards");
   const [displayedPick, setDisplayedPick] = useState<PickForTonightCandidate | null>(null);
   const [previousPick, setPreviousPick] = useState<PickForTonightCandidate | null>(null);
   const [pendingChip, setPendingChip] = useState<RerankMode | null>(null);
@@ -701,7 +877,6 @@ export function PickForTonightSilentSurface({
     if (loading) return;
     setPreviousPick(displayedPick);
     setActiveChip(mode);
-    setShowMore(false);
     setPendingChip(mode);
     try {
       await runPick({
@@ -717,7 +892,7 @@ export function PickForTonightSilentSurface({
 
   const goBack = () => {
     setActiveChip(null);
-    setShowMore(false);
+    setIsExploreMode(false);
     if (previousPick) setDisplayedPick(previousPick);
   };
 
@@ -726,35 +901,78 @@ export function PickForTonightSilentSurface({
   const handleIncludeWatchedChange = (checked: boolean) => {
     const nextOnlyUnseen = !checked;
     onOnlyUnseenChange(nextOnlyUnseen);
-    setActiveChip(null);
-    setShowMore(false);
-    void runPick({ onlyUnseen: nextOnlyUnseen, trendingToday });
+    void runPick({
+      onlyUnseen: nextOnlyUnseen,
+      trendingToday,
+      rerankMode: activeChip ?? undefined,
+      avoidTmdbId: activeChip === "different" ? displayedPick?.tmdbId : undefined,
+    });
   };
+  const enterExploreMode = () => {
+    setActiveChip(null);
+    setIsExploreMode(true);
+    setExploreView("cards");
+  };
+  const exitExploreMode = () => {
+    setIsExploreMode(false);
+  };
+  const isRerankLoading = loading && pendingChip !== null;
+  const isInitialLoading = loading && pendingChip === null;
 
   return (
     <div className="mt-3 w-full space-y-3">
-      <div className="flex max-w-[530px] flex-col gap-1.5 rounded-lg border border-border/60 bg-muted/25 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 dark:border-border/50 dark:bg-muted/15">
-        <div className="min-w-0 flex-1 space-y-0.5">
-          <Label htmlFor="pick-include-watched" className="cursor-pointer text-sm font-medium leading-snug text-foreground">
-            {"Include titles I've already seen"}
-          </Label>
-          <p className="text-[11px] leading-snug text-muted-foreground">
-            Off by default so {"tonight's"} pick stays fresh; turn on for rewatches.
-          </p>
+      <div className="flex max-w-[530px] items-start gap-2 sm:items-center">
+        {isExploreMode ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={exitExploreMode}
+            className="h-8 w-8 shrink-0 cursor-pointer rounded-full border border-border/70"
+            aria-label="Back to primary pick"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        ) : null}
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5 rounded-lg border border-border/60 bg-muted/25 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 dark:border-border/50 dark:bg-muted/15">
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <Label htmlFor="pick-include-watched" className="cursor-pointer text-sm font-medium leading-snug text-foreground">
+              {"Include titles I've already seen"}
+            </Label>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              Off by default so {"tonight's"} pick stays fresh; turn on for rewatches.
+            </p>
+          </div>
+          <Switch
+            id="pick-include-watched"
+            checked={includeWatched}
+            disabled={loading}
+            onCheckedChange={handleIncludeWatchedChange}
+            className="shrink-0 cursor-pointer sm:mt-0.5"
+            aria-label="Include titles I have already seen"
+          />
         </div>
-        <Switch
-          id="pick-include-watched"
-          checked={includeWatched}
-          disabled={loading}
-          onCheckedChange={handleIncludeWatchedChange}
-          className="shrink-0 sm:mt-0.5"
-          aria-label="Include titles I have already seen"
-        />
       </div>
 
-      {loading && <SheetLoadingDots className="min-h-[8rem] py-2" />}
+      {isInitialLoading && (
+        <div className="space-y-3">
+          <div className="w-full max-w-[530px]">
+            <PickCardSkeleton />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-28" />
+            <div className="flex flex-wrap gap-2">
+              <Skeleton className="h-8 w-32 rounded-[20px]" />
+              <Skeleton className="h-8 w-28 rounded-[20px]" />
+              <Skeleton className="h-8 w-24 rounded-[20px]" />
+              <Skeleton className="h-8 w-28 rounded-[20px]" />
+              <Skeleton className="h-8 w-28 rounded-[20px]" />
+            </div>
+          </div>
+        </div>
+      )}
 
-      {!loading && insufficientMessage && (
+      {!isInitialLoading && insufficientMessage && (
         <div className="space-y-3">
           <p className="text-sm leading-relaxed text-muted-foreground">{insufficientMessage}</p>
           <div className="flex flex-wrap gap-2">
@@ -771,7 +989,7 @@ export function PickForTonightSilentSurface({
         </div>
       )}
 
-      {!loading && displayedPick && (
+      {!isInitialLoading && displayedPick && !isExploreMode && (
         <>
           {activeChip && (
             <div className="flex items-center gap-2">
@@ -806,7 +1024,15 @@ export function PickForTonightSilentSurface({
           )}
 
           <div className="w-full max-w-[530px]">
-            <PickCardItem item={displayedPick} />
+            {isRerankLoading ? (
+              <PickCardSkeleton />
+            ) : (
+              <PickCardItem
+                item={displayedPick}
+                rationaleMode={activeChip ? "adjusted" : "primary"}
+                rerankMode={activeChip}
+              />
+            )}
           </div>
 
           {!activeChip && (
@@ -819,17 +1045,17 @@ export function PickForTonightSilentSurface({
                     type="button"
                     variant="ghost"
                     disabled={loading}
-                    aria-pressed={chip.id === "more" ? showMore : undefined}
+                    aria-pressed={chip.id === "more" ? isExploreMode : undefined}
                     onClick={() =>
                       chip.id === "more"
-                        ? setShowMore((v) => !v)
+                        ? enterExploreMode()
                         : void handleRerank(chip.id)
                     }
                     className={cn(
                       "h-8 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted",
                       chip.id !== "more" && activeChip === chip.id && "border-primary/50 text-foreground",
                       chip.id === "more" &&
-                        showMore &&
+                        isExploreMode &&
                         "border-primary/50 bg-muted/60 text-foreground shadow-sm dark:bg-muted/40"
                     )}
                   >
@@ -844,15 +1070,82 @@ export function PickForTonightSilentSurface({
             </div>
           )}
 
-          {showMore && data?.picks?.length ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {data.picks.map((pick) => (
-                <PickCardItem key={pick.id} item={pick} />
-              ))}
-            </div>
-          ) : null}
         </>
       )}
+
+      {!isInitialLoading && isExploreMode ? (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-2">
+              {RERANK_MODE_CHIPS.map((chip) => (
+                <Button
+                  key={chip.id}
+                  type="button"
+                  variant="ghost"
+                  disabled={loading}
+                  onClick={() => void handleRerank(chip.id)}
+                  className={cn(
+                    "h-8 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted",
+                    chip.id === activeChip && "border-primary/50 bg-muted/60 text-foreground dark:bg-muted/40"
+                  )}
+                >
+                  {pendingChip === chip.id ? "Reranking…" : chip.label}
+                </Button>
+              ))}
+            </div>
+            <div className="inline-flex rounded-md border border-border/70 p-0.5">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setExploreView("cards")}
+                className={cn(
+                  "h-7 cursor-pointer px-2.5 text-xs",
+                  exploreView === "cards" && "bg-muted text-foreground"
+                )}
+              >
+                Cards
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setExploreView("table")}
+                className={cn(
+                  "h-7 cursor-pointer px-2.5 text-xs",
+                  exploreView === "table" && "bg-muted text-foreground"
+                )}
+              >
+                Table
+              </Button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <PickCardSkeleton key={`pick-skeleton-${idx}`} />
+              ))}
+            </div>
+          ) : data?.picks?.length ? (
+            exploreView === "table" ? (
+              <PickExploreTable picks={data.picks} activeChip={activeChip} />
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {data.picks.map((pick) => (
+                  <PickCardItem
+                    key={pick.id}
+                    item={pick}
+                    showMatchPercent
+                    rationaleMode={activeChip ? "adjusted" : "primary"}
+                    rerankMode={activeChip}
+                  />
+                ))}
+              </div>
+            )
+          ) : null}
+        </>
+      ) : null}
     </div>
   );
 }
