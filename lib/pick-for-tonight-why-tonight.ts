@@ -84,14 +84,20 @@ export function buildWhyTonight(candidate: WhyTonightInput, anchor: PickTonightA
   const hasNote = candidate.hints.includes("Has personal note");
   const recentChat = candidate.hints.includes("Recent title chat");
   const primaryGenre = candidate.genreNames[0]?.trim();
+  const variationSeed = (candidate.hints.join("|").length + (primaryGenre?.length ?? 0)) % 3;
 
   /** Order matters: lead with taste, then tenure, then where it lives in your library, then intent signals. */
   const clauses: string[] = [];
 
   if (primaryGenre) {
-    clauses.push(
-      `You've been curating a lot of ${primaryGenre.toLowerCase()} titles lately, and this one lines up with that thread.`
-    );
+    const g = primaryGenre.toLowerCase();
+    if (variationSeed === 0) {
+      clauses.push(`You've leaned into ${g} titles lately, and this one fits that lane.`);
+    } else if (variationSeed === 1) {
+      clauses.push(`Your recent picks have a ${g} pattern, and this lands right in that pocket.`);
+    } else {
+      clauses.push(`You keep gravitating toward ${g} stories, and this matches that taste.`);
+    }
   }
 
   if (anchor.watchlistedAt) {

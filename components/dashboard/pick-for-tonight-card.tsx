@@ -35,6 +35,7 @@ type ApiPicks = {
 };
 type RerankMode = "lighter" | "shorter" | "intense" | "different";
 type ExploreViewMode = "cards" | "table";
+type PendingMode = RerankMode | "base" | null;
 
 export function usePickForTonight() {
   const [showRow, setShowRow] = useState(false);
@@ -338,15 +339,23 @@ function whyTonightDisplay(item: PickForTonightCandidate): string {
   return pickIntentFallback(item);
 }
 
-function adjustedIntentCopy(mode: RerankMode): string {
+function adjustedIntentCopy(mode: RerankMode, item?: PickForTonightCandidate): string {
+  const genre = item?.genreNames?.[0]?.toLowerCase();
+  const runtime = item?.runtimeText;
   if (mode === "lighter") {
-    return "Adjusted for lighter mood: Tender and warm, but still has the craft and emotional depth you gravitate to.";
+    return genre
+      ? `Adjusted for lighter mood: Softer ${genre} energy, but still keeps the craft and emotional pull you gravitate to.`
+      : "Adjusted for lighter mood: Tender and warm, but still has the craft and emotional depth you gravitate to.";
   }
   if (mode === "shorter") {
-    return "Adjusted for shorter runtime: Quicker watch, still aligned with the tone and quality you usually save.";
+    return runtime
+      ? `Adjusted for shorter runtime: A tighter ${runtime} watch that still matches the tone and quality you usually save.`
+      : "Adjusted for shorter runtime: Quicker watch, still aligned with the tone and quality you usually save.";
   }
   if (mode === "intense") {
-    return "Adjusted for more intensity: Sharper stakes and stronger edge, while keeping the cinematic style you lean toward.";
+    return genre
+      ? `Adjusted for more intensity: Sharper stakes with a stronger ${genre} edge, while keeping your preferred cinematic style.`
+      : "Adjusted for more intensity: Sharper stakes and stronger edge, while keeping the cinematic style you lean toward.";
   }
   return "Adjusted for something different: A deliberate pivot from your last pick, while preserving quality and relevance.";
 }
@@ -370,7 +379,7 @@ function WhyTonightBlurb({ text, label = "Why tonight:" }: { text: string; label
   const prefix = "Why tonight:";
   const body = text.startsWith(prefix) ? text.slice(prefix.length).trim() : text;
   return (
-    <p className="mt-1.5 rounded-md border-l-2 border-primary/30 bg-muted/40 px-2.5 py-2 text-[12px] leading-snug text-foreground/80 dark:border-primary/40 dark:bg-muted/40 dark:text-muted-foreground">
+    <p className="mt-1.5 rounded-md border-l-2 border-primary/30 bg-muted px-2.5 py-2 text-[12px] leading-snug text-foreground/80 dark:border-primary/40 dark:bg-muted/40 dark:text-muted-foreground">
       {label ? <span className="font-semibold not-italic text-foreground dark:text-foreground">{label}</span> : null}
       {body ? (
         <>
@@ -486,7 +495,7 @@ function PickExploreTable({
         <TableHeader>
           <TableRow>
             <TableHead>Title</TableHead>
-            <TableHead className="hidden sm:table-cell">Meta</TableHead>
+            <TableHead className="hidden lg:table-cell">Intent</TableHead>
             <TableHead className="hidden sm:table-cell">Provider</TableHead>
             <TableHead className="text-right">Match</TableHead>
           </TableRow>
@@ -519,23 +528,37 @@ function PickExploreTable({
                       >
                         {pick.title}
                       </Link>
-                      <p className="line-clamp-1 hidden text-[11px] text-muted-foreground sm:block">
-                        {activeChip ? adjustedIntentCopy(activeChip) : whyTonightDisplay(pick)}
-                      </p>
-                      <p className="line-clamp-1 text-[11px] text-muted-foreground sm:hidden">{meta}</p>
+                      <p className="line-clamp-1 text-[11px] text-muted-foreground">{meta}</p>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="hidden text-xs text-muted-foreground sm:table-cell">{meta}</TableCell>
+                <TableCell className="hidden max-w-[360px] text-xs text-muted-foreground lg:table-cell">
+                  <p className="line-clamp-2 whitespace-normal">
+                    {activeChip ? adjustedIntentCopy(activeChip, pick) : whyTonightDisplay(pick)}
+                  </p>
+                </TableCell>
                 <TableCell className="hidden text-xs sm:table-cell">
-                  {providerHref ? (
+                  {provider && providerHref ? (
                     <a
                       href={providerHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="cursor-pointer text-foreground hover:text-primary"
+                      title={normalizeLabelWhitespace(providerWatchLabel(provider))}
+                      className="inline-flex h-7 max-w-[240px] cursor-pointer items-stretch overflow-hidden rounded-md border border-border/60 bg-muted text-[12px] font-medium capitalize leading-none transition-colors hover:bg-muted/80"
                     >
-                      {providerActionLabel(provider)} {provider?.providerName ? `on ${provider.providerName}` : ""}
+                      {provider.iconUrl ? (
+                        <Image
+                          src={provider.iconUrl}
+                          alt={provider.providerName}
+                          width={28}
+                          height={28}
+                          className="h-7 w-7 shrink-0 object-contain"
+                          unoptimized
+                        />
+                      ) : null}
+                      <span className="flex min-w-0 items-center truncate px-2">
+                        {truncateToMaxChars(normalizeLabelWhitespace(providerWatchLabel(provider)), 22)}
+                      </span>
                     </a>
                   ) : (
                     <span className="text-muted-foreground">Unavailable</span>
@@ -666,7 +689,7 @@ function PickCardItem({
     ? getPosterUrl(item.posterPath, "w500")
     : null;
   const rationaleText =
-    rationaleMode === "adjusted" && rerankMode ? adjustedIntentCopy(rerankMode) : whyTonightDisplay(item);
+    rationaleMode === "adjusted" && rerankMode ? adjustedIntentCopy(rerankMode, item) : whyTonightDisplay(item);
   const rationaleLabel = rationaleMode === "adjusted" ? null : "Why tonight:";
 
   return (
@@ -676,7 +699,7 @@ function PickCardItem({
         percentage height is indefinite and can collapse to 0. The image lives in an absolute
         inset-0 link, so it does not establish intrinsic height—flex stretch fixes the column.
       */}
-      <div className="relative z-0 w-[135px] shrink-0 self-stretch overflow-hidden bg-muted">
+      <div className="relative z-0 w-[135px] sm:w-[150px] shrink-0 self-stretch overflow-hidden bg-muted">
         <div className="group/poster relative h-full min-h-[203px] w-full">
           <Link
             href={detailHref(item)}
@@ -832,6 +855,13 @@ const RERANK_CHIPS: Array<{ id: "lighter" | "shorter" | "intense" | "different" 
 const RERANK_MODE_CHIPS: Array<{ id: RerankMode; label: string }> = RERANK_CHIPS.filter(
   (chip): chip is { id: RerankMode; label: string } => chip.id !== "more"
 );
+const EXPLORE_MOOD_CHIPS: Array<{ id: RerankMode | null; label: string }> = [
+  { id: null, label: "For you" },
+  { id: "intense", label: "Gripping" },
+  { id: "lighter", label: "Feel-good" },
+  { id: "different", label: "Thought-provoking" },
+  { id: "shorter", label: "Quick watch" },
+];
 
 export function PickForTonightSilentSurface({
   loading,
@@ -856,7 +886,7 @@ export function PickForTonightSilentSurface({
   const [exploreView, setExploreView] = useState<ExploreViewMode>("cards");
   const [displayedPick, setDisplayedPick] = useState<PickForTonightCandidate | null>(null);
   const [previousPick, setPreviousPick] = useState<PickForTonightCandidate | null>(null);
-  const [pendingChip, setPendingChip] = useState<RerankMode | null>(null);
+  const [pendingChip, setPendingChip] = useState<PendingMode>(null);
 
   useEffect(() => {
     if (didAutoloadRef.current) return;
@@ -883,6 +913,21 @@ export function PickForTonightSilentSurface({
         onlyUnseen,
         trendingToday,
         rerankMode: mode,
+        avoidTmdbId: mode === "different" ? displayedPick?.tmdbId : undefined,
+      });
+    } finally {
+      setPendingChip(null);
+    }
+  };
+  const handleExploreMoodSelect = async (mode: RerankMode | null) => {
+    if (loading) return;
+    setActiveChip(mode);
+    setPendingChip(mode ?? "base");
+    try {
+      await runPick({
+        onlyUnseen,
+        trendingToday,
+        rerankMode: mode ?? undefined,
         avoidTmdbId: mode === "different" ? displayedPick?.tmdbId : undefined,
       });
     } finally {
@@ -1077,19 +1122,19 @@ export function PickForTonightSilentSurface({
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap gap-2">
-              {RERANK_MODE_CHIPS.map((chip) => (
+              {EXPLORE_MOOD_CHIPS.map((chip) => (
                 <Button
-                  key={chip.id}
+                  key={chip.id ?? "base"}
                   type="button"
                   variant="ghost"
                   disabled={loading}
-                  onClick={() => void handleRerank(chip.id)}
+                  onClick={() => void handleExploreMoodSelect(chip.id)}
                   className={cn(
                     "h-8 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted",
                     chip.id === activeChip && "border-primary/50 bg-muted/60 text-foreground dark:bg-muted/40"
                   )}
                 >
-                  {pendingChip === chip.id ? "Reranking…" : chip.label}
+                  {(pendingChip === chip.id || (chip.id === null && pendingChip === "base")) ? "Reranking…" : chip.label}
                 </Button>
               ))}
             </div>
