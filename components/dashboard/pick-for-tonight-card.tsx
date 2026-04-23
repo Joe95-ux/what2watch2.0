@@ -544,15 +544,15 @@ function PickExploreTable({
                       target="_blank"
                       rel="noopener noreferrer"
                       title={normalizeLabelWhitespace(providerWatchLabel(provider))}
-                      className="inline-flex h-7 max-w-[240px] cursor-pointer items-stretch overflow-hidden rounded-md border border-border/60 bg-muted text-[12px] font-medium capitalize leading-none transition-colors hover:bg-muted/80"
+                      className="inline-flex h-8 max-w-[240px] cursor-pointer items-stretch overflow-hidden rounded-md border border-border/60 bg-muted text-[12px] font-medium capitalize leading-none transition-colors hover:bg-muted/80"
                     >
                       {provider.iconUrl ? (
                         <Image
                           src={provider.iconUrl}
                           alt={provider.providerName}
-                          width={28}
-                          height={28}
-                          className="h-7 w-7 shrink-0 object-contain"
+                          width={32}
+                          height={32}
+                          className="h-8 w-8 shrink-0 object-contain"
                           unoptimized
                         />
                       ) : null}
@@ -863,6 +863,15 @@ const EXPLORE_MOOD_CHIPS: Array<{ id: RerankMode | null; label: string }> = [
   { id: "shorter", label: "Quick watch" },
 ];
 
+function deriveExploreMoodChips(seedPick: PickForTonightCandidate | null): Array<{ id: RerankMode | null; label: string }> {
+  const genre = seedPick?.genreNames?.[0]?.trim();
+  if (!genre) return EXPLORE_MOOD_CHIPS;
+  return EXPLORE_MOOD_CHIPS.map((chip) => {
+    if (chip.id === "intense") return { ...chip, label: `Gripping ${genre}` };
+    return chip;
+  });
+}
+
 export function PickForTonightSilentSurface({
   loading,
   data,
@@ -963,6 +972,7 @@ export function PickForTonightSilentSurface({
   };
   const isRerankLoading = loading && pendingChip !== null;
   const isInitialLoading = loading && pendingChip === null;
+  const exploreMoodChips = useMemo(() => deriveExploreMoodChips(displayedPick), [displayedPick]);
 
   return (
     <div className="mt-3 w-full space-y-3">
@@ -1122,7 +1132,7 @@ export function PickForTonightSilentSurface({
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap gap-2">
-              {EXPLORE_MOOD_CHIPS.map((chip) => (
+              {exploreMoodChips.map((chip) => (
                 <Button
                   key={chip.id ?? "base"}
                   type="button"
@@ -1134,7 +1144,9 @@ export function PickForTonightSilentSurface({
                     chip.id === activeChip && "border-primary/50 bg-muted/60 text-foreground dark:bg-muted/40"
                   )}
                 >
-                  {(pendingChip === chip.id || (chip.id === null && pendingChip === "base")) ? "Reranking…" : chip.label}
+                  {pendingChip !== null && (pendingChip === chip.id || (chip.id === null && pendingChip === "base"))
+                    ? "Reranking…"
+                    : chip.label}
                 </Button>
               ))}
             </div>
