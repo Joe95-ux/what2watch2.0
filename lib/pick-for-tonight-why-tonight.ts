@@ -102,14 +102,20 @@ export function buildWhyTonight(candidate: WhyTonightInput, anchor: PickTonightA
 
   if (anchor.watchlistedAt) {
     const days = calendarDaysSince(anchor.watchlistedAt, now);
-    if (days >= 14) {
-      clauses.push(`It's been sitting on your watchlist for ${days} days.`);
-    } else if (days >= 7) {
-      clauses.push(`It's been on your watchlist for about a week (${days} days).`);
-    } else if (days >= 1) {
-      clauses.push(`It only landed on your watchlist ${days} day${days === 1 ? "" : "s"} ago—still fresh.`);
-    } else {
-      clauses.push("It just hit your watchlist—worth striking while the mood is there.");
+    const shouldMentionWatchlistAge =
+      days >= 21 || // long-standing saves should almost always be surfaced
+      clauses.length === 0 || // if we lack stronger context, use this
+      (variationSeed === 0 && days >= 7); // otherwise mention only sometimes
+    if (shouldMentionWatchlistAge) {
+      if (days >= 14) {
+        clauses.push(`It's been sitting on your watchlist for ${days} days.`);
+      } else if (days >= 7) {
+        clauses.push(`It's been on your watchlist for about a week (${days} days).`);
+      } else if (days >= 1) {
+        clauses.push(`It only landed on your watchlist ${days} day${days === 1 ? "" : "s"} ago—still fresh.`);
+      } else {
+        clauses.push("It just hit your watchlist—worth striking while the mood is there.");
+      }
     }
   }
 

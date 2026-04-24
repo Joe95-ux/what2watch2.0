@@ -70,6 +70,15 @@ function isMatureRating(rated: string | null | undefined): boolean {
   return r.includes("R") || r.includes("NC-17") || r.includes("TV-MA");
 }
 
+function recencyBoost(createdAt: Date | null | undefined, now = new Date()): number {
+  if (!createdAt) return 0;
+  const ageDays = Math.max(0, (now.getTime() - createdAt.getTime()) / 86400000);
+  if (ageDays <= 3) return 3;
+  if (ageDays <= 14) return 2;
+  if (ageDays <= 45) return 1;
+  return 0;
+}
+
 function rerankPicks(
   picks: PickForTonightCandidate[],
   mode: RerankMode | null
@@ -77,18 +86,21 @@ function rerankPicks(
   const score = (p: PickForTonightCandidate): number => {
     const runtime = parseRuntimeToMinutes(p.runtimeText) ?? 120;
     const mature = isMatureRating(p.rated);
+    // Episode runtime alone underestimates actual commitment for series.
+    const watchCommitmentMinutes =
+      p.mediaType === "tv" ? Math.round(runtime * 2.2 + 20) : runtime;
     const base = (p.imdbRating ?? 6.5) * 6 + p.hints.length * 8 + (p.justwatchRank24h ? Math.max(0, 30 - p.justwatchRank24h) : 0);
     if (!mode) return base;
     switch (mode) {
       case "shorter":
-        return base + (140 - runtime) * 0.8;
+        return base + (140 - watchCommitmentMinutes) * 0.8;
       case "lighter":
-        return base + (mature ? -16 : 16) - runtime * 0.12;
+        return base + (mature ? -16 : 16) - watchCommitmentMinutes * 0.12;
       case "intense":
-        return base + (mature ? 20 : 0) + runtime * 0.08;
+        return base + (mature ? 20 : 0) + watchCommitmentMinutes * 0.08;
       case "different":
         // Preserve quality but push away from obvious baseline.
-        return base + (mature ? 3 : 0) - runtime * 0.03;
+        return base + (mature ? 3 : 0) - watchCommitmentMinutes * 0.03;
       default:
         return base;
     }
@@ -110,6 +122,45 @@ function matchPercentsForScores(scores: number[]): number[] {
     const t = (s - min) / (max - min);
     return Math.round(70 + t * 29);
   });
+}
+
+function selectDiversePicks(
+  ranked: Array<{ pick: PickForTonightCandidate; score: number }>,
+  limit: number
+): Array<{ pick: PickForTonightCandidate; score: number }> {
+  const pool = [...ranked];
+  const selected: Array<{ pick: PickForTonightCandidate; score: number }> = [];
+  const genreSeen = new Map<string, number>();
+  const mediaSeen = new Map<string, number>();
+
+  while (selected.length < limit && pool.length > 0) {
+    let bestIndex = 0;
+    let bestAdjusted = Number.NEGATIVE_INFINITY;
+
+    for (let i = 0; i < pool.length; i += 1) {
+      const current = pool[i];
+      const leadGenre = current.pick.genreNames?.[0]?.toLowerCase() ?? "";
+      const genrePenalty = leadGenre ? (genreSeen.get(leadGenre) ?? 0) * 8 : 0;
+      const mediaPenalty = (mediaSeen.get(current.pick.mediaType) ?? 0) * 4;
+      const adjusted = current.score - genrePenalty - mediaPenalty;
+      if (adjusted > bestAdjusted) {
+        bestAdjusted = adjusted;
+        bestIndex = i;
+      }
+    }
+
+    const chosen = pool.splice(bestIndex, 1)[0];
+    selected.push(chosen);
+    const g = chosen.pick.genreNames?.[0]?.toLowerCase();
+    if (g) genreSeen.set(g, (genreSeen.get(g) ?? 0) + 1);
+    mediaSeen.set(chosen.pick.mediaType, (mediaSeen.get(chosen.pick.mediaType) ?? 0) + 1);
+  }
+
+  return selected;
+}
+
+function arrayModeTypeToMedia(type: string | null | undefined): Media {
+  return type === "tv" ? "tv" : "movie";
 }
 
 type BaseCandidate = {
@@ -264,7 +315,9 @@ export async function POST(request: NextRequest) {
 
     const anchorById = new Map<string, PickTonightAnchor>();
 
-    const [lists, playlists, favorites, sessions] = await Promise.all([
+    const cooldownSince = new Date(Date.now() - 1000 * 60 * 60 * 72); // 72h cooldown window
+
+    const [lists, playlists, favorites, sessions, recentPickEvents] = await Promise.all([
       db.list.findMany({
         where: { userId: user.id },
         select: {
@@ -307,7 +360,26 @@ export async function POST(request: NextRequest) {
         take: 16,
         select: { metadata: true, updatedAt: true },
       }),
+      db.aiChatEvent.findMany({
+        where: {
+          userId: user.id,
+          createdAt: { gte: cooldownSince },
+          sessionId: { startsWith: `pick-tonight:${user.id}` },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 24,
+        select: { resultIds: true, resultTypes: true },
+      }),
     ]);
+    const recentRecommended = new Set<string>();
+    for (const event of recentPickEvents) {
+      for (let i = 0; i < event.resultIds.length; i += 1) {
+        const tmdbId = event.resultIds[i];
+        const mediaType = arrayModeTypeToMedia(event.resultTypes[i]);
+        recentRecommended.add(candidateId(tmdbId, mediaType));
+      }
+    }
+
 
     const byId = new Map<string, BaseCandidate>();
     if (trendingToday) {
@@ -333,9 +405,9 @@ export async function POST(request: NextRequest) {
             title: it.title,
             posterPath: it.posterPath ?? null,
           };
-          addHint(byId, base, `List: ${list.name}`, 3);
+          addHint(byId, base, `List: ${list.name}`, 3 + recencyBoost(it.createdAt));
           mergeListTouch(anchorById, base.id, list.name, it.createdAt);
-          if (it.note?.trim()) addHint(byId, base, "Has personal note", 4);
+          if (it.note?.trim()) addHint(byId, base, "Has personal note", 4 + recencyBoost(it.createdAt));
         }
       }
       for (const pl of playlists) {
@@ -347,9 +419,9 @@ export async function POST(request: NextRequest) {
             title: it.title,
             posterPath: it.posterPath ?? null,
           };
-          addHint(byId, base, `Playlist: ${pl.name}`, 2);
+          addHint(byId, base, `Playlist: ${pl.name}`, 2 + recencyBoost(it.createdAt));
           mergePlaylistTouch(anchorById, base.id, pl.name, it.createdAt);
-          if (it.note?.trim()) addHint(byId, base, "Has personal note", 4);
+          if (it.note?.trim()) addHint(byId, base, "Has personal note", 4 + recencyBoost(it.createdAt));
         }
       }
       for (const fav of favorites) {
@@ -360,7 +432,7 @@ export async function POST(request: NextRequest) {
           title: fav.title,
           posterPath: fav.posterPath ?? null,
         };
-        addHint(byId, base, "Watchlist", 1);
+        addHint(byId, base, "Saved titles", 1 + recencyBoost(fav.createdAt));
         mergeWatchlistTouch(anchorById, base.id, fav.createdAt);
       }
 
@@ -392,6 +464,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    for (const [id, candidate] of byId.entries()) {
+      if (recentRecommended.has(id)) {
+        candidate.score -= 8; // keep available, but make repeats less likely during cooldown window
+      }
+    }
+
     const ranked = Array.from(byId.values())
       .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
       .slice(0, 20);
@@ -408,7 +486,7 @@ export async function POST(request: NextRequest) {
     }
 
     const enriched = await Promise.all(ranked.map((c) => enrichCandidate(c)));
-    const rerankedWithScores = rerankPicks(enriched, rerankMode).slice(0, 6);
+    const rerankedWithScores = selectDiversePicks(rerankPicks(enriched, rerankMode), 6);
     const percents = matchPercentsForScores(rerankedWithScores.map((x) => x.score));
     const reranked = rerankedWithScores.map(({ pick: e }, idx) => ({
         ...e,
@@ -422,6 +500,24 @@ export async function POST(request: NextRequest) {
           anchorById.get(e.id) ?? EMPTY_PICK_TONIGHT_ANCHOR
         ),
       }));
+
+    // Non-blocking: store picks to reduce near-term repetition.
+    db.aiChatEvent
+      .create({
+        data: {
+          userId: user.id,
+          sessionId: `pick-tonight:${user.id}`,
+          userMessage: "pick-for-tonight/cards",
+          intent: "RECOMMENDATION",
+          aiResponse: null,
+          resultsCount: reranked.length,
+          resultIds: reranked.map((p) => p.tmdbId),
+          resultTypes: reranked.map((p) => p.mediaType),
+        },
+      })
+      .catch(() => {
+        // Ignore logging failures; recommendation response should still succeed.
+      });
     return NextResponse.json({ picks: reranked });
   } catch (error) {
     console.error("pick-for-tonight/cards error:", error);
