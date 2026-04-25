@@ -30,8 +30,10 @@ import ActionButtonsSection from "./action-buttons-section";
 import EpisodeDetailModal from "./episode-detail-modal";
 import CollectionSection from "./collection-section";
 import SeenAllModal from "./seen-all-modal";
+import WatchingDiscussionsSection from "./watching-discussions-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsWatched } from "@/hooks/use-viewing-logs";
+import { useWatchingForTitle } from "@/hooks/use-watching";
 
 interface ContentDetailPageProps {
   item: TMDBMovie | TMDBSeries;
@@ -109,6 +111,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     watchCountry
   );
   const { data: justwatchCountries = [] } = useJustWatchCountries();
+  const { data: watchingTitleData, isLoading: isWatchingTitleLoading } = useWatchingForTitle(item.id, type, true);
 
   // Get collection ID from movie details
   const collectionId = type === "movie" && movieDetails?.belongs_to_collection?.id 
@@ -413,6 +416,9 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
             seasons={type === "tv" ? seasonsData?.seasons ?? [] : []}
             onSeasonChange={type === "tv" ? setSelectedSeason : undefined}
           />
+        )}
+        {activeTab === "discussions" && (
+          <WatchingDiscussionsSection data={watchingTitleData} isLoading={isWatchingTitleLoading} />
         )}
         {activeTab === "reviews" && (
           <ReviewsSection

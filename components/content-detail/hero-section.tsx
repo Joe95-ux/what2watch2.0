@@ -26,6 +26,8 @@ import { useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { MovieChatSheet } from "./movie-chat-sheet";
 import { mergeMovieChatPersist, readMovieChatPersist } from "@/lib/movie-chat-persist";
+import { useWatchingForTitle, useWatchingMutation } from "@/hooks/use-watching";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface DetailsType {
   release_date?: string;
@@ -234,6 +236,28 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
   };
 
   const trailerDurationText = trailerDuration ? formatTrailerDuration(trailerDuration) : null;
+  const { data: titleWatchingData } = useWatchingForTitle(item.id, type);
+  const watchingMutation = useWatchingMutation();
+
+  const handleWatchingToo = useCallback(async () => {
+    if (!isSignedIn) {
+      promptSignIn("Sign in to share what you're watching.");
+      return;
+    }
+    try {
+      await watchingMutation.mutateAsync({
+        action: "start",
+        tmdbId: item.id,
+        mediaType: type,
+        title,
+        posterPath: item.poster_path || null,
+        backdropPath: item.backdrop_path || null,
+      });
+      toast.success("You are now marked as watching this.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to start watching session");
+    }
+  }, [isSignedIn, promptSignIn, watchingMutation, item.id, item.poster_path, item.backdrop_path, type, title]);
 
   const videoStatLabel = formatStatLabel(videoCount, "Videos");
   const photoStatLabel = formatStatLabel(photoCount, "Photos");
@@ -264,53 +288,90 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
     <section className="-mt-[65px] pt-16 sm:pt-20 pb-0 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-end gap-3 mt-[14px] md:mt-0">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 inline-flex items-center gap-2 rounded-[25px] cursor-pointer border-none bg-muted hover:bg-muted/90"
-              onClick={() => {
-                if (!isSignedIn) {
-                  toast.info("Sign in to chat about movies.");
-                  if (openSignIn) {
-                    openSignIn({
-                      afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
-                    });
-                  }
-                  return;
-                }
-                handleChatOpenChange(true);
-              }}
-            >
-              <HelpCircle className="h-4 w-4" />
-              Ask Us
-            </Button>
-            <LogToDiaryDropdown
-              item={item}
-              type={type}
-              trigger={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 inline-flex items-center gap-2 rounded-[25px] cursor-pointer border-none bg-muted hover:bg-muted/90"
-                  onClick={(e) => {
-                    if (!isSignedIn) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toast.info("Sign in to log films to your diary.");
-                      if (openSignIn) {
-                        openSignIn({
-                          afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
-                        });
-                      }
+          <div className="mt-[14px] flex flex-col gap-3 md:mt-0 md:flex-row md:items-start md:justify-between">
+            {titleWatchingData && titleWatchingData.watcherCount > 0 ? (
+              <div className="rounded-xl border border-border bg-card/80 px-3 py-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Watching now</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <div className="flex -space-x-2">
+                        {titleWatchingData.watchers.slice(0, 5).map((watcher) => {
+                          const label = watcher.user.displayName || watcher.user.username || "U";
+                          return (
+                            <Avatar key={watcher.sessionId} className="h-6 w-6 border border-background">
+                              <AvatarImage src={watcher.user.avatarUrl ?? undefined} alt={label} />
+                              <AvatarFallback className="text-[10px]">{label[0]}</AvatarFallback>
+                            </Avatar>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {titleWatchingData.watcherCount} {titleWatchingData.watcherCount === 1 ? "person" : "people"} watching right now
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="h-8 cursor-pointer rounded-[20px]"
+                    variant={titleWatchingData.isCurrentUserWatching ? "outline" : "default"}
+                    disabled={watchingMutation.isPending || titleWatchingData.isCurrentUserWatching}
+                    onClick={handleWatchingToo}
+                  >
+                    {titleWatchingData.isCurrentUserWatching ? "Watching now" : "I'm watching too"}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="ml-auto flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 inline-flex items-center gap-2 rounded-[25px] cursor-pointer border-none bg-muted hover:bg-muted/90"
+                onClick={() => {
+                  if (!isSignedIn) {
+                    toast.info("Sign in to chat about movies.");
+                    if (openSignIn) {
+                      openSignIn({
+                        afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                      });
                     }
-                  }}
-                >
-                  <Clapperboard className="h-4 w-4" />
-                  {type === "movie" ? "Log movie" : "Log TV show"}
-                </Button>
-              }
-            />
+                    return;
+                  }
+                  handleChatOpenChange(true);
+                }}
+              >
+                <HelpCircle className="h-4 w-4" />
+                Ask Us
+              </Button>
+              <LogToDiaryDropdown
+                item={item}
+                type={type}
+                trigger={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 inline-flex items-center gap-2 rounded-[25px] cursor-pointer border-none bg-muted hover:bg-muted/90"
+                    onClick={(e) => {
+                      if (!isSignedIn) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toast.info("Sign in to log films to your diary.");
+                        if (openSignIn) {
+                          openSignIn({
+                            afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+                          });
+                        }
+                      }
+                    }}
+                  >
+                    <Clapperboard className="h-4 w-4" />
+                    {type === "movie" ? "Log movie" : "Log TV show"}
+                  </Button>
+                }
+              />
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row justify-start sm:justify-between sm:items-end gap-3">

@@ -1,0 +1,92 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+
+type RequireUserIdResult =
+  | { ok: true; userId: string }
+  | { ok: false; response: NextResponse<{ error: string }> };
+
+async function requireUserId(): Promise<RequireUserIdResult> {
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) return { ok: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  const user = await db.user.findUnique({ where: { clerkId: clerkUserId }, select: { id: true } });
+  if (!user) return { ok: false, response: NextResponse.json({ error: "User not found" }, { status: 404 }) };
+  return { ok: true, userId: user.id };
+}
+
+function isRequireUserIdFailure(result: RequireUserIdResult): result is Extract<RequireUserIdResult, { ok: false }> {
+  return result.ok === false;
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ thoughtId: string }> }
+): Promise<NextResponse<{ success: boolean } | { error: string }>> {
+  try {
+    const authResult = await requireUserId();
+    if (isRequireUserIdFailure(authResult)) return authResult.response;
+    const { thoughtId } = await params;
+    const body = await request.json();
+    const reactionType = typeof body?.reactionType === "string" ? body.reactionType.trim() : "";
+    const isValidEmoji = /^[\p{Emoji}]$/u.test(reactionType);
+    if (reactionType !== "like" && !isValidEmoji) {
+      return NextResponse.json({ error: "Invalid reaction type" }, { status: 400 });
+    }
+
+    const thought = await db.watchingThought.findUnique({ where: { id: thoughtId }, select: { id: true } });
+    if (!thought) return NextResponse.json({ error: "Thought not found" }, { status: 404 });
+
+    await db.watchingThoughtReaction.upsert({
+      where: {
+        thoughtId_userId_reactionType: {
+          thoughtId,
+          userId: authResult.userId,
+          reactionType,
+        },
+      },
+      create: {
+        thoughtId,
+        userId: authResult.userId,
+        reactionType,
+      },
+      update: {},
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("watching thought reaction POST error:", error);
+    return NextResponse.json({ error: "Failed to add reaction" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ thoughtId: string }> }
+): Promise<NextResponse<{ success: boolean } | { error: string }>> {
+  try {
+    const authResult = await requireUserId();
+    if (isRequireUserIdFailure(authResult)) return authResult.response;
+    const { thoughtId } = await params;
+    const reactionType = new URL(request.url).searchParams.get("reactionType");
+    if (!reactionType) return NextResponse.json({ error: "Reaction type is required" }, { status: 400 });
+
+    const existing = await db.watchingThoughtReaction.findUnique({
+      where: {
+        thoughtId_userId_reactionType: {
+          thoughtId,
+          userId: authResult.userId,
+          reactionType,
+        },
+      },
+      select: { id: true },
+    });
+    if (!existing) return NextResponse.json({ error: "Reaction not found" }, { status: 404 });
+
+    await db.watchingThoughtReaction.delete({ where: { id: existing.id } });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("watching thought reaction DELETE error:", error);
+    return NextResponse.json({ error: "Failed to remove reaction" }, { status: 500 });
+  }
+}
+

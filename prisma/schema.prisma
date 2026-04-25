@@ -161,6 +161,10 @@ model User {
   activities Activity[]
   followedActivities Activity[] @relation("UserFollowedActivities")
   activityLikes ActivityLike[]
+  watchingSessions WatchingSession[]
+  watchingThoughts WatchingThought[]
+  watchingThoughtReactions WatchingThoughtReaction[]
+  watchingThoughtReplies WatchingThoughtReply[]
   lists List[]
   likedLists LikedList[]
   listComments ListComment[]
@@ -1243,6 +1247,18 @@ enum ActivityType {
   CREATED_FORUM_REPLY  // User replied to a forum post
 }
 
+enum WatchingStatus {
+  WATCHING_NOW
+  JUST_FINISHED
+  STOPPED
+}
+
+enum WatchingVisibility {
+  PUBLIC
+  FOLLOWERS_ONLY
+  PRIVATE
+}
+
 model Activity {
   id            String       @id @default(auto()) @map("_id") @db.ObjectId
   userId        String       @db.ObjectId
@@ -1280,6 +1296,85 @@ model Activity {
   @@index([userId, type])
   @@index([createdAt])
   @@index([tmdbId, mediaType])
+}
+
+model WatchingSession {
+  id            String            @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String            @db.ObjectId
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tmdbId        Int
+  mediaType     String            // "movie" or "tv"
+  title         String
+  posterPath    String?
+  backdropPath  String?
+
+  status        WatchingStatus    @default(WATCHING_NOW)
+  visibility    WatchingVisibility @default(PUBLIC)
+  progressPercent Int?
+
+  startedAt     DateTime          @default(now())
+  endedAt       DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  thoughts      WatchingThought[]
+
+  @@map("watching_sessions")
+  @@index([userId, status, startedAt])
+  @@index([tmdbId, mediaType, status])
+  @@index([createdAt])
+}
+
+model WatchingThought {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  sessionId     String          @db.ObjectId
+  session       WatchingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId        String          @db.ObjectId
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  content       String
+  isSpoiler     Boolean         @default(false)
+
+  reactions     WatchingThoughtReaction[]
+  replies       WatchingThoughtReply[]
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@map("watching_thoughts")
+  @@index([sessionId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model WatchingThoughtReaction {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  thoughtId      String          @db.ObjectId
+  thought        WatchingThought  @relation(fields: [thoughtId], references: [id], onDelete: Cascade)
+  userId         String          @db.ObjectId
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactionType   String
+  createdAt      DateTime        @default(now())
+
+  @@map("watching_thought_reactions")
+  @@unique([thoughtId, userId, reactionType])
+  @@index([thoughtId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model WatchingThoughtReply {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  thoughtId     String          @db.ObjectId
+  thought       WatchingThought @relation(fields: [thoughtId], references: [id], onDelete: Cascade)
+  userId        String          @db.ObjectId
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content       String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@map("watching_thought_replies")
+  @@index([thoughtId, createdAt])
+  @@index([userId, createdAt])
 }
 
 // Activity likes - users can like activities in the feed

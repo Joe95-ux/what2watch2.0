@@ -29,6 +29,7 @@ import {
   LayoutDashboard,
   Settings,
   Activity,
+  Radio,
   Palette,
   BarChart3,
   Sparkles,
@@ -106,10 +107,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/youtube", label: "YouTube", icon: Youtube },
   ];
 
+  // Admin links visibility
+  const isAdmin = currentUser?.isForumAdmin || currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN";
+
   // User links
   const userLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/dashboard/activity", label: "Activity", icon: Activity },
+    ...(isAdmin ? [{ href: "/dashboard/watching", label: "Watching", icon: Radio }] : []),
     { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
     { href: "/dashboard/my-list", label: "My List", icon: Heart, badge: favorites.length },
     { href: "/dashboard/watchlist", label: "Watchlist", icon: Bookmark, badge: watchlist.length },
@@ -132,7 +137,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   ];
 
   // Admin links (only show if user is admin)
-  const isAdmin = currentUser?.isForumAdmin || currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN";
   const adminLinks = isAdmin ? [
     { href: "/dashboard/admin/forum", label: "Forum Admin", icon: MessageSquare },
     { href: "/dashboard/admin/moderation", label: "General Moderation", icon: Shield },
