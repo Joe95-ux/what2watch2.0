@@ -35,10 +35,11 @@ import {
 import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { SelectServicesModal } from "@/components/browse/select-services-modal";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCurrentUser } from "@/hooks/use-current-user";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 /** Avoid `data ?? []` default in render — a new `[]` each time forces downstream memos & Embla to churn. */
 function useStableQueryArray<T>(data: T[] | undefined): T[] {
@@ -47,7 +48,6 @@ function useStableQueryArray<T>(data: T[] | undefined): T[] {
 
 export default function DashboardContent() {
   const { user } = useUser();
-  const { data: currentUser } = useCurrentUser();
   const queryClient = useQueryClient();
   const { data: favoritesData, isLoading: isLoadingFavorites } = useFavorites();
   const favorites = useStableQueryArray(favoritesData);
@@ -198,8 +198,6 @@ export default function DashboardContent() {
   }, [favoriteYouTubeVideos.length, youtubeWatchlist.length, youtubePlaylists.length]);
 
   const isLoadingYouTubeSection = isLoadingYouTubeFavorites || isLoadingYouTubeWatchlist || isLoadingYouTubePlaylists;
-  const isPickForTonightAdmin =
-    currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN";
   const pickForTonight = usePickForTonight();
   const [pickTimestamp, setPickTimestamp] = useState(() =>
     new Intl.DateTimeFormat("en-US", {
@@ -269,17 +267,35 @@ export default function DashboardContent() {
               <h1 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">
                 {greeting}, {displayName}
               </h1>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                {hasTonightPick
-                  ? "Here is your pick for tonight"
-                  : "Here's whats happening with your watchlist"}
-              </p>
+              {hasTonightPick ? (
+                <div className="flex flex-wrap items-center gap-2 text-sm sm:text-base text-muted-foreground">
+                  <p>Here is your pick for tonight</p>
+                  <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                    Beta
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex h-5 w-5 cursor-help items-center justify-center rounded-full border border-border/70 text-muted-foreground hover:text-foreground"
+                        aria-label="Why this feature is in beta"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                      Pick for tonight is still in beta while we tune ranking quality and mood matching. Your usage and
+                      feedback help us improve relevance and reduce repetitive picks.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              ) : (
+                <p className="text-sm sm:text-base text-muted-foreground">{"Here's whats happening with your watchlist"}</p>
+              )}
             </div>
-            {isPickForTonightAdmin && (
-              <p className="text-xs sm:text-sm text-muted-foreground">{pickTimestamp}</p>
-            )}
+            <p className="text-xs sm:text-sm text-muted-foreground">{pickTimestamp}</p>
           </div>
-          {isPickForTonightAdmin && !pickForTonight.picksHidden && (
+          {!pickForTonight.picksHidden && (
             <PickForTonightSilentSurface
               loading={pickForTonight.loading}
               data={pickForTonight.data}

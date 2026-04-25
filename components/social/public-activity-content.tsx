@@ -13,7 +13,6 @@ import {
   FileText,
   Heart,
   List,
-  Music,
   UserPlus,
   Calendar,
   Lock,
@@ -40,7 +39,7 @@ const ACTIVITY_TYPES: { value: ActivityType | "all"; label: string; icon: React.
   { value: "REVIEWED_FILM", label: "Reviewed", icon: <FileText className="h-4 w-4" /> },
   { value: "LIKED_FILM", label: "Liked", icon: <Heart className="h-4 w-4" /> },
   { value: "CREATED_LIST", label: "Lists", icon: <List className="h-4 w-4" /> },
-  { value: "CREATED_PLAYLIST", label: "Playlists", icon: <Music className="h-4 w-4" /> },
+  { value: "CREATED_PLAYLIST", label: "Playlists", icon: <List className="h-4 w-4" /> },
   { value: "FOLLOWED_USER", label: "Followed", icon: <UserPlus className="h-4 w-4" /> },
 ];
 
@@ -175,7 +174,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
       case "CREATED_LIST":
         return <List className="h-4 w-4" />;
       case "CREATED_PLAYLIST":
-        return <Music className="h-4 w-4" />;
+        return <List className="h-4 w-4" />;
       case "FOLLOWED_USER":
         return <UserPlus className="h-4 w-4" />;
       case "CREATED_FORUM_POST":

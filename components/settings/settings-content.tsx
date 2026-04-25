@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { isReservedUserName } from "@/lib/reserved-user-names";
 import { SettingsLinksSection } from "@/components/settings/settings-links-section";
 import { SettingsYoutubeVisibilitySection } from "@/components/settings/settings-youtube-visibility-section";
 import { SettingsBillingSection } from "@/components/settings/settings-billing-section";
@@ -218,6 +219,10 @@ export default function SettingsContent({
       const trimmedUsername = accountUsername.trim();
       const trimmedFirst = accountFirstName.trim();
       const trimmedLast = accountLastName.trim();
+      const candidateDisplayName = `${trimmedFirst} ${trimmedLast}`.trim();
+      if (isReservedUserName(trimmedUsername) || isReservedUserName(candidateDisplayName)) {
+        throw new Error('The name "test" is reserved. Please choose a different username or display name.');
+      }
       const updatePayload: {
         username?: string | null;
         firstName?: string | null;

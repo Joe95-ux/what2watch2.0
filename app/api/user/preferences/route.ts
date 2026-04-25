@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { isReservedUserName } from "@/lib/reserved-user-names";
 
 export async function POST(request: NextRequest): Promise<NextResponse<{ success: boolean } | { error: string }>> {
   try {
@@ -29,12 +30,21 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         },
       }).then((res) => res.json());
 
+      const username = clerkUser.username || null;
+      const displayName = clerkUser.username || clerkUser.first_name || null;
+      if (isReservedUserName(username) || isReservedUserName(displayName)) {
+        return NextResponse.json(
+          { error: "Username or display name is not allowed. Please choose a different name." },
+          { status: 400 }
+        );
+      }
+
       user = await db.user.create({
         data: {
           clerkId: userId,
           email: clerkUser.email_addresses[0]?.email_address || "",
-          displayName: clerkUser.username || clerkUser.first_name || null,
-          username: clerkUser.username || null,
+          displayName,
+          username,
           avatarUrl: clerkUser.image_url || null,
         },
       });
