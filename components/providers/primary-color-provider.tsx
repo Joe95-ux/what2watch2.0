@@ -9,7 +9,7 @@ export function PrimaryColorProvider() {
   useEffect(() => {
     if (typeof document === "undefined") return;
     
-    const primaryColor = preferences?.primaryColor || "neutral";
+    const primaryColor = preferences?.primaryColor || "emerald";
     document.documentElement.setAttribute("data-primary-color", primaryColor);
   }, [preferences?.primaryColor]);
 

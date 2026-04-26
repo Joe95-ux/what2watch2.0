@@ -26,6 +26,8 @@ export type WatchingSessionDTO = {
   title: string;
   posterPath: string | null;
   backdropPath: string | null;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
   releaseYear: number | null;
   creatorOrDirector: string | null;
   runtimeMinutes: number | null;

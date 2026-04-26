@@ -9,7 +9,7 @@ interface UserPreferences {
   minYear?: number;
   maxYear?: number;
   selectedProviders?: number[];
-  primaryColor?: "neutral" | "blue" | "red";
+  primaryColor?: "neutral" | "emerald" | "red" | "blue";
   onboardingCompleted: boolean;
 }
 

@@ -345,14 +345,14 @@ export default function WatchingDiscussionsSection({
 
   return (
     <section className="space-y-6 py-6">
-      <div className="rounded-[15px] border border-border/60 bg-muted/25 p-3 dark:border-border/50 dark:bg-muted/15">
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Watching now</p>
-          <p className="text-xs text-muted-foreground">
-            {data?.watcherCount ?? 0} {(data?.watcherCount ?? 0) === 1 ? "person" : "people"}
-          </p>
-        </div>
-        {(data?.watcherCount ?? 0) > 0 ? (
+      {(data?.watcherCount ?? 0) > 0 ? (
+        <div className="rounded-[15px] border border-border/60 bg-muted/25 p-3 dark:border-border/50 dark:bg-muted/15">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Watching now</p>
+            <p className="text-xs text-muted-foreground">
+              {data?.watcherCount ?? 0} {(data?.watcherCount ?? 0) === 1 ? "person" : "people"}
+            </p>
+          </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
@@ -385,10 +385,8 @@ export default function WatchingDiscussionsSection({
               )}
             </div>
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">No one is watching this right now.</p>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       <div>
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -404,23 +402,22 @@ export default function WatchingDiscussionsSection({
         </div>
       </div>
 
-      <div className="rounded-lg border border-border/60 bg-muted/20 p-3 dark:border-border/50 dark:bg-muted/10">
-        <button
-          type="button"
-          className="text-xs font-semibold tracking-wide text-muted-foreground cursor-pointer"
-          onClick={() => setShowSpoilers((v) => !v)}
-        >
-          Spoiler discussions - Tap to reveal
-        </button>
-        <div className="mt-3 space-y-3">
-          {(data?.spoilerThoughts ?? []).map((thought) => (
-            <ThoughtCard key={thought.thoughtId} thought={thought} blurred={!showSpoilers} />
-          ))}
-          {!(data?.spoilerThoughts?.length ?? 0) ? (
-            <p className="text-sm text-muted-foreground">No spoiler discussions yet.</p>
-          ) : null}
+      {(data?.spoilerThoughts?.length ?? 0) > 0 ? (
+        <div className="rounded-lg border border-border/60 bg-muted/20 p-3 dark:border-border/50 dark:bg-muted/10">
+          <button
+            type="button"
+            className="text-xs font-semibold tracking-wide text-muted-foreground cursor-pointer"
+            onClick={() => setShowSpoilers((v) => !v)}
+          >
+            Spoiler discussions - Tap to reveal
+          </button>
+          <div className="mt-3 space-y-3">
+            {(data?.spoilerThoughts ?? []).map((thought) => (
+              <ThoughtCard key={thought.thoughtId} thought={thought} blurred={!showSpoilers} />
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }

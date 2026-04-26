@@ -277,7 +277,7 @@ model UserPreferences {
   selectedProviders Int[] @default([]) // Array of watch provider IDs
   
   // Primary color theme preference
-  primaryColor String? @default("neutral") // "neutral", "blue", or "red"
+  primaryColor String? @default("emerald") // "neutral", "emerald", "red" (legacy "blue" maps to emerald)
   
   // Onboarding completed flag
   onboardingCompleted Boolean @default(false)
@@ -1309,6 +1309,8 @@ model WatchingSession {
   title         String
   posterPath    String?
   backdropPath  String?
+  seasonNumber  Int?
+  episodeNumber Int?
 
   status        WatchingStatus    @default(WATCHING_NOW)
   visibility    WatchingVisibility @default(PUBLIC)

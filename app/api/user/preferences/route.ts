@@ -59,7 +59,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         preferredTypes: preferredTypes || [],
         onboardingCompleted: onboardingCompleted ?? false,
         selectedProviders: selectedProviders || [],
-        primaryColor: primaryColor || "neutral",
+        primaryColor: primaryColor || "emerald",
       },
       update: {
         favoriteGenres: favoriteGenres || [],

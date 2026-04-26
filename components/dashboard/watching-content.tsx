@@ -6,12 +6,15 @@ import Link from "next/link";
 import { useQueries } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  ArrowUpRight,
   Bookmark,
   ChevronLeft,
   ChevronRight,
   ListPlus,
+  Minus,
   Pause,
   PlayCircle,
+  Plus,
   Reply,
   Square,
   Smile,
@@ -57,6 +60,8 @@ type WatchingFeedCard = {
   status: "watching" | "finished";
   title: string;
   mediaTypeLabel: "Movie" | "TV";
+  seasonNumber: number | null;
+  episodeNumber: number | null;
   detailLine: string;
   posterPath: string | null;
   thought?: string;
@@ -78,6 +83,51 @@ type WatchingFeedCard = {
   primaryThoughtMyReactions: string[];
   progressPercent: number | null;
   runtimeMinutes: number | null;
+};
+
+type WatchingNowRoomCard = {
+  key: string;
+  tmdbId: number;
+  mediaType: "movie" | "tv";
+  title: string;
+  mediaTypeLabel: "Movie" | "TV";
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+  posterPath: string | null;
+  backdropPath: string | null;
+  releaseYear: number | null;
+  creatorOrDirector: string | null;
+  watchingCount: number;
+  participants: Array<{
+    userId: string;
+    name: string;
+    avatar: string | null;
+  }>;
+  featuredThought: WatchingFeedCard["comments"][number] | null;
+  thoughts: WatchingFeedCard["comments"];
+  thoughtCount: number;
+  primaryThoughtId: string | null;
+};
+
+type JustFinishedRoomCard = {
+  key: string;
+  tmdbId: number;
+  mediaType: "movie" | "tv";
+  title: string;
+  mediaTypeLabel: "Movie" | "TV";
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+  posterPath: string | null;
+  backdropPath: string | null;
+  releaseYear: number | null;
+  creatorOrDirector: string | null;
+  finishedCount: number;
+  participants: Array<{
+    userId: string;
+    name: string;
+    avatar: string | null;
+  }>;
+  thoughts: WatchingFeedCard["comments"];
 };
 
 const COMMENT_EMOJI_REACTIONS = ["like", "🔥", "😂", "😮", "😭"] as const;
@@ -152,9 +202,19 @@ const toFeedCard = (session: WatchingSessionDTO): WatchingFeedCard => {
     status: isWatching ? "watching" : "finished",
     title: session.title,
     mediaTypeLabel: session.mediaType === "movie" ? "Movie" : "TV",
+    seasonNumber: session.seasonNumber ?? null,
+    episodeNumber: session.episodeNumber ?? null,
     detailLine: isWatching
-      ? `${session.releaseYear ?? "Year unknown"} · ${session.creatorOrDirector ?? "Creator unknown"} · ${Math.max(1, Math.round((Date.now() - new Date(session.startedAt).getTime()) / 60000))} min in`
-      : `${session.releaseYear ?? "Year unknown"} · ${session.creatorOrDirector ?? "Creator unknown"} · wrapped ${timeAgo(session.endedAt || session.updatedAt)}`,
+      ? `${session.releaseYear ?? "Year unknown"} · ${session.creatorOrDirector ?? "Creator unknown"}${
+          session.mediaType === "tv" && session.seasonNumber && session.episodeNumber
+            ? ` · S${String(session.seasonNumber).padStart(2, "0")}E${String(session.episodeNumber).padStart(2, "0")}`
+            : ""
+        } · ${Math.max(1, Math.round((Date.now() - new Date(session.startedAt).getTime()) / 60000))} min in`
+      : `${session.releaseYear ?? "Year unknown"} · ${session.creatorOrDirector ?? "Creator unknown"}${
+          session.mediaType === "tv" && session.seasonNumber && session.episodeNumber
+            ? ` · S${String(session.seasonNumber).padStart(2, "0")}E${String(session.episodeNumber).padStart(2, "0")}`
+            : ""
+        } · wrapped ${timeAgo(session.endedAt || session.updatedAt)}`,
     posterPath: session.posterPath,
     thought,
     comments,
@@ -832,6 +892,350 @@ function FeedCard({
   );
 }
 
+function WatchingNowGroupCard({
+  room,
+  onJoinRoom,
+  onSelect,
+}: {
+  room: WatchingNowRoomCard;
+  onJoinRoom: (room: WatchingNowRoomCard) => void;
+  onSelect?: (room: WatchingNowRoomCard) => void;
+}) {
+  const [showThoughts, setShowThoughts] = useState(false);
+  const [localReactions, setLocalReactions] = useState(room.featuredThought?.reactionCount ?? 0);
+  const [localLiked, setLocalLiked] = useState(
+    Boolean(room.featuredThought?.myReactions?.includes("like"))
+  );
+  const { addMutation, removeMutation } = useWatchingThoughtReaction();
+  const { toggle: toggleWatchlist, isLoading: isWatchlistMutating, isInWatchlist } = useToggleWatchlist();
+  const inWatchlist = isInWatchlist(room.tmdbId, room.mediaType);
+
+  useEffect(() => {
+    setLocalReactions(room.featuredThought?.reactionCount ?? 0);
+    setLocalLiked(Boolean(room.featuredThought?.myReactions?.includes("like")));
+  }, [room.featuredThought?.reactionCount, room.featuredThought?.myReactions]);
+
+  const participantLabel = useMemo(() => {
+    if (!room.participants.length) return "No participants yet";
+    const names = room.participants.map((p) => p.name);
+    if (names.length <= 2) return names.join(" and ");
+    const first = names.slice(0, 3).join(", ");
+    const remaining = names.length - 3;
+    return remaining > 0 ? `${first} and ${remaining} others` : first;
+  }, [room.participants]);
+
+  const handleFeaturedLikeToggle = async () => {
+    if (!room.featuredThought) return;
+    const wasLiked = localLiked;
+    setLocalLiked(!wasLiked);
+    setLocalReactions((count) => Math.max(0, wasLiked ? count - 1 : count + 1));
+    try {
+      if (wasLiked) {
+        await removeMutation.mutateAsync({ thoughtId: room.featuredThought.id, reactionType: "like" });
+      } else {
+        await addMutation.mutateAsync({ thoughtId: room.featuredThought.id, reactionType: "like" });
+      }
+    } catch (error) {
+      setLocalLiked(wasLiked);
+      setLocalReactions((count) => Math.max(0, wasLiked ? count + 1 : count - 1));
+      toast.error(error instanceof Error ? error.message : "Failed to react");
+    }
+  };
+
+  const handleWatchlistToggle = async () => {
+    try {
+      if (room.mediaType === "movie") {
+        await toggleWatchlist(
+          {
+            id: room.tmdbId,
+            title: room.title,
+            overview: "",
+            poster_path: room.posterPath ?? room.backdropPath ?? null,
+            backdrop_path: room.backdropPath,
+            release_date: "",
+            vote_average: 0,
+            vote_count: 0,
+            genre_ids: [],
+            popularity: 0,
+            adult: false,
+            original_language: "en",
+            original_title: room.title,
+          },
+          "movie"
+        );
+      } else {
+        await toggleWatchlist(
+          {
+            id: room.tmdbId,
+            name: room.title,
+            overview: "",
+            poster_path: room.posterPath ?? room.backdropPath ?? null,
+            backdrop_path: room.backdropPath,
+            first_air_date: "",
+            vote_average: 0,
+            vote_count: 0,
+            genre_ids: [],
+            popularity: 0,
+            original_language: "en",
+            original_name: room.title,
+          },
+          "tv"
+        );
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update watchlist");
+    }
+  };
+
+  return (
+    <Card
+      className="gap-0 overflow-hidden rounded-[15px] border border-border/60 bg-muted/25 p-0 transition hover:ring-1 hover:ring-primary/20 dark:border-border/50 dark:bg-muted/15"
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect?.(room)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect?.(room);
+        }
+      }}
+    >
+      <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-muted/35 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Link
+              href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
+              className="truncate text-sm font-medium hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {room.title}
+            </Link>
+            <Badge variant="secondary" className="rounded-full text-[10px]">
+              {room.mediaTypeLabel}
+            </Badge>
+            {room.mediaType === "tv" && room.seasonNumber && room.episodeNumber ? (
+              <Badge variant="secondary" className="rounded-full bg-primary/15 text-[10px] text-primary">
+                S{String(room.seasonNumber).padStart(2, "0")} · E{String(room.episodeNumber).padStart(2, "0")}
+              </Badge>
+            ) : null}
+          </div>
+          <p className="line-clamp-1 text-xs text-muted-foreground">
+            {room.releaseYear ?? "Year unknown"} · {room.creatorOrDirector ?? "Creator unknown"}
+          </p>
+        </div>
+        <p className="shrink-0 text-[12px] font-medium text-emerald-500">• {room.watchingCount} watching</p>
+      </div>
+
+      <div className="border-b border-border/60 bg-muted/30 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="mb-1 flex -space-x-2">
+              {room.participants.slice(0, 6).map((participant) => (
+                <Avatar key={participant.userId} className="h-7 w-7 border border-background">
+                  <AvatarImage src={participant.avatar ?? undefined} alt={participant.name} />
+                  <AvatarFallback>{participant.name[0]}</AvatarFallback>
+                </Avatar>
+              ))}
+            </div>
+            <p className="truncate text-[13px] text-muted-foreground">{participantLabel}</p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onJoinRoom(room);
+            }}
+            className="h-8 shrink-0 cursor-pointer rounded-[20px] border border-emerald-500/35 bg-emerald-500/15 px-3 text-xs text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+          >
+            Join room
+          </Button>
+        </div>
+      </div>
+
+      <div className="border-b border-border/60 px-[14px] py-[13px] dark:border-border/50">
+        {room.featuredThought ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowThoughts((v) => !v);
+            }}
+            className="w-full cursor-pointer text-left"
+          >
+            <p className="text-[13px] italic text-muted-foreground">
+              "{room.featuredThought.isSpoiler ? "Tap to reveal spoiler thought" : room.featuredThought.content}"
+            </p>
+            <p className="mt-1 text-[12px] text-muted-foreground">
+              {room.featuredThought.user} · {timeAgo(room.featuredThought.createdAt)}
+            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {Math.max(0, room.thoughtCount - 1)} more thoughts from this room
+            </p>
+          </button>
+        ) : (
+          <p className="text-[13px] text-muted-foreground">No thoughts yet.</p>
+        )}
+      </div>
+
+      {showThoughts && room.thoughts.length ? (
+        <div className="p-0">
+          {room.thoughts.map((thought, index) => (
+            <JustFinishedComment
+              key={thought.id}
+              comment={thought}
+              showBorder={index < room.thoughts.length - 1}
+              parentThoughtId={thought.id}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-4 divide-x divide-border/60">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            void handleFeaturedLikeToggle();
+          }}
+          disabled={!room.featuredThought || (addMutation.isPending && !localLiked) || (removeMutation.isPending && localLiked)}
+          className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+        >
+          <ThumbsUp className={cn("h-3.5 w-3.5", localLiked ? "fill-yellow-400 text-yellow-400" : "")} /> {localReactions}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowThoughts((v) => !v);
+          }}
+          className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+        >
+          <Reply className="h-3.5 w-3.5" /> {room.thoughtCount} comments
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            void handleWatchlistToggle();
+          }}
+          disabled={isWatchlistMutating}
+          className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+        >
+          <Bookmark className={cn("h-3.5 w-3.5", inWatchlist ? "text-yellow-400 fill-yellow-400" : "")} /> Watchlist
+        </Button>
+        <Link
+          href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex h-10 items-center justify-center gap-1.5 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+        >
+          <ArrowUpRight className="h-3.5 w-3.5" /> Open film page
+        </Link>
+      </div>
+    </Card>
+  );
+}
+
+function JustFinishedGroupCard({
+  room,
+  onSelect,
+}: {
+  room: JustFinishedRoomCard;
+  onSelect?: (room: JustFinishedRoomCard) => void;
+}) {
+  const [showThoughts, setShowThoughts] = useState(true);
+  const topAvatars = room.participants.slice(0, 6);
+
+  return (
+    <Card
+      className="gap-0 overflow-hidden rounded-[15px] border border-border/60 bg-muted/25 p-0 transition hover:ring-1 hover:ring-primary/20 dark:border-border/50 dark:bg-muted/15"
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect?.(room)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect?.(room);
+        }
+      }}
+    >
+      <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-muted/35 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Link
+              href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
+              className="truncate text-sm font-medium hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {room.title}
+            </Link>
+            <Badge variant="secondary" className="rounded-full text-[10px]">
+              {room.mediaTypeLabel}
+            </Badge>
+            {room.mediaType === "tv" && room.seasonNumber && room.episodeNumber ? (
+              <Badge variant="secondary" className="rounded-full bg-primary/15 text-[10px] text-primary">
+                S{String(room.seasonNumber).padStart(2, "0")} · E{String(room.episodeNumber).padStart(2, "0")}
+              </Badge>
+            ) : null}
+          </div>
+          <p className="line-clamp-1 text-xs text-muted-foreground">
+            {room.releaseYear ?? "Year unknown"} · {room.creatorOrDirector ?? "Creator unknown"}
+          </p>
+        </div>
+        <p className="shrink-0 text-[12px] font-medium text-emerald-500">• {room.finishedCount} finished tonight</p>
+      </div>
+
+      <div className="border-b border-border/60 bg-muted/30 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
+        <div className="flex items-center gap-2">
+          <div className="flex -space-x-2">
+            {topAvatars.map((participant) => (
+              <Avatar key={participant.userId} className="h-7 w-7 border border-background">
+                <AvatarImage src={participant.avatar ?? undefined} alt={participant.name} />
+                <AvatarFallback>{participant.name[0]}</AvatarFallback>
+              </Avatar>
+            ))}
+          </div>
+          <p className="truncate text-[13px] text-muted-foreground">
+            {room.participants.map((p) => p.name).slice(0, 3).join(", ")}
+            {room.participants.length > 3 ? ` and ${room.participants.length - 3} others` : ""}
+          </p>
+        </div>
+      </div>
+
+      <div className="border-b border-border/60 px-[14px] py-[10px] dark:border-border/50">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowThoughts((v) => !v);
+          }}
+          className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+        >
+          <Reply className="h-3.5 w-3.5" /> {showThoughts ? "Hide thoughts" : `Show thoughts (${room.thoughts.length})`}
+        </Button>
+      </div>
+
+      {showThoughts ? (
+        <div className="p-0">
+          {room.thoughts.map((thought, index) => (
+            <JustFinishedComment
+              key={thought.id}
+              comment={thought}
+              showBorder={index < room.thoughts.length - 1}
+              parentThoughtId={thought.id}
+            />
+          ))}
+        </div>
+      ) : null}
+    </Card>
+  );
+}
+
 function RightRail({
   currentSession,
   alsoWatchingCurrent,
@@ -1318,6 +1722,8 @@ export default function WatchingContent() {
     posterPath: string | null;
     backdropPath: string | null;
   } | null>(null);
+  const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<string>("");
+  const [selectedEpisodeNumber, setSelectedEpisodeNumber] = useState<string>("");
   const [thoughtText, setThoughtText] = useState("");
   const [spoilerMode, setSpoilerMode] = useState(false);
   const [showAllWatchingNow, setShowAllWatchingNow] = useState(false);
@@ -1329,6 +1735,8 @@ export default function WatchingContent() {
     tmdbId: number;
     mediaType: "movie" | "tv";
     title: string;
+    seasonNumber?: number | null;
+    episodeNumber?: number | null;
   } | null>(null);
   const [watchMomentLabel, setWatchMomentLabel] = useState(() => {
     const now = new Date();
@@ -1367,24 +1775,148 @@ export default function WatchingContent() {
     () => (watchingData?.watchingNow ?? []).map(toFeedCard),
     [watchingData?.watchingNow, uiNowTick]
   );
+  const watchingNowRooms = useMemo<WatchingNowRoomCard[]>(() => {
+    const sessions = watchingData?.watchingNow ?? [];
+    const groups = new Map<string, WatchingNowRoomCard>();
+    for (const session of sessions) {
+      const seasonEpisodeKey =
+        session.mediaType === "tv" && session.seasonNumber && session.episodeNumber
+          ? `:s${session.seasonNumber}:e${session.episodeNumber}`
+          : "";
+      const key = `${session.mediaType}:${session.tmdbId}${seasonEpisodeKey}`;
+      const existing = groups.get(key);
+      const participantName = session.user.displayName || session.user.username || "Unknown";
+      const thoughtsForSession = session.thoughts.map((thought) => ({
+        id: thought.id,
+        content: thought.content,
+        isSpoiler: thought.isSpoiler,
+        createdAt: thought.createdAt,
+        user: thought.user.displayName || thought.user.username || "Unknown",
+        avatar: thought.user.avatarUrl ?? null,
+        reactionCount: thought.reactionCount ?? 0,
+        replyCount: thought.replyCount ?? 0,
+        myReactions: thought.myReactions ?? [],
+        sessionStatus: "WATCHING_NOW" as const,
+      }));
+      if (!existing) {
+        groups.set(key, {
+          key,
+          tmdbId: session.tmdbId,
+          mediaType: session.mediaType,
+          title: session.title,
+          mediaTypeLabel: session.mediaType === "movie" ? "Movie" : "TV",
+          seasonNumber: session.seasonNumber ?? null,
+          episodeNumber: session.episodeNumber ?? null,
+          posterPath: session.posterPath,
+          backdropPath: session.backdropPath,
+          releaseYear: session.releaseYear ?? null,
+          creatorOrDirector: session.creatorOrDirector ?? null,
+          watchingCount: 1,
+          participants: [{ userId: session.user.id, name: participantName, avatar: session.user.avatarUrl ?? null }],
+          featuredThought: thoughtsForSession[0] ?? null,
+          thoughts: thoughtsForSession,
+          thoughtCount: thoughtsForSession.length,
+          primaryThoughtId: session.thoughts[0]?.id ?? null,
+        });
+      } else {
+        existing.watchingCount += 1;
+        if (!existing.participants.some((p) => p.userId === session.user.id)) {
+          existing.participants.push({
+            userId: session.user.id,
+            name: participantName,
+            avatar: session.user.avatarUrl ?? null,
+          });
+        }
+        existing.thoughts.push(...thoughtsForSession);
+        existing.thoughts.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        existing.featuredThought = existing.thoughts[0] ?? null;
+        existing.thoughtCount = existing.thoughts.length;
+      }
+    }
+    return Array.from(groups.values()).sort((a, b) => b.watchingCount - a.watchingCount);
+  }, [watchingData?.watchingNow]);
   const justFinished = useMemo(
     () => (watchingData?.justFinished ?? []).map(toFeedCard),
     [watchingData?.justFinished]
   );
+  const justFinishedRooms = useMemo<JustFinishedRoomCard[]>(() => {
+    const sessions = watchingData?.justFinished ?? [];
+    const groups = new Map<string, JustFinishedRoomCard>();
+    for (const session of sessions) {
+      const seasonEpisodeKey =
+        session.mediaType === "tv" && session.seasonNumber && session.episodeNumber
+          ? `:s${session.seasonNumber}:e${session.episodeNumber}`
+          : "";
+      const key = `${session.mediaType}:${session.tmdbId}${seasonEpisodeKey}`;
+      const existing = groups.get(key);
+      const participantName = session.user.displayName || session.user.username || "Unknown";
+      const thoughtsForSession = session.thoughts.map((thought) => ({
+        id: thought.id,
+        content: thought.content,
+        isSpoiler: thought.isSpoiler,
+        createdAt: thought.createdAt,
+        user: thought.user.displayName || thought.user.username || "Unknown",
+        avatar: thought.user.avatarUrl ?? null,
+        reactionCount: thought.reactionCount ?? 0,
+        replyCount: thought.replyCount ?? 0,
+        myReactions: thought.myReactions ?? [],
+        sessionStatus: "JUST_FINISHED" as const,
+      }));
+      if (!existing) {
+        groups.set(key, {
+          key,
+          tmdbId: session.tmdbId,
+          mediaType: session.mediaType,
+          title: session.title,
+          mediaTypeLabel: session.mediaType === "movie" ? "Movie" : "TV",
+          seasonNumber: session.seasonNumber ?? null,
+          episodeNumber: session.episodeNumber ?? null,
+          posterPath: session.posterPath,
+          backdropPath: session.backdropPath,
+          releaseYear: session.releaseYear ?? null,
+          creatorOrDirector: session.creatorOrDirector ?? null,
+          finishedCount: 1,
+          participants: [{ userId: session.user.id, name: participantName, avatar: session.user.avatarUrl ?? null }],
+          thoughts: thoughtsForSession,
+        });
+      } else {
+        existing.finishedCount += 1;
+        if (!existing.participants.some((p) => p.userId === session.user.id)) {
+          existing.participants.push({
+            userId: session.user.id,
+            name: participantName,
+            avatar: session.user.avatarUrl ?? null,
+          });
+        }
+        existing.thoughts.push(...thoughtsForSession);
+      }
+    }
+    const rooms = Array.from(groups.values()).map((room) => ({
+      ...room,
+      thoughts: [...room.thoughts].sort(
+        (a, b) =>
+          (b.reactionCount + b.replyCount) - (a.reactionCount + a.replyCount) ||
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
+    }));
+    return rooms.sort((a, b) => b.finishedCount - a.finishedCount);
+  }, [watchingData?.justFinished]);
   const WATCHING_NOW_PAGE_SIZE = 10;
   const JUST_FINISHED_PAGE_SIZE = 10;
-  const watchingNowTotalPages = Math.max(1, Math.ceil(watchingNow.length / WATCHING_NOW_PAGE_SIZE));
-  const justFinishedTotalPages = Math.max(1, Math.ceil(justFinished.length / JUST_FINISHED_PAGE_SIZE));
+  const watchingNowTotalPages = Math.max(1, Math.ceil(watchingNowRooms.length / WATCHING_NOW_PAGE_SIZE));
+  const justFinishedTotalPages = Math.max(1, Math.ceil(justFinishedRooms.length / JUST_FINISHED_PAGE_SIZE));
   const visibleWatchingNow = useMemo(() => {
-    if (!showAllWatchingNow) return watchingNow.slice(0, 3);
+    if (!showAllWatchingNow) return watchingNowRooms.slice(0, 3);
     const start = (watchingNowPage - 1) * WATCHING_NOW_PAGE_SIZE;
-    return watchingNow.slice(start, start + WATCHING_NOW_PAGE_SIZE);
-  }, [showAllWatchingNow, watchingNow, watchingNowPage]);
+    return watchingNowRooms.slice(start, start + WATCHING_NOW_PAGE_SIZE);
+  }, [showAllWatchingNow, watchingNowRooms, watchingNowPage]);
   const visibleJustFinished = useMemo(() => {
-    if (!showAllJustFinished) return justFinished.slice(0, 3);
+    if (!showAllJustFinished) return justFinishedRooms.slice(0, 3);
     const start = (justFinishedPage - 1) * JUST_FINISHED_PAGE_SIZE;
-    return justFinished.slice(start, start + JUST_FINISHED_PAGE_SIZE);
-  }, [showAllJustFinished, justFinished, justFinishedPage]);
+    return justFinishedRooms.slice(start, start + JUST_FINISHED_PAGE_SIZE);
+  }, [showAllJustFinished, justFinishedRooms, justFinishedPage]);
 
   const effectiveAlsoWatchingContext = useMemo(() => {
     if (activeCardContext) return activeCardContext;
@@ -1394,6 +1926,8 @@ export default function WatchingContent() {
       tmdbId: currentSession.tmdbId,
       mediaType: currentSession.mediaType,
       title: currentSession.title,
+      seasonNumber: currentSession.seasonNumber ?? null,
+      episodeNumber: currentSession.episodeNumber ?? null,
     } as const;
   }, [activeCardContext, watchingData?.currentSession]);
 
@@ -1405,6 +1939,9 @@ export default function WatchingContent() {
       (session) =>
         session.tmdbId === effectiveAlsoWatchingContext.tmdbId &&
         session.mediaType === effectiveAlsoWatchingContext.mediaType &&
+        (effectiveAlsoWatchingContext.mediaType !== "tv" ||
+          ((session.seasonNumber ?? null) === (effectiveAlsoWatchingContext.seasonNumber ?? null) &&
+            (session.episodeNumber ?? null) === (effectiveAlsoWatchingContext.episodeNumber ?? null))) &&
         session.userId !== currentUserId
     );
   }, [watchingData?.watchingNow, watchingData?.alsoWatchingCurrent, effectiveAlsoWatchingContext, currentUser?.id]);
@@ -1412,7 +1949,12 @@ export default function WatchingContent() {
   useEffect(() => {
     if (!activeCardContext) return;
     const existsInFeed = (watchingData?.watchingNow ?? []).some(
-      (session) => session.tmdbId === activeCardContext.tmdbId && session.mediaType === activeCardContext.mediaType
+      (session) =>
+        session.tmdbId === activeCardContext.tmdbId &&
+        session.mediaType === activeCardContext.mediaType &&
+        (activeCardContext.mediaType !== "tv" ||
+          ((session.seasonNumber ?? null) === (activeCardContext.seasonNumber ?? null) &&
+            (session.episodeNumber ?? null) === (activeCardContext.episodeNumber ?? null)))
     );
     if (!existsInFeed) {
       setActiveCardContext(null);
@@ -1435,17 +1977,46 @@ export default function WatchingContent() {
     setJustFinishedPage((page) => Math.min(page, justFinishedTotalPages));
   }, [showAllJustFinished, justFinishedTotalPages]);
 
-  const submitStartWatching = async () => {
-    if (!selectedPick) {
+  const submitStartWatching = async (
+    overridePick?: {
+      tmdbId: number;
+      mediaType: "movie" | "tv";
+      title: string;
+      posterPath: string | null;
+      backdropPath: string | null;
+      seasonNumber?: number | null;
+      episodeNumber?: number | null;
+    }
+  ) => {
+    const pick = overridePick ?? selectedPick;
+    if (!pick) {
       toast.error("Search and pick a movie or TV show to start.");
       return;
     }
+    const parsedSeason =
+      pick.mediaType === "tv" ? Number.parseInt(selectedSeasonNumber, 10) : NaN;
+    const parsedEpisode =
+      pick.mediaType === "tv" ? Number.parseInt(selectedEpisodeNumber, 10) : NaN;
+    const seasonNumber =
+      pick.mediaType === "tv" ? (Number.isInteger(parsedSeason) && parsedSeason > 0 ? parsedSeason : null) : null;
+    const episodeNumber =
+      pick.mediaType === "tv" ? (Number.isInteger(parsedEpisode) && parsedEpisode > 0 ? parsedEpisode : null) : null;
+    const finalPick = overridePick
+      ? pick
+      : {
+          ...pick,
+          seasonNumber,
+          episodeNumber,
+        };
 
     try {
       const activeSession = watchingData?.currentSession;
       if (
         activeSession &&
-        (activeSession.tmdbId !== selectedPick.tmdbId || activeSession.mediaType !== selectedPick.mediaType)
+        (activeSession.tmdbId !== finalPick.tmdbId ||
+          activeSession.mediaType !== finalPick.mediaType ||
+          (activeSession.seasonNumber ?? null) !== (finalPick.seasonNumber ?? null) ||
+          (activeSession.episodeNumber ?? null) !== (finalPick.episodeNumber ?? null))
       ) {
         await watchingMutation.mutateAsync({
           action: "stop",
@@ -1454,11 +2025,13 @@ export default function WatchingContent() {
       }
       await watchingMutation.mutateAsync({
         action: "start",
-        tmdbId: selectedPick.tmdbId,
-        mediaType: selectedPick.mediaType,
-        title: selectedPick.title,
-        posterPath: selectedPick.posterPath,
-        backdropPath: selectedPick.backdropPath,
+        tmdbId: finalPick.tmdbId,
+        mediaType: finalPick.mediaType,
+        title: finalPick.title,
+        posterPath: finalPick.posterPath,
+        backdropPath: finalPick.backdropPath,
+        seasonNumber: finalPick.mediaType === "tv" ? finalPick.seasonNumber ?? null : null,
+        episodeNumber: finalPick.mediaType === "tv" ? finalPick.episodeNumber ?? null : null,
       });
       toast.success("Watching session started.");
       setWatchSearchQuery("");
@@ -1497,6 +2070,27 @@ export default function WatchingContent() {
       setIsChangingTitle(false);
     }
   }, [watchingData?.currentSession]);
+
+  useEffect(() => {
+    if (!selectedPick || selectedPick.mediaType !== "tv") return;
+    if (selectedSeasonNumber || selectedEpisodeNumber) return;
+    if (
+      activeSession &&
+      activeSession.mediaType === "tv" &&
+      activeSession.tmdbId === selectedPick.tmdbId
+    ) {
+      setSelectedSeasonNumber(activeSession.seasonNumber ? String(activeSession.seasonNumber) : "1");
+      setSelectedEpisodeNumber(activeSession.episodeNumber ? String(activeSession.episodeNumber) : "1");
+      return;
+    }
+    setSelectedSeasonNumber("1");
+    setSelectedEpisodeNumber("1");
+  }, [
+    selectedPick,
+    activeSession,
+    selectedSeasonNumber,
+    selectedEpisodeNumber,
+  ]);
 
   const submitShareThought = async () => {
     const sessionId = watchingData?.currentSession?.id;
@@ -1679,7 +2273,16 @@ export default function WatchingContent() {
                   if (isWatchingActive) return;
                   void submitStartWatching();
                 }}
-                disabled={isWatchingActive || watchingMutation.isPending || !selectedPick}
+                disabled={
+                  isWatchingActive ||
+                  watchingMutation.isPending ||
+                  !selectedPick ||
+                  (selectedPick.mediaType === "tv" &&
+                    (!Number.isInteger(Number.parseInt(selectedSeasonNumber, 10)) ||
+                      Number.parseInt(selectedSeasonNumber, 10) <= 0 ||
+                      !Number.isInteger(Number.parseInt(selectedEpisodeNumber, 10)) ||
+                      Number.parseInt(selectedEpisodeNumber, 10) <= 0))
+                }
               >
                 {isWatchingActive ? "Watching now" : "I'm watching..."}
               </Button>
@@ -1696,7 +2299,11 @@ export default function WatchingContent() {
                   onChange={(e) => {
                     const v = e.target.value;
                     setWatchSearchQuery(v);
-                    if (selectedPick && v !== selectedPick.title) setSelectedPick(null);
+                    if (selectedPick && v !== selectedPick.title) {
+                      setSelectedPick(null);
+                      setSelectedSeasonNumber("");
+                      setSelectedEpisodeNumber("");
+                    }
                   }}
                   autoFocus
                   placeholder="Search movie or TV show..."
@@ -1732,6 +2339,8 @@ export default function WatchingContent() {
                             posterPath: item.poster_path ?? null,
                             backdropPath: item.backdrop_path ?? null,
                           });
+                          setSelectedSeasonNumber("");
+                          setSelectedEpisodeNumber("");
                           setWatchSearchQuery(title);
                           setSearchModalOpen(false);
                         }}
@@ -1759,6 +2368,93 @@ export default function WatchingContent() {
                   <div className="p-4 text-center text-sm text-muted-foreground">No results found.</div>
                 )}
               </div>
+              {selectedPick?.mediaType === "tv" ? (
+                <div className="border-t border-border/60 px-4 py-3">
+                  <p className="mb-2 text-[12px] text-muted-foreground">Now watching (TV episode)</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex h-9 items-center rounded-[20px] border border-border/60 bg-transparent px-3">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="mr-1 h-6 w-6 cursor-pointer rounded-full text-muted-foreground hover:bg-muted"
+                        onClick={() =>
+                          setSelectedSeasonNumber((prev) => {
+                            const current = Math.max(1, Number.parseInt(prev || "1", 10) || 1);
+                            return String(Math.max(1, current - 1));
+                          })
+                        }
+                        aria-label="Decrease season"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="mr-2 text-[12px] font-medium text-muted-foreground">S</span>
+                      <Input
+                        value={selectedSeasonNumber}
+                        onChange={(e) => setSelectedSeasonNumber(e.target.value.replace(/[^\d]/g, ""))}
+                        placeholder="01"
+                        className="h-full border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        inputMode="numeric"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="ml-1 h-6 w-6 cursor-pointer rounded-full text-muted-foreground hover:bg-muted"
+                        onClick={() =>
+                          setSelectedSeasonNumber((prev) => {
+                            const current = Math.max(1, Number.parseInt(prev || "1", 10) || 1);
+                            return String(current + 1);
+                          })
+                        }
+                        aria-label="Increase season"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <div className="flex h-9 items-center rounded-[20px] border border-border/60 bg-transparent px-3">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="mr-1 h-6 w-6 cursor-pointer rounded-full text-muted-foreground hover:bg-muted"
+                        onClick={() =>
+                          setSelectedEpisodeNumber((prev) => {
+                            const current = Math.max(1, Number.parseInt(prev || "1", 10) || 1);
+                            return String(Math.max(1, current - 1));
+                          })
+                        }
+                        aria-label="Decrease episode"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="mr-2 text-[12px] font-medium text-muted-foreground">E</span>
+                      <Input
+                        value={selectedEpisodeNumber}
+                        onChange={(e) => setSelectedEpisodeNumber(e.target.value.replace(/[^\d]/g, ""))}
+                        placeholder="01"
+                        className="h-full border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        inputMode="numeric"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="ml-1 h-6 w-6 cursor-pointer rounded-full text-muted-foreground hover:bg-muted"
+                        onClick={() =>
+                          setSelectedEpisodeNumber((prev) => {
+                            const current = Math.max(1, Number.parseInt(prev || "1", 10) || 1);
+                            return String(current + 1);
+                          })
+                        }
+                        aria-label="Increase episode"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </DialogContent>
           </Dialog>
 
@@ -1778,6 +2474,7 @@ export default function WatchingContent() {
               <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
                 WATCHING NOW
+                <span className="text-emerald-500">· {watchingData?.watchingNow?.length ?? 0} PEOPLE</span>
               </p>
             </div>
             <Button
@@ -1785,32 +2482,39 @@ export default function WatchingContent() {
               size="sm"
               className="h-7 cursor-pointer text-xs text-muted-foreground hover:text-foreground"
               onClick={() => setShowAllWatchingNow(true)}
-              disabled={watchingNow.length <= 3}
+              disabled={watchingNowRooms.length <= 3}
             >
               See all
             </Button>
           </div>
 
-          {visibleWatchingNow.map((item) => (
-            <FeedCard
-              key={item.id}
-              item={item}
-              currentUserId={currentUser?.id}
-              isSelected={
-                Boolean(activeCardContext) &&
-                activeCardContext?.tmdbId === item.tmdbId &&
-                activeCardContext?.mediaType === item.mediaType
-              }
-              onSelect={(selectedItem) =>
+          {visibleWatchingNow.map((room) => (
+            <WatchingNowGroupCard
+              key={room.key}
+              room={room}
+              onJoinRoom={(selectedRoom) => {
+                void submitStartWatching({
+                  tmdbId: selectedRoom.tmdbId,
+                  mediaType: selectedRoom.mediaType,
+                  title: selectedRoom.title,
+                  posterPath: selectedRoom.posterPath,
+                  backdropPath: selectedRoom.backdropPath,
+                  seasonNumber: selectedRoom.seasonNumber ?? null,
+                  episodeNumber: selectedRoom.episodeNumber ?? null,
+                });
+              }}
+              onSelect={(selectedRoom) =>
                 setActiveCardContext({
-                  tmdbId: selectedItem.tmdbId,
-                  mediaType: selectedItem.mediaType,
-                  title: selectedItem.title,
+                  tmdbId: selectedRoom.tmdbId,
+                  mediaType: selectedRoom.mediaType,
+                  title: selectedRoom.title,
+                  seasonNumber: selectedRoom.seasonNumber ?? null,
+                  episodeNumber: selectedRoom.episodeNumber ?? null,
                 })
               }
             />
           ))}
-          {!watchingNow.length ? <p className="text-sm text-muted-foreground">No one in your network is watching right now.</p> : null}
+          {!watchingNowRooms.length ? <p className="text-sm text-muted-foreground">No one in your network is watching right now.</p> : null}
 
           {showAllWatchingNow && watchingNowTotalPages > 1 ? (
             <div className="flex items-center justify-end gap-2">
@@ -1858,32 +2562,28 @@ export default function WatchingContent() {
               size="sm"
               className="h-7 cursor-pointer text-xs text-muted-foreground hover:text-foreground"
               onClick={() => setShowAllJustFinished(true)}
-              disabled={justFinished.length <= 3}
+              disabled={justFinishedRooms.length <= 3}
             >
               See all
             </Button>
           </div>
 
-          {visibleJustFinished.map((item) => (
-            <FeedCard
-              key={item.id}
-              item={item}
-              currentUserId={currentUser?.id}
-              isSelected={
-                Boolean(activeCardContext) &&
-                activeCardContext?.tmdbId === item.tmdbId &&
-                activeCardContext?.mediaType === item.mediaType
-              }
-              onSelect={(selectedItem) =>
+          {visibleJustFinished.map((room) => (
+            <JustFinishedGroupCard
+              key={room.key}
+              room={room}
+              onSelect={(selectedRoom) =>
                 setActiveCardContext({
-                  tmdbId: selectedItem.tmdbId,
-                  mediaType: selectedItem.mediaType,
-                  title: selectedItem.title,
+                  tmdbId: selectedRoom.tmdbId,
+                  mediaType: selectedRoom.mediaType,
+                  title: selectedRoom.title,
+                  seasonNumber: selectedRoom.seasonNumber ?? null,
+                  episodeNumber: selectedRoom.episodeNumber ?? null,
                 })
               }
             />
           ))}
-          {!justFinished.length ? <p className="text-sm text-muted-foreground">No recent finishes yet.</p> : null}
+          {!justFinishedRooms.length ? <p className="text-sm text-muted-foreground">No recent finishes yet.</p> : null}
 
           {showAllJustFinished && justFinishedTotalPages > 1 ? (
             <div className="flex items-center justify-end gap-2">
@@ -1948,6 +2648,8 @@ export default function WatchingContent() {
                   posterPath: item.posterPath,
                   backdropPath: null,
                 });
+                setSelectedSeasonNumber("");
+                setSelectedEpisodeNumber("");
                 setWatchSearchQuery(item.title);
                 setSearchModalOpen(false);
                 toast.message("Loaded trending title — tap I'm watching... when ready.");

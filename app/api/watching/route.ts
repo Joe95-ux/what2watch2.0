@@ -246,6 +246,8 @@ function toSessionDTO(
     title: session.title,
     posterPath: session.posterPath,
     backdropPath: session.backdropPath,
+    seasonNumber: typeof session.seasonNumber === "number" ? session.seasonNumber : null,
+    episodeNumber: typeof session.episodeNumber === "number" ? session.episodeNumber : null,
     releaseYear: metadata?.releaseYear ?? null,
     creatorOrDirector: metadata?.creatorOrDirector ?? null,
     runtimeMinutes: metadata?.runtimeMinutes ?? null,
@@ -651,6 +653,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
           title: string;
           posterPath?: string | null;
           backdropPath?: string | null;
+          seasonNumber?: number | null;
+          episodeNumber?: number | null;
           progressPercent?: number;
           visibility?: "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE";
         }
@@ -687,6 +691,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
           title: body.title,
           posterPath: body.posterPath ?? null,
           backdropPath: body.backdropPath ?? null,
+          seasonNumber: body.mediaType === "tv" && Number.isInteger(body.seasonNumber) ? body.seasonNumber : null,
+          episodeNumber: body.mediaType === "tv" && Number.isInteger(body.episodeNumber) ? body.episodeNumber : null,
           progressPercent: body.progressPercent ?? null,
           visibility: body.visibility ?? "PUBLIC",
           status: "WATCHING_NOW",

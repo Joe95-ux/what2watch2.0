@@ -21,6 +21,8 @@ type WatchingActionBody =
       title: string;
       posterPath?: string | null;
       backdropPath?: string | null;
+      seasonNumber?: number | null;
+      episodeNumber?: number | null;
       progressPercent?: number;
       visibility?: WatchingVisibility;
     }

@@ -635,16 +635,16 @@ export default function SettingsContent({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {[
                       { value: "neutral", label: "Neutral", color: "oklch(0.12 0 0)" },
-                      { value: "blue", label: "Blue", color: "#1447E6" },
+                      { value: "emerald", label: "Emerald", color: "oklch(0.62 0.17 160)" },
                       { value: "red", label: "Red", color: "oklch(0.28 0.18 25)" },
                     ].map(({ value, label, color }) => {
-                      const currentPrimaryColor = optimisticPrimaryColor ?? userPreferences?.primaryColor ?? "neutral";
+                      const currentPrimaryColor = optimisticPrimaryColor ?? userPreferences?.primaryColor ?? "emerald";
                       const isSelected = currentPrimaryColor === value;
                       return (
                         <button
                           key={value}
                           onClick={async () => {
-                            const previousColor = userPreferences?.primaryColor ?? "neutral";
+                            const previousColor = userPreferences?.primaryColor ?? "emerald";
                             // Optimistic update
                             setOptimisticPrimaryColor(value);
                             document.documentElement.setAttribute("data-primary-color", value);
