@@ -172,9 +172,11 @@ const toFeedCard = (session: WatchingSessionDTO): WatchingFeedCard => {
 function JustFinishedComment({
   comment,
   showBorder,
+  parentThoughtId,
 }: {
   comment: WatchingFeedCard["comments"][number];
   showBorder: boolean;
+  parentThoughtId?: string | null;
 }) {
   const [isSpoilerRevealed, setIsSpoilerRevealed] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
@@ -183,7 +185,8 @@ function JustFinishedComment({
   const [replyParentId, setReplyParentId] = useState<string | null>(null);
   const [localReactionCount, setLocalReactionCount] = useState(comment.reactionCount);
   const [localMyReactions, setLocalMyReactions] = useState<string[]>(comment.myReactions ?? []);
-  const { data: replies } = useWatchingThoughtReplies(comment.id, true);
+  const thoughtIdForThread = parentThoughtId ?? comment.id;
+  const { data: replies } = useWatchingThoughtReplies(thoughtIdForThread, true);
   const addReply = useAddWatchingThoughtReply();
   const { addMutation, removeMutation } = useWatchingThoughtReaction();
 
@@ -196,7 +199,11 @@ function JustFinishedComment({
     const text = replyText.trim();
     if (!text) return;
     try {
-      await addReply.mutateAsync({ thoughtId: comment.id, content: text, parentReplyId: replyParentId });
+      await addReply.mutateAsync({
+        thoughtId: thoughtIdForThread,
+        content: text,
+        parentReplyId: parentThoughtId ? comment.id : replyParentId,
+      });
       setReplyText("");
       setIsReplying(false);
       setReplyParentId(null);
@@ -235,8 +242,12 @@ function JustFinishedComment({
     }
     return map;
   }, [replies]);
-  const primaryReplies = (repliesByParent.get("root") ?? []).slice(0, 2);
-  const totalReplies = Math.max(comment.replyCount, replies?.length ?? 0);
+  const primaryReplies = parentThoughtId
+    ? (repliesByParent.get(comment.id) ?? []).slice(0, 2)
+    : (repliesByParent.get("root") ?? []).slice(0, 2);
+  const totalReplies = parentThoughtId
+    ? (replies ?? []).filter((reply) => reply.parentReplyId === comment.id).length
+    : Math.max(comment.replyCount, replies?.length ?? 0);
   const isLive = comment.sessionStatus === "WATCHING_NOW";
 
   return (
@@ -287,7 +298,7 @@ function JustFinishedComment({
           variant="ghost"
           size="sm"
           onClick={() => setShowReactionPicker((v) => !v)}
-          disabled={addMutation.isPending || removeMutation.isPending}
+          disabled={parentThoughtId != null || addMutation.isPending || removeMutation.isPending}
           className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
         >
           <Smile className="h-3.5 w-3.5" />
@@ -319,7 +330,7 @@ function JustFinishedComment({
                   selected ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground"
                 }`}
                 onClick={() => handleReactionToggle(reactionType)}
-                disabled={addMutation.isPending || removeMutation.isPending}
+                disabled={parentThoughtId != null || addMutation.isPending || removeMutation.isPending}
               >
                 {reactionType === "like" ? "👍" : reactionType}
               </button>
@@ -386,7 +397,7 @@ function JustFinishedComment({
                     <Reply className="h-3.5 w-3.5" /> Reply
                   </Button>
                   {nestedReplies.length ? (
-                    <div className="space-y-1.5 border-l border-border/50 pl-3">
+                    <div className="space-y-1.5 pt-1">
                       {nestedReplies.map((nested) => {
                         const nestedUser = nested.user.displayName || nested.user.username || "Someone";
                         return (
@@ -433,10 +444,9 @@ function FeedCard({
   const [localLiked, setLocalLiked] = useState(item.primaryThoughtMyReactions.includes("like"));
   const [localReplies, setLocalReplies] = useState(item.replies);
   const [optimisticInWatchlist, setOptimisticInWatchlist] = useState<boolean | null>(null);
-  const visibleComments = expandedComments ? item.comments : item.comments.slice(0, 10);
-  const hasMoreComments = item.comments.length > 10;
   const addReply = useAddWatchingThoughtReply();
   const { addMutation, removeMutation } = useWatchingThoughtReaction();
+  const { data: primaryThoughtReplies } = useWatchingThoughtReplies(item.primaryThoughtId ?? "", Boolean(item.primaryThoughtId));
   const watchingMutation = useWatchingMutation();
   const { toggle: toggleWatchlist, isLoading: isWatchlistMutating, isInWatchlist } = useToggleWatchlist();
   const actualInWatchlist = isInWatchlist(item.tmdbId, item.mediaType);
@@ -446,6 +456,26 @@ function FeedCard({
   const elapsedMinutes = Math.max(1, Math.round((Date.now() - new Date(item.startedAt).getTime()) / 60000));
   const movieRuntime = item.mediaType === "movie" ? item.runtimeMinutes : null;
   const isMovieFinishLocked = canControlPlayback && item.mediaType === "movie" && movieRuntime != null && elapsedMinutes < movieRuntime;
+  const replyBlocksFromPrimaryThought = useMemo(() => {
+    if (!item.primaryThoughtId || !primaryThoughtReplies?.length) return [];
+    return primaryThoughtReplies
+      .filter((reply) => !reply.parentReplyId)
+      .map((reply) => ({
+        id: reply.id,
+        content: reply.content,
+        isSpoiler: false,
+        createdAt: reply.createdAt,
+        user: reply.user.displayName || reply.user.username || "Unknown",
+        avatar: reply.user.avatarUrl ?? null,
+        reactionCount: 0,
+        replyCount: 0,
+        myReactions: [],
+        sessionStatus: (item.status === "watching" ? "WATCHING_NOW" : "JUST_FINISHED") as "WATCHING_NOW" | "JUST_FINISHED",
+      }));
+  }, [item.primaryThoughtId, item.status, primaryThoughtReplies]);
+  const commentBlocks = replyBlocksFromPrimaryThought;
+  const visibleComments = expandedComments ? commentBlocks : commentBlocks.slice(0, 10);
+  const hasMoreComments = commentBlocks.length > 10;
 
   useEffect(() => {
     setOptimisticInWatchlist(null);
@@ -716,7 +746,7 @@ function FeedCard({
       <div
         className={cn(
           "grid grid-cols-3 divide-x divide-border/60",
-          item.comments.length > 0 ? "border-b border-border/60 dark:border-border/50" : ""
+          commentBlocks.length > 0 || isReplying ? "border-b border-border/60 dark:border-border/50" : ""
         )}
       >
         <Button
@@ -770,11 +800,18 @@ function FeedCard({
         </div>
       ) : null}
 
-      {item.comments.length > 0 ? (
+      {commentBlocks.length > 0 ? (
         <div className="p-0">
           {visibleComments.map((comment, index) => {
             const showBorder = index < visibleComments.length - 1 || hasMoreComments;
-            return <JustFinishedComment key={comment.id} comment={comment} showBorder={showBorder} />;
+            return (
+              <JustFinishedComment
+                key={comment.id}
+                comment={comment}
+                showBorder={showBorder}
+                parentThoughtId={item.primaryThoughtId}
+              />
+            );
           })}
           {hasMoreComments ? (
             <div className="px-[14px] py-[13px]">
@@ -785,7 +822,7 @@ function FeedCard({
                 onClick={() => setExpandedComments((value) => !value)}
                 className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
               >
-                {expandedComments ? "Show less" : `Show more (${item.comments.length - 10})`}
+                {expandedComments ? "Show less" : `Show more (${commentBlocks.length - 10})`}
               </Button>
             </div>
           ) : null}
@@ -1876,7 +1913,7 @@ export default function WatchingContent() {
         </main>
 
         {isRightOpen ? (
-          <aside className="relative hidden h-[calc(100vh-65px)] overflow-y-auto border-l border-border/70 bg-muted/20 lg:sticky lg:top-[65px] lg:block dark:bg-muted/10">
+          <aside className="relative hidden border-l border-border/70 bg-muted/20 lg:block dark:bg-muted/10">
             <button
               type="button"
               className="absolute -left-3 top-[12px] inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground cursor-pointer"
