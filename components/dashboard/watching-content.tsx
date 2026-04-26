@@ -60,6 +60,8 @@ type WatchingFeedCard = {
     content: string;
     isSpoiler: boolean;
     createdAt: string;
+    user: string;
+    sessionStatus: "WATCHING_NOW" | "JUST_FINISHED" | "STOPPED";
   }>;
   startedOrFinished: string;
   reactions: number;
@@ -86,6 +88,24 @@ const titlePageHref = (mediaType: "movie" | "tv", tmdbId: number, title: string)
   return `/${mediaType}/${tmdbId}/${slug || "title"}`;
 };
 
+const resolveTmdbImageSrc = (
+  primary: string | null,
+  fallback: string | null,
+  size: "w200" | "w300" | "w500" | "w780" | "original" = "w200"
+) => {
+  const pick = [primary, fallback].find((value) => {
+    if (!value) return false;
+    const trimmed = value.trim();
+    if (!trimmed || trimmed.toLowerCase() === "n/a") return false;
+    return true;
+  });
+
+  if (!pick) return getPosterUrl(null, size);
+  if (pick.startsWith("http://") || pick.startsWith("https://")) return pick;
+  if (pick.startsWith("/")) return getPosterUrl(pick, size);
+  return getPosterUrl(null, size);
+};
+
 const toFeedCard = (session: WatchingSessionDTO): WatchingFeedCard => {
   const userLabel = session.user.displayName || session.user.username || "Unknown user";
   const isWatching = session.status === "WATCHING_NOW";
@@ -95,6 +115,8 @@ const toFeedCard = (session: WatchingSessionDTO): WatchingFeedCard => {
     content: entry.content,
     isSpoiler: entry.isSpoiler,
     createdAt: entry.createdAt,
+    user: entry.user.displayName || entry.user.username || "Unknown",
+    sessionStatus: session.status,
   }));
   return {
     id: session.id,
@@ -157,11 +179,29 @@ function JustFinishedComment({
     }
   };
   const previewReplies = (replies ?? []).slice(0, 2);
+  const isLive = comment.sessionStatus === "WATCHING_NOW";
 
   return (
     <div className={cn("px-[14px] py-[13px]", showBorder ? "border-b border-border/60 dark:border-border/50" : "")}>
+      <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+        <span className="text-[13px] font-medium text-foreground">{comment.user}</span>
+        <span>·</span>
+        <span>{timeAgo(comment.createdAt)}</span>
+        <span>·</span>
+        {isLive ? (
+          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            LIVE
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-primary">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary/80" />
+            FINISHED
+          </span>
+        )}
+      </div>
       {comment.isSpoiler ? (
-        <div className="mb-2">
+        <div className="mb-1.5">
           <Badge variant="secondary" className="rounded-full bg-amber-500/15 text-[10px] text-amber-600 dark:text-amber-400">
             Spoiler discussion
           </Badge>
@@ -171,7 +211,7 @@ function JustFinishedComment({
         type="button"
         onClick={() => setIsSpoilerRevealed(true)}
         className={cn(
-          "w-full cursor-pointer rounded-md border border-border/60 px-3 py-2 text-left text-sm transition",
+          "w-full cursor-pointer text-left text-[13px] transition",
           comment.isSpoiler && !isSpoilerRevealed
             ? "select-none text-transparent [text-shadow:0_0_8px_rgba(148,163,184,0.95)]"
             : "text-foreground"
@@ -179,14 +219,14 @@ function JustFinishedComment({
       >
         {comment.isSpoiler && !isSpoilerRevealed ? "Click to reveal spoiler" : comment.content}
       </button>
-      <div className="mt-2 flex items-center gap-2">
+      <div className="mt-1.5 flex items-center gap-2">
         <Button
           type="button"
           variant="ghost"
           size="sm"
           onClick={reactToComment}
           disabled={addMutation.isPending}
-          className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+          className="h-7 cursor-pointer rounded-[20px] px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
         >
           <Smile className="h-3.5 w-3.5" />
           React
@@ -196,7 +236,7 @@ function JustFinishedComment({
           variant="ghost"
           size="sm"
           onClick={() => setIsReplying((v) => !v)}
-          className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+          className="h-7 cursor-pointer rounded-[20px] px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
         >
           <MessageSquare className="h-3.5 w-3.5" />
           Reply{typeof replies?.length === "number" ? ` (${replies.length})` : ""}
@@ -389,7 +429,7 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
           <Link href={titlePageHref(item.mediaType, item.tmdbId, item.title)} className="shrink-0">
             <div className="relative h-16 w-12 overflow-hidden rounded-md bg-muted">
               <Image
-                src={getPosterUrl(item.posterPath ?? item.backdropPath, "w200")}
+                src={resolveTmdbImageSrc(item.posterPath, item.backdropPath, "w200")}
                 alt=""
                 fill
                 className="object-cover"
@@ -998,8 +1038,7 @@ function RightRail({
 
 export default function WatchingContent() {
   const { data: currentUser, isLoading } = useCurrentUser();
-  const isAdmin = currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN" || currentUser?.isForumAdmin;
-  const { data: watchingData, isLoading: isWatchingLoading } = useWatchingDashboard(Boolean(isAdmin));
+  const { data: watchingData, isLoading: isWatchingLoading } = useWatchingDashboard(true);
   const watchingMutation = useWatchingMutation();
   const [isRightOpen, setIsRightOpen] = useState(false);
   const [watchSearchQuery, setWatchSearchQuery] = useState("");
@@ -1133,35 +1172,70 @@ export default function WatchingContent() {
     }
   };
 
-  if (isLoading || (isAdmin && isWatchingLoading)) {
+  if (isLoading || isWatchingLoading) {
     return (
-      <div className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
-        <Skeleton className="mb-6 h-10 w-72" />
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,8fr)_1px_minmax(0,4fr)]">
-          <div className="space-y-3">
-            <Skeleton className="h-14 w-full" />
-            <Skeleton className="h-48 w-full" />
-            <Skeleton className="h-48 w-full" />
-          </div>
-          <Skeleton className="h-80 w-full" />
+      <div className="h-full">
+        <div className="grid min-h-[calc(100vh-65px)] grid-cols-1 xl:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]">
+          <main className="space-y-4 px-4 py-6 sm:px-6 lg:px-8">
+            <div className="mb-4 space-y-2 sm:mb-6">
+              <Skeleton className="h-8 w-72" />
+              <Skeleton className="h-5 w-96 max-w-full" />
+            </div>
+            <Skeleton className="h-[72px] w-full rounded-[15px]" />
+
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-7 w-14" />
+            </div>
+            <Skeleton className="h-[260px] w-full rounded-[15px]" />
+            <Skeleton className="h-[260px] w-full rounded-[15px]" />
+
+            <div className="flex items-center justify-between pt-2">
+              <Skeleton className="h-5 w-28" />
+              <Skeleton className="h-7 w-14" />
+            </div>
+            <Skeleton className="h-[300px] w-full rounded-[15px]" />
+            <Skeleton className="h-[300px] w-full rounded-[15px]" />
+          </main>
+
+          <aside className="hidden border-l border-border/70 bg-muted/20 px-[14px] py-6 lg:block dark:bg-muted/10">
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-36" />
+                <Skeleton className="h-[230px] w-full rounded-[15px]" />
+              </div>
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-28 w-full rounded-[10px]" />
+              </div>
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-36" />
+                <Skeleton className="h-32 w-full rounded-[10px]" />
+              </div>
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-24 w-full rounded-[10px]" />
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     );
   }
 
-  if (!isAdmin) {
+  if (!currentUser) {
     return (
       <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
         <Card className="mx-auto max-w-xl border-border/70">
           <CardHeader>
-            <p className="text-lg font-semibold">Watching is in admin beta</p>
+            <p className="text-lg font-semibold">Sign in required</p>
             <p className="text-sm text-muted-foreground">
-              This page is currently available to admins only while we validate core interactions and relevance.
+              Please sign in to view what people are watching right now.
             </p>
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline" className="cursor-pointer">
-              <Link href="/dashboard">Back to dashboard</Link>
+              <Link href="/sign-in">Go to sign in</Link>
             </Button>
           </CardContent>
         </Card>

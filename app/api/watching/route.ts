@@ -309,8 +309,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
       });
     }
 
-    const authResult = await requireAdmin();
-    if (isRequireAdminFailure(authResult)) return authResult.response;
+    const authResult = await requireSignedInUser();
+    if (isRequireUserFailure(authResult)) return authResult.response;
     const currentUser = authResult.user;
 
     const followRows = await db.follow.findMany({
