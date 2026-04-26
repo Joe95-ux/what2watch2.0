@@ -290,7 +290,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
         <div className="flex flex-col gap-4">
           <div className="mt-[14px] flex flex-col gap-3 md:mt-0 md:flex-row md:items-start md:justify-between">
             {titleWatchingData && titleWatchingData.watcherCount > 0 ? (
-              <div className="w-full max-w-[620px]">
+              <div className="w-full max-w-[400px]">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex -space-x-2">
@@ -316,7 +316,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                   ) : (
                     <Button
                       size="sm"
-                      className="h-8 shrink-0 cursor-pointer rounded-[20px] text-[12px]"
+                      className="h-9 shrink-0 cursor-pointer rounded-[20px] border border-primary/30 bg-primary/15 px-4 text-[14px] text-primary hover:bg-primary/20 whitespace-nowrap dark:border-primary/35 dark:bg-primary/20 dark:text-primary-foreground"
                       disabled={watchingMutation.isPending}
                       onClick={handleWatchingToo}
                     >

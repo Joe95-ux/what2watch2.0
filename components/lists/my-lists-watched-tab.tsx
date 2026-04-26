@@ -9,7 +9,6 @@ import MoreLikeThisCard from "@/components/browse/more-like-this-card";
 import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
 import { getPosterUrl, TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { Eye, LayoutGrid, Clock3, CalendarIcon, Film, Tv } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { SimplePagination as Pagination } from "@/components/ui/pagination";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -163,30 +162,52 @@ export default function MyListsWatchedTab() {
 
   return (
     <div className="space-y-6 pb-8">
-      {/* Filter Tabs - Popular page style */}
-      <Tabs value={filterType} onValueChange={(v) => {
-        setFilterType(v as FilterType);
-        setCurrentPage(1);
-      }} className="w-full">
-        <TabsList className="py-[10px] px-[3px] rounded-[20px]">
-          <TabsTrigger value="all" className="cursor-pointer p-[15px] rounded-[20px]">All</TabsTrigger>
-          <TabsTrigger value="movie" className="cursor-pointer p-[15px] rounded-[20px]">Movies</TabsTrigger>
-          <TabsTrigger value="tv" className="cursor-pointer p-[15px] rounded-[20px]">TV Shows</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Tabs value={filterType} onValueChange={(v) => {
+          setFilterType(v as FilterType);
+          setCurrentPage(1);
+        }} className="w-auto">
+          <TabsList className="h-auto gap-2 rounded-none bg-transparent p-0">
+            <TabsTrigger
+              value="all"
+              className="h-8 flex-none cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted data-[state=active]:border-primary/50 data-[state=active]:bg-primary/15 data-[state=active]:text-primary"
+            >
+              All
+            </TabsTrigger>
+            <TabsTrigger
+              value="movie"
+              className="h-8 flex-none cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted data-[state=active]:border-primary/50 data-[state=active]:bg-primary/15 data-[state=active]:text-primary"
+            >
+              Movies
+            </TabsTrigger>
+            <TabsTrigger
+              value="tv"
+              className="h-8 flex-none cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted data-[state=active]:border-primary/50 data-[state=active]:bg-primary/15 data-[state=active]:text-primary"
+            >
+              TV Shows
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="w-full">
-        <TabsList className="py-[8px] px-[3px] rounded-[20px]">
-          <TabsTrigger value="grid" className="cursor-pointer rounded-[20px] px-3 py-2 text-xs">
-            <LayoutGrid className="mr-1.5 h-3.5 w-3.5" />
-            Grid
-          </TabsTrigger>
-          <TabsTrigger value="timeline" className="cursor-pointer rounded-[20px] px-3 py-2 text-xs">
-            <Clock3 className="mr-1.5 h-3.5 w-3.5" />
-            Timeline
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="w-auto">
+          <TabsList className="h-auto gap-2 rounded-none bg-transparent p-0">
+            <TabsTrigger
+              value="grid"
+              className="h-8 w-8 flex-none cursor-pointer rounded-[20px] border border-border/60 p-0 text-muted-foreground hover:bg-muted data-[state=active]:border-primary/50 data-[state=active]:bg-primary/15 data-[state=active]:text-primary"
+              aria-label="Grid view"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </TabsTrigger>
+            <TabsTrigger
+              value="timeline"
+              className="h-8 w-8 flex-none cursor-pointer rounded-[20px] border border-border/60 p-0 text-muted-foreground hover:bg-muted data-[state=active]:border-primary/50 data-[state=active]:bg-primary/15 data-[state=active]:text-primary"
+              aria-label="Timeline view"
+            >
+              <Clock3 className="h-3.5 w-3.5" />
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
       {/* Content */}
       {isLoading ? (

@@ -76,6 +76,8 @@ type WatchingFeedCard = {
   runtimeMinutes: number | null;
 };
 
+const COMMENT_EMOJI_REACTIONS = ["like", "🔥", "😂", "😮", "😭"] as const;
+
 const timeAgo = (iso: string) => {
   const ms = Date.now() - new Date(iso).getTime();
   const secs = Math.max(1, Math.round(ms / 1000));
@@ -184,9 +186,11 @@ function JustFinishedComment({
   const [isSpoilerRevealed, setIsSpoilerRevealed] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState("");
+  const [localReactionCount, setLocalReactionCount] = useState(0);
+  const [localMyReaction, setLocalMyReaction] = useState<string | null>(null);
   const { data: replies } = useWatchingThoughtReplies(comment.id, true);
   const addReply = useAddWatchingThoughtReply();
-  const { addMutation } = useWatchingThoughtReaction();
+  const { addMutation, removeMutation } = useWatchingThoughtReaction();
 
   const submitReply = async () => {
     const text = replyText.trim();
@@ -204,9 +208,38 @@ function JustFinishedComment({
   const reactToComment = async () => {
     try {
       await addMutation.mutateAsync({ thoughtId: comment.id, reactionType: "🔥" });
+      setLocalReactionCount((c) => c + 1);
       toast.success("Reaction added.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to react");
+    }
+  };
+  const handleReactionToggle = async (reactionType: string) => {
+    const previousReaction = localMyReaction;
+    const hasReaction = previousReaction === reactionType;
+    setLocalMyReaction(hasReaction ? null : reactionType);
+    setLocalReactionCount((count) => {
+      if (hasReaction) return Math.max(0, count - 1);
+      if (previousReaction) return count;
+      return count + 1;
+    });
+    try {
+      if (hasReaction) {
+        await removeMutation.mutateAsync({ thoughtId: comment.id, reactionType });
+      } else {
+        if (previousReaction && previousReaction !== reactionType) {
+          await removeMutation.mutateAsync({ thoughtId: comment.id, reactionType: previousReaction });
+        }
+        await addMutation.mutateAsync({ thoughtId: comment.id, reactionType });
+      }
+    } catch (error) {
+      setLocalMyReaction(previousReaction);
+      setLocalReactionCount((count) => {
+        if (hasReaction) return count + 1;
+        if (previousReaction) return count;
+        return Math.max(0, count - 1);
+      });
+      toast.error(error instanceof Error ? error.message : "Failed to update reaction");
     }
   };
   const previewReplies = (replies ?? []).slice(0, 2);
@@ -225,14 +258,12 @@ function JustFinishedComment({
           <span>{timeAgo(comment.createdAt)}</span>
           <span>·</span>
           {isLive ? (
-            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              LIVE
+            <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+              Live
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-primary">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary/80" />
-              FINISHED
+            <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+              Finished
             </span>
           )}
         </div>
@@ -254,7 +285,7 @@ function JustFinishedComment({
             : "text-foreground"
         )}
       >
-        {comment.isSpoiler && !isSpoilerRevealed ? "Tap to reveal spoiler" : comment.content}
+        {comment.isSpoiler && !isSpoilerRevealed ? "Tap to reveal spoiler comment" : comment.content}
       </button>
       <div className="mt-1.5 flex items-center gap-2">
         <Button
@@ -262,11 +293,11 @@ function JustFinishedComment({
           variant="ghost"
           size="sm"
           onClick={reactToComment}
-          disabled={addMutation.isPending}
+          disabled={addMutation.isPending || removeMutation.isPending}
           className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
         >
           <Smile className="h-3.5 w-3.5" />
-          React
+          {localReactionCount}
         </Button>
         <Button
           type="button"
@@ -278,6 +309,29 @@ function JustFinishedComment({
           <MessageSquare className="h-3.5 w-3.5" />
           Reply{typeof replies?.length === "number" ? ` (${replies.length})` : ""}
         </Button>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {COMMENT_EMOJI_REACTIONS.map((reactionType) => {
+          const selected = localMyReaction === reactionType;
+          return (
+            <button
+              key={reactionType}
+              type="button"
+              className={`h-7 rounded-[20px] border border-border/60 px-3 text-xs font-medium cursor-pointer ${
+                selected ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground"
+              }`}
+              onClick={() => handleReactionToggle(reactionType)}
+              disabled={addMutation.isPending || removeMutation.isPending}
+            >
+              {reactionType === "like" ? "👍" : reactionType}
+            </button>
+          );
+        })}
+        {localMyReaction ? (
+          <span className="text-[11px] text-muted-foreground">
+            You reacted: {localMyReaction === "like" ? "👍" : localMyReaction}
+          </span>
+        ) : null}
       </div>
       {isReplying ? (
         <div className="mt-2 flex items-center gap-2">
@@ -303,7 +357,7 @@ function JustFinishedComment({
           {previewReplies.map((reply) => {
             const replyUser = reply.user.displayName || reply.user.username || "Someone";
             return (
-              <div key={reply.id} className="rounded-md bg-muted/25 px-2 py-1.5 text-xs text-muted-foreground">
+              <div key={reply.id} className="text-xs text-muted-foreground">
                 <span className="font-medium text-foreground/90">{replyUser}</span>
                 <span className="mx-1">·</span>
                 <span className="line-clamp-1">{reply.content}</span>
