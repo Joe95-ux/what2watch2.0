@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useQueries } from "@tanstack/react-query";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import {
   ArrowLeft,
   Bookmark,
@@ -32,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -72,6 +74,16 @@ const timeAgo = (iso: string) => {
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.round(hrs / 24);
   return `${days}d ago`;
+};
+
+const titlePageHref = (mediaType: "movie" | "tv", tmdbId: number, title: string) => {
+  const slug = title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+  return `/${mediaType}/${tmdbId}/${slug || "title"}`;
 };
 
 const toFeedCard = (session: WatchingSessionDTO): WatchingFeedCard => {
@@ -205,7 +217,7 @@ function JustFinishedComment({
             disabled={addReply.isPending || !replyText.trim()}
             className="h-8 cursor-pointer rounded-[20px] px-3 text-xs"
           >
-            Send
+            {addReply.isPending ? "Sending..." : "Send"}
           </Button>
         </div>
       ) : null}
@@ -236,22 +248,48 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
   const [replyText, setReplyText] = useState("");
   const [localReactions, setLocalReactions] = useState(item.reactions);
   const [localReplies, setLocalReplies] = useState(item.replies);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const [optimisticInWatchlist, setOptimisticInWatchlist] = useState<boolean | null>(null);
   const visibleComments = expandedComments ? item.comments : item.comments.slice(0, 10);
   const hasMoreComments = item.comments.length > 10;
   const addReply = useAddWatchingThoughtReply();
   const { addMutation } = useWatchingThoughtReaction();
-  const { toggle: toggleWatchlist, isLoading: isWatchlistMutating } = useToggleWatchlist();
+  const { toggle: toggleWatchlist, isLoading: isWatchlistMutating, isInWatchlist } = useToggleWatchlist();
+  const { data: primaryReplies, isLoading: isPrimaryRepliesLoading } = useWatchingThoughtReplies(
+    item.primaryThoughtId ?? "",
+    Boolean(item.primaryThoughtId)
+  );
+  const actualInWatchlist = isInWatchlist(item.tmdbId, item.mediaType);
+  const inWatchlist = optimisticInWatchlist ?? actualInWatchlist;
 
-  const handleCardReaction = async () => {
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const onDocMouseDown = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, [showEmojiPicker]);
+
+  useEffect(() => {
+    setOptimisticInWatchlist(null);
+  }, [actualInWatchlist, item.tmdbId, item.mediaType]);
+
+  const handleCardReaction = async (emoji: string) => {
     if (!item.primaryThoughtId) {
       toast.message("No thought yet to react to.");
       return;
     }
+    setShowEmojiPicker(false);
+    setLocalReactions((count) => count + 1);
     try {
-      await addMutation.mutateAsync({ thoughtId: item.primaryThoughtId, reactionType: "🔥" });
-      setLocalReactions((count) => count + 1);
+      await addMutation.mutateAsync({ thoughtId: item.primaryThoughtId, reactionType: emoji });
       toast.success("Reaction added.");
     } catch (error) {
+      setLocalReactions((count) => Math.max(0, count - 1));
       toast.error(error instanceof Error ? error.message : "Failed to react");
     }
   };
@@ -271,6 +309,8 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
   };
 
   const handleWatchlistToggle = async () => {
+    const next = !inWatchlist;
+    setOptimisticInWatchlist(next);
     try {
       if (item.mediaType === "movie") {
         await toggleWatchlist(
@@ -312,6 +352,7 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
       }
       toast.success("Watchlist updated.");
     } catch (error) {
+      setOptimisticInWatchlist((prev) => (prev == null ? null : !prev));
       toast.error(error instanceof Error ? error.message : "Failed to update watchlist");
     }
   };
@@ -345,28 +386,22 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
 
       <div className="border-b border-border/60 px-[14px] py-[13px] dark:border-border/50">
         <div className="flex items-start gap-[10px]">
-          <Link href={item.mediaType === "movie" ? `/movie/${item.tmdbId}` : `/tv/${item.tmdbId}`} className="shrink-0">
-            {item.posterPath || item.backdropPath ? (
-              <div className="relative h-16 w-12 overflow-hidden rounded-md bg-muted">
-                <Image
-                  src={getPosterUrl(item.posterPath ?? item.backdropPath, "w200")}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="48px"
-                  unoptimized
-                />
-              </div>
-            ) : (
-              <div className="flex h-16 w-12 items-center justify-center rounded-md bg-muted text-[10px] text-muted-foreground">
-                N/A
-              </div>
-            )}
+          <Link href={titlePageHref(item.mediaType, item.tmdbId, item.title)} className="shrink-0">
+            <div className="relative h-16 w-12 overflow-hidden rounded-md bg-muted">
+              <Image
+                src={getPosterUrl(item.posterPath ?? item.backdropPath, "w200")}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="48px"
+                unoptimized
+              />
+            </div>
           </Link>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <Link
-                href={item.mediaType === "movie" ? `/movie/${item.tmdbId}` : `/tv/${item.tmdbId}`}
+                href={titlePageHref(item.mediaType, item.tmdbId, item.title)}
                 className="truncate text-sm font-medium hover:underline"
               >
                 {item.title}
@@ -392,15 +427,27 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
           item.status === "finished" ? "border-b border-border/60 dark:border-border/50" : ""
         )}
       >
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleCardReaction}
-          disabled={addMutation.isPending || !item.primaryThoughtId}
-          className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-        >
-          <Smile className="h-3.5 w-3.5" /> {localReactions}
-        </Button>
+        <div ref={emojiPickerRef} className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowEmojiPicker((v) => !v)}
+            disabled={addMutation.isPending || !item.primaryThoughtId}
+            className="h-10 w-full cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+          >
+            <Smile className="h-3.5 w-3.5" /> {localReactions}
+          </Button>
+          {showEmojiPicker ? (
+            <div className="absolute left-2 top-[42px] z-50">
+              <EmojiPicker
+                onEmojiClick={(emojiData: EmojiClickData) => void handleCardReaction(emojiData.emoji)}
+                width={280}
+                height={360}
+                lazyLoadEmojis
+              />
+            </div>
+          ) : null}
+        </div>
         <Button
           variant="ghost"
           size="sm"
@@ -417,7 +464,7 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
           disabled={isWatchlistMutating}
           className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         >
-          <Bookmark className="h-3.5 w-3.5" /> Watchlist
+          <Bookmark className={cn("h-3.5 w-3.5", inWatchlist ? "text-yellow-400 fill-yellow-400" : "")} /> Watchlist
         </Button>
       </div>
 
@@ -437,9 +484,35 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
               disabled={addReply.isPending || !replyText.trim()}
               className="h-8 cursor-pointer rounded-[20px] px-3 text-xs"
             >
-              Send
+              {addReply.isPending ? "Sending..." : "Send"}
             </Button>
           </div>
+        </div>
+      ) : null}
+
+      {item.status === "finished" && item.primaryThoughtId ? (
+        <div className="border-b border-border/60 px-[14px] py-[10px] dark:border-border/50">
+          {isPrimaryRepliesLoading ? (
+            <p className="text-xs text-muted-foreground">Loading replies...</p>
+          ) : primaryReplies && primaryReplies.length > 0 ? (
+            <div className="space-y-1.5 border-l border-border/60 pl-3">
+              {primaryReplies.slice(0, 3).map((reply) => {
+                const replyUser = reply.user.displayName || reply.user.username || "Someone";
+                return (
+                  <div key={reply.id} className="text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground/90">{replyUser}</span>
+                    <span className="mx-1">·</span>
+                    <span className="line-clamp-1">{reply.content}</span>
+                  </div>
+                );
+              })}
+              {primaryReplies.length > 3 ? (
+                <p className="text-[11px] text-muted-foreground">+{primaryReplies.length - 3} more replies</p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No replies yet.</p>
+          )}
         </div>
       ) : null}
 
@@ -511,7 +584,15 @@ function RightRail({
   }) => void;
   isSubmitting: boolean;
 }) {
-  const currentProgress = currentSession?.progressPercent ?? 0;
+  const currentProgress = useMemo(() => {
+    if (!currentSession) return 0;
+    if (typeof currentSession.progressPercent === "number") {
+      return Math.max(0, Math.min(100, currentSession.progressPercent));
+    }
+    // Fallback to elapsed-time estimate when explicit progress isn't set yet.
+    const minutesIn = Math.max(1, Math.round((Date.now() - new Date(currentSession.startedAt).getTime()) / 60000));
+    return Math.max(0, Math.min(100, Math.round((minutesIn / 120) * 100)));
+  }, [currentSession]);
   const [showAllAlsoWatching, setShowAllAlsoWatching] = useState(false);
   const [alsoWatchingPage, setAlsoWatchingPage] = useState(1);
   const [showAllRepliesToYou, setShowAllRepliesToYou] = useState(false);
@@ -639,10 +720,7 @@ function RightRail({
 
             <div className="space-y-[10px] px-[10px] py-[10px]">
               <div className="flex items-start gap-[10px]">
-                <Link
-                  href={currentSession.mediaType === "movie" ? `/movie/${currentSession.tmdbId}` : `/tv/${currentSession.tmdbId}`}
-                  className="shrink-0"
-                >
+                <Link href={titlePageHref(currentSession.mediaType, currentSession.tmdbId, currentSession.title)} className="shrink-0">
                   {currentSession.posterPath ? (
                     <div className="relative h-16 w-12 overflow-hidden rounded-md bg-muted">
                       <Image
@@ -663,7 +741,7 @@ function RightRail({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <Link
-                      href={currentSession.mediaType === "movie" ? `/movie/${currentSession.tmdbId}` : `/tv/${currentSession.tmdbId}`}
+                      href={titlePageHref(currentSession.mediaType, currentSession.tmdbId, currentSession.title)}
                       className="truncate text-[14px] font-medium hover:underline"
                     >
                       {currentSession.title}
@@ -695,7 +773,7 @@ function RightRail({
                   disabled={isSubmitting || !thoughtText.trim()}
                   onClick={onShareThought}
                 >
-                  Share thought
+                  {isSubmitting ? "Sharing..." : "Share thought"}
                 </Button>
                 <label className="inline-flex cursor-pointer items-center gap-2 text-[13px] text-muted-foreground">
                   <Checkbox checked={spoilerMode} onCheckedChange={(v) => onSpoilerModeChange(Boolean(v))} />
@@ -712,7 +790,7 @@ function RightRail({
       <section className="border-b border-border/70 px-[14px] py-6">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="truncate text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
-              ALSO WATCHING [{alsoWatchingTitleLabel}]
+              ALSO WATCHING {alsoWatchingTitleLabel}
             </p>
             <div className="flex items-center gap-1">
               <Button
@@ -797,10 +875,10 @@ function RightRail({
           {trendingTonight.map((item, i) => (
             <div
               key={`${item.mediaType}-${item.tmdbId}`}
-              className="flex w-full items-center gap-[10px] py-[8px] text-left hover:bg-muted/30"
+              className="flex w-full items-center gap-[14px] py-[8px] text-left hover:bg-muted/30"
             >
-              <span className="w-4 text-[12px] font-semibold text-muted-foreground">{i + 1}</span>
-              <Link href={item.mediaType === "movie" ? `/movie/${item.tmdbId}` : `/tv/${item.tmdbId}`} className="shrink-0">
+              <span className="w-7 text-center font-serif text-[18px] font-semibold leading-none text-muted-foreground">{i + 1}</span>
+              <Link href={titlePageHref(item.mediaType, item.tmdbId, item.title)} className="shrink-0">
                 {item.posterPath ? (
                   <div className="relative h-12 w-9 overflow-hidden rounded bg-muted">
                     <Image src={getPosterUrl(item.posterPath, "w200")} alt="" fill className="object-cover" sizes="36px" unoptimized />
@@ -813,7 +891,7 @@ function RightRail({
               </Link>
               <div className="min-w-0 flex-1">
                 <Link
-                  href={item.mediaType === "movie" ? `/movie/${item.tmdbId}` : `/tv/${item.tmdbId}`}
+                  href={titlePageHref(item.mediaType, item.tmdbId, item.title)}
                   className="truncate text-[13px] font-medium hover:underline"
                 >
                   {item.title}
@@ -931,8 +1009,7 @@ export default function WatchingContent() {
     type: "all",
     page: 1,
   });
-  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const composeWrapRef = useRef<HTMLDivElement>(null);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [selectedPick, setSelectedPick] = useState<{
     tmdbId: number;
     mediaType: "movie" | "tv";
@@ -973,17 +1050,6 @@ export default function WatchingContent() {
     const t = window.setInterval(tick, 60_000);
     return () => window.clearInterval(t);
   }, []);
-
-  useEffect(() => {
-    if (!suggestionsOpen) return;
-    const onDocMouseDown = (e: MouseEvent) => {
-      if (!composeWrapRef.current?.contains(e.target as Node)) {
-        setSuggestionsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDocMouseDown);
-    return () => document.removeEventListener("mousedown", onDocMouseDown);
-  }, [suggestionsOpen]);
 
   const watchingNow = useMemo(
     () => (watchingData?.watchingNow ?? []).map(toFeedCard),
@@ -1104,10 +1170,10 @@ export default function WatchingContent() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="h-full">
       <div
         className={cn(
-          "grid min-h-[calc(100vh-6rem)] grid-cols-1",
+          "grid min-h-[calc(100vh-65px)] grid-cols-1",
           isRightOpen
             ? "xl:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]"
             : "xl:grid-cols-[minmax(0,1fr)]"
@@ -1134,95 +1200,31 @@ export default function WatchingContent() {
           </div>
 
           <div
-            ref={composeWrapRef}
             className="rounded-[15px] border border-border/60 bg-muted/25 p-4 dark:border-border/50 dark:bg-muted/15"
+            role="button"
+            tabIndex={0}
+            onClick={() => setSearchModalOpen(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setSearchModalOpen(true);
+              }
+            }}
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Avatar className="h-9 w-9 shrink-0">
                 <AvatarImage src={currentUser?.avatarUrl ?? undefined} />
                 <AvatarFallback>{(currentUser?.username || currentUser?.displayName || "U")[0]}</AvatarFallback>
               </Avatar>
-              <div className="relative min-w-0 flex-1">
+              <div className="min-w-0 flex-1">
                 <Input
                   value={watchSearchQuery}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setWatchSearchQuery(v);
-                    setSuggestionsOpen(true);
-                    if (selectedPick && v !== selectedPick.title) {
-                      setSelectedPick(null);
-                    }
-                  }}
-                  onFocus={() => setSuggestionsOpen(true)}
+                  readOnly
+                  onClick={() => setSearchModalOpen(true)}
                   placeholder={`What are you watching right now, ${currentUser?.displayName || currentUser?.username || "there"}?`}
-                  className="h-10 w-full border-0 bg-transparent px-0 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
+                  className="h-10 w-full cursor-pointer border-0 bg-transparent px-0 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
                   autoComplete="off"
                 />
-                {suggestionsOpen && debouncedWatchSearch.trim() ? (
-                  <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[min(400px,50vh)] overflow-y-auto rounded-lg border border-border bg-popover shadow-md scrollbar-thin">
-                    {isWatchSearchLoading ? (
-                      <div className="p-4 text-center text-sm text-muted-foreground">Searching...</div>
-                    ) : watchSearchResults?.results && watchSearchResults.results.length > 0 ? (
-                      <div className="p-2">
-                        {watchSearchResults.results.map((item) => {
-                          const isMovie = "title" in item;
-                          const title = isMovie ? (item as TMDBMovie).title : (item as TMDBSeries).name;
-                          const mediaType = isMovie ? "movie" : "tv";
-                          const yearLabel = isMovie
-                            ? (item as TMDBMovie).release_date?.slice(0, 4)
-                            : (item as TMDBSeries).first_air_date?.slice(0, 4);
-                          const typeLabel = isMovie ? "Movie" : "TV";
-                          const poster = item.poster_path;
-                          return (
-                            <button
-                              key={`${item.id}-${mediaType}`}
-                              type="button"
-                              className="flex w-full cursor-pointer items-center gap-3 rounded-lg p-2 text-left hover:bg-muted"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
-                                setSelectedPick({
-                                  tmdbId: item.id,
-                                  mediaType,
-                                  title,
-                                  posterPath: item.poster_path ?? null,
-                                  backdropPath: item.backdrop_path ?? null,
-                                });
-                                setWatchSearchQuery(title);
-                                setSuggestionsOpen(false);
-                              }}
-                            >
-                              {poster ? (
-                                <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded bg-muted">
-                                  <Image
-                                    src={getPosterUrl(poster, "w200")}
-                                    alt=""
-                                    fill
-                                    className="object-cover"
-                                    sizes="40px"
-                                    unoptimized
-                                  />
-                                </div>
-                              ) : (
-                                <div className="flex h-14 w-10 shrink-0 items-center justify-center rounded bg-muted text-[10px] text-muted-foreground">
-                                  N/A
-                                </div>
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium">{title}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {typeLabel}
-                                  {yearLabel ? ` · ${yearLabel}` : ""}
-                                </p>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="p-4 text-center text-sm text-muted-foreground">No results found.</div>
-                    )}
-                  </div>
-                ) : null}
               </div>
               <Button
                 type="button"
@@ -1234,6 +1236,82 @@ export default function WatchingContent() {
               </Button>
             </div>
           </div>
+          <Dialog open={searchModalOpen} onOpenChange={setSearchModalOpen}>
+            <DialogContent className="max-w-2xl p-0">
+              <DialogHeader className="border-b border-border/60 px-4 py-3">
+                <DialogTitle className="text-base">Search title to start watching</DialogTitle>
+              </DialogHeader>
+              <div className="px-4 py-3">
+                <Input
+                  value={watchSearchQuery}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setWatchSearchQuery(v);
+                    if (selectedPick && v !== selectedPick.title) setSelectedPick(null);
+                  }}
+                  autoFocus
+                  placeholder="Search movie or TV show..."
+                  className="h-10 border-border/60 bg-transparent text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="max-h-[55vh] overflow-y-auto border-t border-border/60 p-2 scrollbar-thin">
+                {!debouncedWatchSearch.trim() ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">Start typing to search.</div>
+                ) : isWatchSearchLoading ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">Searching...</div>
+                ) : watchSearchResults?.results && watchSearchResults.results.length > 0 ? (
+                  watchSearchResults.results.map((item) => {
+                    const isMovie = "title" in item;
+                    const title = isMovie ? (item as TMDBMovie).title : (item as TMDBSeries).name;
+                    const mediaType = isMovie ? "movie" : "tv";
+                    const yearLabel = isMovie
+                      ? (item as TMDBMovie).release_date?.slice(0, 4)
+                      : (item as TMDBSeries).first_air_date?.slice(0, 4);
+                    const typeLabel = isMovie ? "Movie" : "TV";
+                    const poster = item.poster_path;
+                    return (
+                      <button
+                        key={`${item.id}-${mediaType}`}
+                        type="button"
+                        className="flex w-full cursor-pointer items-center gap-3 rounded-md p-2 text-left hover:bg-muted"
+                        onClick={() => {
+                          setSelectedPick({
+                            tmdbId: item.id,
+                            mediaType,
+                            title,
+                            posterPath: item.poster_path ?? null,
+                            backdropPath: item.backdrop_path ?? null,
+                          });
+                          setWatchSearchQuery(title);
+                          setSearchModalOpen(false);
+                        }}
+                      >
+                        {poster ? (
+                          <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded bg-muted">
+                            <Image src={getPosterUrl(poster, "w200")} alt="" fill className="object-cover" sizes="40px" unoptimized />
+                          </div>
+                        ) : (
+                          <div className="flex h-14 w-10 shrink-0 items-center justify-center rounded bg-muted text-[10px] text-muted-foreground">
+                            N/A
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {typeLabel}
+                            {yearLabel ? ` · ${yearLabel}` : ""}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="p-4 text-center text-sm text-muted-foreground">No results found.</div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <div className="flex items-center justify-between">
             <div className="inline-flex items-center gap-2">
@@ -1357,7 +1435,7 @@ export default function WatchingContent() {
           <aside className="relative hidden border-l border-border/70 bg-muted/20 lg:block dark:bg-muted/10">
             <button
               type="button"
-              className="absolute -left-3 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground cursor-pointer"
+              className="absolute -left-3 top-[20px] inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground cursor-pointer"
               onClick={() => setIsRightOpen(false)}
               aria-label="Collapse sidebar"
             >
@@ -1377,8 +1455,7 @@ export default function WatchingContent() {
               onShareThought={submitShareThought}
               onChangeTitle={() => {
                 setIsRightOpen(false);
-                setSuggestionsOpen(true);
-                composeWrapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                setSearchModalOpen(true);
                 toast.message("Use the top search box to change your current title.");
               }}
               onUseTrendingItem={(item) => {
@@ -1390,7 +1467,7 @@ export default function WatchingContent() {
                   backdropPath: null,
                 });
                 setWatchSearchQuery(item.title);
-                setSuggestionsOpen(false);
+                setSearchModalOpen(false);
                 toast.message("Loaded trending title — tap I'm watching... when ready.");
               }}
               isSubmitting={watchingMutation.isPending}

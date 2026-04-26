@@ -215,11 +215,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       return (
                         <SidebarMenuItem key={item.href}>
                           <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                        <SidebarNavLink
-                          href={item.href}
-                          className="flex items-center w-full"
-                        >
-                              <Icon />
+                            <SidebarNavLink href={item.href} className="flex items-center w-full">
+                              <Icon
+                                className={
+                                  item.href === "/dashboard/watching" && watchingBadgeCount > 0
+                                    ? "text-emerald-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.55)] animate-pulse"
+                                    : undefined
+                                }
+                              />
                               <span>{item.label}</span>
                               {item.badge !== undefined && item.badge > 0 && (
                                 <span className="ml-auto text-xs font-medium bg-primary text-primary-foreground rounded-full px-2 py-0.5 min-w-[1.5rem] text-center group-data-[collapsible=icon]:hidden">
