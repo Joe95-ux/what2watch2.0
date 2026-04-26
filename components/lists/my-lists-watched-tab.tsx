@@ -8,9 +8,11 @@ import { useWatchedTitles } from "@/hooks/use-viewing-logs";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
 import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
 import { getPosterUrl, TMDBMovie, TMDBSeries } from "@/lib/tmdb";
-import { Eye, LayoutGrid, Clock3, CalendarIcon, Film, Tv } from "lucide-react";
+import { Eye, CalendarIcon, Film, Tv } from "lucide-react";
 import { SimplePagination as Pagination } from "@/components/ui/pagination";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
 
 const ITEMS_PER_PAGE = 24;
 
@@ -26,6 +28,12 @@ const titlePageHref = (mediaType: "movie" | "tv", tmdbId: number, title: string)
     .replace(/-+/g, "-");
   return `/${mediaType}/${tmdbId}/${slug || "title"}`;
 };
+
+const cleanupTitleSlugSource = (value: string) =>
+  value
+    .replace(/[-\s]+s\d+(?:[-\s]+s\d+)*$/i, "")
+    .replace(/\s+season\s+\d+(?:\s*[-–]\s*season\s+\d+)?$/i, "")
+    .trim();
 
 // Convert viewing log to TMDB format
 function logToTMDB(log: any): TMDBMovie | TMDBSeries {
@@ -49,6 +57,16 @@ function logToTMDB(log: any): TMDBMovie | TMDBSeries {
       vote_average: 0,
       overview: "",
     } as TMDBSeries;
+  }
+}
+
+async function fetchTMDBDetails(tmdbId: number, mediaType: "movie" | "tv") {
+  try {
+    const response = await fetch(`/api/tmdb/${mediaType}/${tmdbId}`);
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
   }
 }
 
@@ -112,16 +130,16 @@ export default function MyListsWatchedTab() {
     setViewMode(view === "timeline" ? "timeline" : "grid");
   }, [searchParams]);
 
-  // Convert watched titles to TMDB format.
+  // Convert watched titles to base TMDB format.
   const uniqueItems = useMemo(() => {
     const sortedTitles = [...watchedTitles].sort(
       (a, b) => new Date(b.seenAt).getTime() - new Date(a.seenAt).getTime()
     );
     return sortedTitles.map((entry) => ({
-      item: logToTMDB({
+      baseItem: logToTMDB({
         tmdbId: entry.tmdbId,
         mediaType: entry.mediaType,
-        title: entry.title,
+        title: cleanupTitleSlugSource(entry.title),
         posterPath: entry.posterPath,
         backdropPath: entry.backdropPath,
         releaseDate: null,
@@ -132,11 +150,54 @@ export default function MyListsWatchedTab() {
     }));
   }, [watchedTitles]);
 
+  const { data: details = [], isLoading: isLoadingDetails } = useQuery({
+    queryKey: [
+      "watched-content-details",
+      uniqueItems.map((entry) => `${entry.type}-${entry.watched.tmdbId}`),
+    ],
+    queryFn: async () => {
+      const results = await Promise.all(
+        uniqueItems.map(async (entry) => {
+          const detail = await fetchTMDBDetails(entry.watched.tmdbId, entry.type);
+          return {
+            key: `${entry.type}-${entry.watched.tmdbId}`,
+            detail,
+          };
+        })
+      );
+      return results;
+    },
+    enabled: uniqueItems.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const detailsMap = useMemo(() => {
+    const map = new Map<string, TMDBMovie | TMDBSeries>();
+    for (const row of details) {
+      if (row.detail) {
+        map.set(row.key, row.detail as TMDBMovie | TMDBSeries);
+      }
+    }
+    return map;
+  }, [details]);
+
+  const itemsWithCanonicalTitles = useMemo(() => {
+    return uniqueItems.map((entry) => {
+      const key = `${entry.type}-${entry.watched.tmdbId}`;
+      const detail = detailsMap.get(key);
+      return {
+        item: detail ?? entry.baseItem,
+        type: entry.type,
+        watched: entry.watched,
+      };
+    });
+  }, [detailsMap, uniqueItems]);
+
   // Filter by type
   const filteredItems = useMemo(() => {
-    if (filterType === "all") return uniqueItems;
-    return uniqueItems.filter(({ type }) => type === filterType);
-  }, [uniqueItems, filterType]);
+    if (filterType === "all") return itemsWithCanonicalTitles;
+    return itemsWithCanonicalTitles.filter(({ type }) => type === filterType);
+  }, [itemsWithCanonicalTitles, filterType]);
 
   // Pagination
   const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
@@ -189,28 +250,30 @@ export default function MyListsWatchedTab() {
           </TabsList>
         </Tabs>
 
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="w-auto">
-          <TabsList className="h-auto gap-2 rounded-none bg-transparent p-0">
-            <TabsTrigger
-              value="grid"
-              className="h-8 w-8 flex-none cursor-pointer rounded-[20px] border border-border/60 p-0 text-muted-foreground hover:bg-muted data-[state=active]:border-primary/50 data-[state=active]:bg-primary/15 data-[state=active]:text-primary"
-              aria-label="Grid view"
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-            </TabsTrigger>
-            <TabsTrigger
-              value="timeline"
-              className="h-8 w-8 flex-none cursor-pointer rounded-[20px] border border-border/60 p-0 text-muted-foreground hover:bg-muted data-[state=active]:border-primary/50 data-[state=active]:bg-primary/15 data-[state=active]:text-primary"
-              aria-label="Timeline view"
-            >
-              <Clock3 className="h-3.5 w-3.5" />
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="inline-flex rounded-md border border-border/70 p-0.5">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => setViewMode("grid")}
+            className={viewMode === "grid" ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground" : "h-7 cursor-pointer px-2.5 text-xs"}
+          >
+            Cards
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => setViewMode("timeline")}
+            className={viewMode === "timeline" ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground" : "h-7 cursor-pointer px-2.5 text-xs"}
+          >
+            Timeline
+          </Button>
+        </div>
       </div>
 
       {/* Content */}
-      {isLoading ? (
+      {isLoading || isLoadingDetails ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {Array.from({ length: 24 }).map((_, i) => (
             <MoreLikeThisCardSkeleton key={i} />

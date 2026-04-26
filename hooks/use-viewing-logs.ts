@@ -93,6 +93,39 @@ const fetchWatchedTitles = async (): Promise<WatchedTitle[]> => {
   return data.titles;
 };
 
+const markWatchedTitle = async (params: {
+  tmdbId: number;
+  mediaType: "movie" | "tv";
+  title: string;
+  posterPath?: string | null;
+  backdropPath?: string | null;
+}): Promise<void> => {
+  const res = await fetch("/api/watched-titles", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...params,
+      seenAt: new Date().toISOString(),
+      source: "manual_seen",
+    }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to mark watched");
+  }
+};
+
+const unwatchTitle = async (watchedTitleId: string): Promise<void> => {
+  const res = await fetch(`/api/watched-titles?id=${encodeURIComponent(watchedTitleId)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to unwatch title");
+  }
+};
+
 // Create viewing log
 const createViewingLog = async (params: CreateViewingLogParams): Promise<ViewingLog> => {
   const res = await fetch("/api/viewing-logs", {
@@ -306,7 +339,7 @@ export function useUpdateViewingLog() {
 
 // Check if a film is watched (has a viewing log)
 const checkIsWatched = async (tmdbId: number, mediaType: "movie" | "tv"): Promise<{ isWatched: boolean; logId: string | null }> => {
-  const res = await fetch(`/api/viewing-logs/check?tmdbId=${tmdbId}&mediaType=${mediaType}`);
+  const res = await fetch(`/api/watched-titles/check?tmdbId=${tmdbId}&mediaType=${mediaType}`);
   if (!res.ok) return { isWatched: false, logId: null };
   const data = await res.json();
   return { isWatched: data.isWatched || false, logId: data.logId || null };
@@ -342,17 +375,9 @@ export function useQuickWatch() {
       releaseDate?: string | null;
       firstAirDate?: string | null;
     }) => {
-      // Quick log with today's date, no rating/notes
-      // Activity is created in the API route, no need to create it here
-      const log = await createViewingLog({
-        ...params,
-        watchedAt: new Date().toISOString(), // Default to today
-        rating: null,
-        notes: null,
-        tags: [],
-      });
-      
-      return log;
+      // Mark as seen should not create a diary entry.
+      await markWatchedTitle(params);
+      return null;
     },
     onMutate: async (params) => {
       const { tmdbId, mediaType } = params;
@@ -371,8 +396,7 @@ export function useQuickWatch() {
       }
     },
     onSuccess: () => {
-      // Invalidate viewing logs and watched status queries
-      queryClient.invalidateQueries({ queryKey: ["viewing-logs"] });
+      // Invalidate watched status queries.
       queryClient.invalidateQueries({ queryKey: ["is-watched"] });
       queryClient.invalidateQueries({ queryKey: ["watched-titles"] });
     },
@@ -385,7 +409,7 @@ export function useUnwatch() {
 
   return useMutation({
     mutationFn: async (logId: string) => {
-      await deleteViewingLog(logId);
+      await unwatchTitle(logId);
     },
     onMutate: async (logId) => {
       await queryClient.cancelQueries({ queryKey: ["is-watched"] });
@@ -407,9 +431,9 @@ export function useUnwatch() {
       });
     },
     onSuccess: () => {
-      // Invalidate viewing logs and watched status queries
-      queryClient.invalidateQueries({ queryKey: ["viewing-logs"] });
+      // Invalidate watched status queries
       queryClient.invalidateQueries({ queryKey: ["is-watched"] });
+      queryClient.invalidateQueries({ queryKey: ["watched-titles"] });
     },
   });
 }

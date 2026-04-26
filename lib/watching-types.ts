@@ -7,6 +7,9 @@ export type WatchingThoughtDTO = {
   content: string;
   isSpoiler: boolean;
   createdAt: string;
+  reactionCount: number;
+  replyCount: number;
+  myReactions: string[];
   user: {
     id: string;
     username: string | null;

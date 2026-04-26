@@ -231,7 +231,10 @@ function toSessionDTO(
       user: { id: string; username: string | null; displayName: string | null; avatarUrl: string | null };
     }>;
   },
-  metadataByTitle?: Map<string, SessionTitleMetadata>
+  metadataByTitle?: Map<string, SessionTitleMetadata>,
+  reactionCountMap?: Map<string, number>,
+  replyCountMap?: Map<string, number>,
+  myReactionsMap?: Map<string, string[]>
 ): WatchingSessionDTO {
   const metaKey = `${session.mediaType}:${session.tmdbId}`;
   const metadata = metadataByTitle?.get(metaKey);
@@ -259,6 +262,9 @@ function toSessionDTO(
       content: t.content,
       isSpoiler: t.isSpoiler,
       createdAt: t.createdAt.toISOString(),
+      reactionCount: reactionCountMap?.get(t.id) ?? 0,
+      replyCount: replyCountMap?.get(t.id) ?? 0,
+      myReactions: myReactionsMap?.get(t.id) ?? [],
       user: t.user,
     })),
   };
@@ -538,9 +544,56 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
       }
     }
 
-    const currentSession = currentSessionRaw ? toSessionDTO(currentSessionRaw, metadataByTitle) : null;
-    const watchingNow = watchingNowRaw.map((session) => toSessionDTO(session, metadataByTitle));
-    const justFinished = justFinishedRaw.map((session) => toSessionDTO(session, metadataByTitle));
+    const allThoughtIds = [
+      ...(currentSessionRaw?.thoughts.map((thought) => thought.id) ?? []),
+      ...watchingNowRaw.flatMap((session) => session.thoughts.map((thought) => thought.id)),
+      ...justFinishedRaw.flatMap((session) => session.thoughts.map((thought) => thought.id)),
+    ];
+
+    const uniqueThoughtIds = Array.from(new Set(allThoughtIds));
+    const [reactionRows, replyRows, myReactionRows] = uniqueThoughtIds.length
+      ? await Promise.all([
+          db.watchingThoughtReaction.findMany({
+            where: { thoughtId: { in: uniqueThoughtIds } },
+            select: { thoughtId: true },
+          }),
+          db.watchingThoughtReply.findMany({
+            where: { thoughtId: { in: uniqueThoughtIds } },
+            select: { thoughtId: true },
+          }),
+          db.watchingThoughtReaction.findMany({
+            where: { thoughtId: { in: uniqueThoughtIds }, userId: currentUser.id },
+            select: { thoughtId: true, reactionType: true },
+          }),
+        ])
+      : [[], [], []];
+
+    const reactionCountMap = new Map<string, number>();
+    for (const row of reactionRows) {
+      reactionCountMap.set(row.thoughtId, (reactionCountMap.get(row.thoughtId) ?? 0) + 1);
+    }
+
+    const replyCountMap = new Map<string, number>();
+    for (const row of replyRows) {
+      replyCountMap.set(row.thoughtId, (replyCountMap.get(row.thoughtId) ?? 0) + 1);
+    }
+
+    const myReactionsMap = new Map<string, string[]>();
+    for (const row of myReactionRows) {
+      const list = myReactionsMap.get(row.thoughtId) ?? [];
+      list.push(row.reactionType);
+      myReactionsMap.set(row.thoughtId, list);
+    }
+
+    const currentSession = currentSessionRaw
+      ? toSessionDTO(currentSessionRaw, metadataByTitle, reactionCountMap, replyCountMap, myReactionsMap)
+      : null;
+    const watchingNow = watchingNowRaw.map((session) =>
+      toSessionDTO(session, metadataByTitle, reactionCountMap, replyCountMap, myReactionsMap)
+    );
+    const justFinished = justFinishedRaw.map((session) =>
+      toSessionDTO(session, metadataByTitle, reactionCountMap, replyCountMap, myReactionsMap)
+    );
 
     const alsoWatchingCurrent = currentSession
       ? watchingNow.filter(

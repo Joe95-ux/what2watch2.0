@@ -63,6 +63,10 @@ export async function POST(
     const { thoughtId } = await params;
     const body = await request.json();
     const content = typeof body?.content === "string" ? body.content.trim() : "";
+    const parentReplyId =
+      typeof body?.parentReplyId === "string" && body.parentReplyId.trim().length > 0
+        ? body.parentReplyId.trim()
+        : null;
     if (!content) return NextResponse.json({ error: "Reply content is required" }, { status: 400 });
 
     const moderation = moderateContent(content, {
@@ -85,10 +89,21 @@ export async function POST(
     });
     if (!thought) return NextResponse.json({ error: "Thought not found" }, { status: 404 });
 
+    if (parentReplyId) {
+      const parentReply = await db.watchingThoughtReply.findUnique({
+        where: { id: parentReplyId },
+        select: { id: true, thoughtId: true },
+      });
+      if (!parentReply || parentReply.thoughtId !== thoughtId) {
+        return NextResponse.json({ error: "Parent reply not found for this thought" }, { status: 400 });
+      }
+    }
+
     const reply = await db.watchingThoughtReply.create({
       data: {
         thoughtId,
         userId: authResult.userId,
+        parentReplyId,
         content: moderation.sanitized || content,
       },
       include: {

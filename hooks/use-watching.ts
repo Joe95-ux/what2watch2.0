@@ -81,6 +81,7 @@ type WatchingThoughtReply = {
   id: string;
   thoughtId: string;
   userId: string;
+  parentReplyId: string | null;
   content: string;
   createdAt: string;
   updatedAt: string;
@@ -105,14 +106,16 @@ async function fetchThoughtReplies(thoughtId: string): Promise<WatchingThoughtRe
 async function addThoughtReply({
   thoughtId,
   content,
+  parentReplyId,
 }: {
   thoughtId: string;
   content: string;
+  parentReplyId?: string | null;
 }): Promise<WatchingThoughtReply> {
   const res = await fetch(`/api/watching/thoughts/${thoughtId}/replies`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({ content, parentReplyId: parentReplyId ?? null }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

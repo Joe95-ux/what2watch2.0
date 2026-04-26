@@ -1369,6 +1369,9 @@ model WatchingThoughtReply {
   thought       WatchingThought @relation(fields: [thoughtId], references: [id], onDelete: Cascade)
   userId        String          @db.ObjectId
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentReplyId String?         @db.ObjectId
+  parentReply   WatchingThoughtReply?  @relation("WatchingReplyThread", fields: [parentReplyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies       WatchingThoughtReply[] @relation("WatchingReplyThread")
   content       String
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
@@ -1376,6 +1379,7 @@ model WatchingThoughtReply {
   @@map("watching_thought_replies")
   @@index([thoughtId, createdAt])
   @@index([userId, createdAt])
+  @@index([parentReplyId])
 }
 
 model WatchedTitle {

@@ -59,20 +59,7 @@ export async function POST(
       select: { id: true },
     });
 
-    // Enforce single reaction per user per thought.
-    // If user chooses a new reaction, replace their previous one.
-    const existingAnyReaction = await db.watchingThoughtReaction.findFirst({
-      where: {
-        thoughtId,
-        userId: authResult.userId,
-      },
-      select: { id: true, reactionType: true },
-    });
-
     if (!existing) {
-      if (existingAnyReaction) {
-        await db.watchingThoughtReaction.delete({ where: { id: existingAnyReaction.id } });
-      }
       await db.watchingThoughtReaction.create({
         data: {
           thoughtId,

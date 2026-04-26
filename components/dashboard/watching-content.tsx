@@ -4,18 +4,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useQueries } from "@tanstack/react-query";
-import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import {
   ArrowLeft,
   Bookmark,
   ChevronLeft,
   ChevronRight,
   ListPlus,
-  MessageSquare,
   Pause,
   PlayCircle,
+  Reply,
   Square,
   Smile,
+  ThumbsUp,
   X,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -67,11 +67,15 @@ type WatchingFeedCard = {
     createdAt: string;
     user: string;
     avatar: string | null;
+    reactionCount: number;
+    replyCount: number;
+    myReactions: string[];
     sessionStatus: "WATCHING_NOW" | "JUST_FINISHED" | "STOPPED";
   }>;
   startedOrFinished: string;
   reactions: number;
   replies: number;
+  primaryThoughtMyReactions: string[];
   progressPercent: number | null;
   runtimeMinutes: number | null;
 };
@@ -129,24 +133,12 @@ const toFeedCard = (session: WatchingSessionDTO): WatchingFeedCard => {
     createdAt: entry.createdAt,
     user: entry.user.displayName || entry.user.username || "Unknown",
     avatar: entry.user.avatarUrl ?? null,
+    reactionCount: entry.reactionCount ?? 0,
+    replyCount: entry.replyCount ?? 0,
+    myReactions: entry.myReactions ?? [],
     sessionStatus: session.status,
   }));
-  const comments =
-    mappedComments.length > 0
-      ? mappedComments
-      : session.thoughts[0]
-      ? [
-          {
-            id: session.thoughts[0].id,
-            content: session.thoughts[0].content,
-            isSpoiler: session.thoughts[0].isSpoiler,
-            createdAt: session.thoughts[0].createdAt,
-            user: session.thoughts[0].user.displayName || session.thoughts[0].user.username || "Unknown",
-            avatar: session.thoughts[0].user.avatarUrl ?? null,
-            sessionStatus: session.status,
-          },
-        ]
-      : [];
+  const comments = mappedComments;
   return {
     id: session.id,
     userId: session.userId,
@@ -169,8 +161,9 @@ const toFeedCard = (session: WatchingSessionDTO): WatchingFeedCard => {
     startedOrFinished: isWatching
       ? `Started ${timeAgo(session.startedAt)}`
       : `Finished ${timeAgo(session.endedAt || session.updatedAt)}`,
-    reactions: 0,
+    reactions: session.thoughts[0]?.reactionCount ?? 0,
     replies: session.thoughts.length,
+    primaryThoughtMyReactions: session.thoughts[0]?.myReactions ?? [],
     progressPercent: session.progressPercent ?? null,
     runtimeMinutes: session.runtimeMinutes ?? null,
   };
@@ -185,64 +178,65 @@ function JustFinishedComment({
 }) {
   const [isSpoilerRevealed, setIsSpoilerRevealed] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [replyText, setReplyText] = useState("");
-  const [localReactionCount, setLocalReactionCount] = useState(0);
-  const [localMyReaction, setLocalMyReaction] = useState<string | null>(null);
+  const [replyParentId, setReplyParentId] = useState<string | null>(null);
+  const [localReactionCount, setLocalReactionCount] = useState(comment.reactionCount);
+  const [localMyReactions, setLocalMyReactions] = useState<string[]>(comment.myReactions ?? []);
   const { data: replies } = useWatchingThoughtReplies(comment.id, true);
   const addReply = useAddWatchingThoughtReply();
   const { addMutation, removeMutation } = useWatchingThoughtReaction();
+
+  useEffect(() => {
+    setLocalReactionCount(comment.reactionCount);
+    setLocalMyReactions(comment.myReactions ?? []);
+  }, [comment.reactionCount, comment.myReactions]);
 
   const submitReply = async () => {
     const text = replyText.trim();
     if (!text) return;
     try {
-      await addReply.mutateAsync({ thoughtId: comment.id, content: text });
+      await addReply.mutateAsync({ thoughtId: comment.id, content: text, parentReplyId: replyParentId });
       setReplyText("");
       setIsReplying(false);
+      setReplyParentId(null);
       toast.success("Reply posted.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to post reply");
     }
   };
 
-  const reactToComment = async () => {
-    try {
-      await addMutation.mutateAsync({ thoughtId: comment.id, reactionType: "🔥" });
-      setLocalReactionCount((c) => c + 1);
-      toast.success("Reaction added.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to react");
-    }
-  };
   const handleReactionToggle = async (reactionType: string) => {
-    const previousReaction = localMyReaction;
-    const hasReaction = previousReaction === reactionType;
-    setLocalMyReaction(hasReaction ? null : reactionType);
-    setLocalReactionCount((count) => {
-      if (hasReaction) return Math.max(0, count - 1);
-      if (previousReaction) return count;
-      return count + 1;
-    });
+    const previousReactions = [...localMyReactions];
+    const hasReaction = previousReactions.includes(reactionType);
+    setLocalMyReactions((prev) =>
+      hasReaction ? prev.filter((reaction) => reaction !== reactionType) : [...prev, reactionType]
+    );
+    setLocalReactionCount((count) => Math.max(0, hasReaction ? count - 1 : count + 1));
     try {
       if (hasReaction) {
         await removeMutation.mutateAsync({ thoughtId: comment.id, reactionType });
       } else {
-        if (previousReaction && previousReaction !== reactionType) {
-          await removeMutation.mutateAsync({ thoughtId: comment.id, reactionType: previousReaction });
-        }
         await addMutation.mutateAsync({ thoughtId: comment.id, reactionType });
       }
     } catch (error) {
-      setLocalMyReaction(previousReaction);
-      setLocalReactionCount((count) => {
-        if (hasReaction) return count + 1;
-        if (previousReaction) return count;
-        return Math.max(0, count - 1);
-      });
+      setLocalMyReactions(previousReactions);
+      setLocalReactionCount((count) => Math.max(0, hasReaction ? count + 1 : count - 1));
       toast.error(error instanceof Error ? error.message : "Failed to update reaction");
     }
   };
-  const previewReplies = (replies ?? []).slice(0, 2);
+  const repliesByParent = useMemo(() => {
+    const map = new Map<string, NonNullable<typeof replies>>();
+    for (const reply of replies ?? []) {
+      const key = reply.parentReplyId ?? "root";
+      const list = map.get(key) ?? [];
+      list.push(reply);
+      map.set(key, list);
+    }
+    return map;
+  }, [replies]);
+  const primaryReplies = (repliesByParent.get("root") ?? []).slice(0, 2);
+  const totalReplies = Math.max(comment.replyCount, replies?.length ?? 0);
   const isLive = comment.sessionStatus === "WATCHING_NOW";
 
   return (
@@ -292,7 +286,7 @@ function JustFinishedComment({
           type="button"
           variant="ghost"
           size="sm"
-          onClick={reactToComment}
+          onClick={() => setShowReactionPicker((v) => !v)}
           disabled={addMutation.isPending || removeMutation.isPending}
           className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
         >
@@ -303,36 +297,44 @@ function JustFinishedComment({
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => setIsReplying((v) => !v)}
+          onClick={() => {
+            setIsReplying((v) => !v);
+            setReplyParentId(null);
+          }}
           className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
         >
-          <MessageSquare className="h-3.5 w-3.5" />
-          Reply{typeof replies?.length === "number" ? ` (${replies.length})` : ""}
+          <Reply className="h-3.5 w-3.5" />
+          Reply ({totalReplies})
         </Button>
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        {COMMENT_EMOJI_REACTIONS.map((reactionType) => {
-          const selected = localMyReaction === reactionType;
-          return (
-            <button
-              key={reactionType}
-              type="button"
-              className={`h-7 rounded-[20px] border border-border/60 px-3 text-xs font-medium cursor-pointer ${
-                selected ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground"
-              }`}
-              onClick={() => handleReactionToggle(reactionType)}
-              disabled={addMutation.isPending || removeMutation.isPending}
-            >
-              {reactionType === "like" ? "👍" : reactionType}
-            </button>
-          );
-        })}
-        {localMyReaction ? (
-          <span className="text-[11px] text-muted-foreground">
-            You reacted: {localMyReaction === "like" ? "👍" : localMyReaction}
-          </span>
-        ) : null}
-      </div>
+      {showReactionPicker ? (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {COMMENT_EMOJI_REACTIONS.map((reactionType) => {
+            const selected = localMyReactions.includes(reactionType);
+            return (
+              <button
+                key={reactionType}
+                type="button"
+                className={`h-7 rounded-[20px] border border-border/60 px-3 text-xs font-medium cursor-pointer ${
+                  selected ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground"
+                }`}
+                onClick={() => handleReactionToggle(reactionType)}
+                disabled={addMutation.isPending || removeMutation.isPending}
+              >
+                {reactionType === "like" ? "👍" : reactionType}
+              </button>
+            );
+          })}
+          {localMyReactions.length > 0 ? (
+            <span className="text-[11px] text-muted-foreground">
+              You reacted:{" "}
+              {localMyReactions
+                .map((reaction) => (reaction === "like" ? "👍" : reaction))
+                .join(" ")}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       {isReplying ? (
         <div className="mt-2 flex items-center gap-2">
           <Input
@@ -352,20 +354,60 @@ function JustFinishedComment({
           </Button>
         </div>
       ) : null}
-      {previewReplies.length ? (
-        <div className="mt-2 space-y-1.5">
-          {previewReplies.map((reply) => {
+      {primaryReplies.length ? (
+        <div className="mt-2 space-y-2 border-t border-border/50 pt-2">
+          {primaryReplies.map((reply) => {
             const replyUser = reply.user.displayName || reply.user.username || "Someone";
+            const nestedReplies = (repliesByParent.get(reply.id) ?? []).slice(0, 2);
             return (
-              <div key={reply.id} className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground/90">{replyUser}</span>
-                <span className="mx-1">·</span>
-                <span className="line-clamp-1">{reply.content}</span>
+              <div key={reply.id} className="flex items-start gap-[10px]">
+                <Avatar className="h-6 w-6 shrink-0">
+                  <AvatarImage src={reply.user.avatarUrl ?? undefined} alt={replyUser} />
+                  <AvatarFallback>{replyUser[0]}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+                    <span className="truncate text-[13px] font-medium text-foreground">{replyUser}</span>
+                    <span>·</span>
+                    <span>{timeAgo(reply.createdAt)}</span>
+                  </div>
+                  <p className="text-[13px] text-foreground">{reply.content}</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setIsReplying(true);
+                      setReplyText(`@${replyUser} `);
+                      setReplyParentId(reply.id);
+                    }}
+                    className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+                  >
+                    <Reply className="h-3.5 w-3.5" /> Reply
+                  </Button>
+                  {nestedReplies.length ? (
+                    <div className="space-y-1.5 border-l border-border/50 pl-3">
+                      {nestedReplies.map((nested) => {
+                        const nestedUser = nested.user.displayName || nested.user.username || "Someone";
+                        return (
+                          <div key={nested.id} className="space-y-0.5 text-[12px]">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <span className="font-medium text-foreground">{nestedUser}</span>
+                              <span>·</span>
+                              <span>{timeAgo(nested.createdAt)}</span>
+                            </div>
+                            <p className="text-[13px] text-foreground">{nested.content}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             );
           })}
-          {(replies?.length ?? 0) > 2 ? (
-            <p className="text-[11px] text-muted-foreground">+{(replies?.length ?? 0) - 2} more replies</p>
+          {totalReplies > 2 ? (
+            <p className="text-[11px] text-muted-foreground">+{totalReplies - 2} more replies</p>
           ) : null}
         </div>
       ) : null}
@@ -388,14 +430,13 @@ function FeedCard({
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [localReactions, setLocalReactions] = useState(item.reactions);
+  const [localLiked, setLocalLiked] = useState(item.primaryThoughtMyReactions.includes("like"));
   const [localReplies, setLocalReplies] = useState(item.replies);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const [optimisticInWatchlist, setOptimisticInWatchlist] = useState<boolean | null>(null);
   const visibleComments = expandedComments ? item.comments : item.comments.slice(0, 10);
   const hasMoreComments = item.comments.length > 10;
   const addReply = useAddWatchingThoughtReply();
-  const { addMutation } = useWatchingThoughtReaction();
+  const { addMutation, removeMutation } = useWatchingThoughtReaction();
   const watchingMutation = useWatchingMutation();
   const { toggle: toggleWatchlist, isLoading: isWatchlistMutating, isInWatchlist } = useToggleWatchlist();
   const actualInWatchlist = isInWatchlist(item.tmdbId, item.mediaType);
@@ -407,32 +448,31 @@ function FeedCard({
   const isMovieFinishLocked = canControlPlayback && item.mediaType === "movie" && movieRuntime != null && elapsedMinutes < movieRuntime;
 
   useEffect(() => {
-    if (!showEmojiPicker) return;
-    const onDocMouseDown = (event: MouseEvent) => {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
-        setShowEmojiPicker(false);
-      }
-    };
-    document.addEventListener("mousedown", onDocMouseDown);
-    return () => document.removeEventListener("mousedown", onDocMouseDown);
-  }, [showEmojiPicker]);
-
-  useEffect(() => {
     setOptimisticInWatchlist(null);
   }, [actualInWatchlist, item.tmdbId, item.mediaType]);
 
-  const handleCardReaction = async (emoji: string) => {
+  useEffect(() => {
+    setLocalReactions(item.reactions);
+    setLocalLiked(item.primaryThoughtMyReactions.includes("like"));
+  }, [item.reactions, item.primaryThoughtMyReactions]);
+
+  const handleCardLikeToggle = async () => {
     if (!item.primaryThoughtId) {
       toast.message("No thought yet to react to.");
       return;
     }
-    setShowEmojiPicker(false);
-    setLocalReactions((count) => count + 1);
+    const wasLiked = localLiked;
+    setLocalLiked(!wasLiked);
+    setLocalReactions((count) => Math.max(0, wasLiked ? count - 1 : count + 1));
     try {
-      await addMutation.mutateAsync({ thoughtId: item.primaryThoughtId, reactionType: emoji });
-      toast.success("Reaction added.");
+      if (wasLiked) {
+        await removeMutation.mutateAsync({ thoughtId: item.primaryThoughtId, reactionType: "like" });
+      } else {
+        await addMutation.mutateAsync({ thoughtId: item.primaryThoughtId, reactionType: "like" });
+      }
     } catch (error) {
-      setLocalReactions((count) => Math.max(0, count - 1));
+      setLocalLiked(wasLiked);
+      setLocalReactions((count) => Math.max(0, wasLiked ? count + 1 : count - 1));
       toast.error(error instanceof Error ? error.message : "Failed to react");
     }
   };
@@ -679,27 +719,15 @@ function FeedCard({
           item.comments.length > 0 ? "border-b border-border/60 dark:border-border/50" : ""
         )}
       >
-        <div ref={emojiPickerRef} className="relative">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowEmojiPicker((v) => !v)}
-            disabled={addMutation.isPending || !item.primaryThoughtId}
-            className="h-10 w-full cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-          >
-            <Smile className="h-3.5 w-3.5" /> {localReactions}
-          </Button>
-          {showEmojiPicker ? (
-            <div className="absolute left-2 top-[42px] z-50">
-              <EmojiPicker
-                onEmojiClick={(emojiData: EmojiClickData) => void handleCardReaction(emojiData.emoji)}
-                width={280}
-                height={360}
-                lazyLoadEmojis
-              />
-            </div>
-          ) : null}
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleCardLikeToggle}
+          disabled={(addMutation.isPending && !localLiked) || (removeMutation.isPending && localLiked) || !item.primaryThoughtId}
+          className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+        >
+          <ThumbsUp className={cn("h-3.5 w-3.5", localLiked ? "fill-yellow-400 text-yellow-400" : "")} /> {localReactions}
+        </Button>
         <Button
           variant="ghost"
           size="sm"
@@ -707,7 +735,7 @@ function FeedCard({
           disabled={!item.primaryThoughtId}
           className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         >
-          <MessageSquare className="h-3.5 w-3.5" /> {localReplies} replies
+          <Reply className="h-3.5 w-3.5" /> {localReplies} replies
         </Button>
         <Button
           variant="ghost"
@@ -1616,7 +1644,7 @@ export default function WatchingContent() {
                 }}
                 disabled={isWatchingActive || watchingMutation.isPending || !selectedPick}
               >
-                {isWatchingActive ? "Watching now" : "I&apos;m watching..."}
+                {isWatchingActive ? "Watching now" : "I'm watching..."}
               </Button>
             </div>
           </div>
@@ -1848,7 +1876,7 @@ export default function WatchingContent() {
         </main>
 
         {isRightOpen ? (
-          <aside className="relative hidden border-l border-border/70 bg-muted/20 lg:block dark:bg-muted/10">
+          <aside className="relative hidden h-[calc(100vh-65px)] overflow-y-auto border-l border-border/70 bg-muted/20 lg:sticky lg:top-[65px] lg:block dark:bg-muted/10">
             <button
               type="button"
               className="absolute -left-3 top-[12px] inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground cursor-pointer"

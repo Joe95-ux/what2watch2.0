@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { MessageCircle, Smile } from "lucide-react";
+import { Reply, Smile } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,57 +38,65 @@ function ThoughtCard({
   const [expandReplies, setExpandReplies] = useState(false);
   const [isSpoilerRevealed, setIsSpoilerRevealed] = useState(false);
   const [replyInput, setReplyInput] = useState("");
+  const [replyParentId, setReplyParentId] = useState<string | null>(null);
   const [localReactionCount, setLocalReactionCount] = useState(thought.reactionCount);
   const [localReplyCount, setLocalReplyCount] = useState(thought.replyCount);
-  const [localMyReaction, setLocalMyReaction] = useState<string | null>(thought.myReactions[0] ?? null);
+  const [localMyReactions, setLocalMyReactions] = useState<string[]>(thought.myReactions ?? []);
   const { data: replies } = useWatchingThoughtReplies(thought.thoughtId, showReplies);
-  const [optimisticReplies, setOptimisticReplies] = useState<Array<{ id: string; user: { displayName: string | null; username: string | null }; content: string }>>([]);
+  const [optimisticReplies, setOptimisticReplies] = useState<
+    Array<{
+      id: string;
+      user: { displayName: string | null; username: string | null };
+      content: string;
+      parentReplyId: string | null;
+      createdAt: string;
+    }>
+  >([]);
   const addReplyMutation = useAddWatchingThoughtReply();
   const { addMutation, removeMutation } = useWatchingThoughtReaction();
   const name = thought.user.displayName || thought.user.username || "Unknown";
   const isLive = thought.sessionStatus === "WATCHING_NOW";
-  const mergedReplies = useMemo(
-    () => [...optimisticReplies, ...(replies ?? [])],
-    [optimisticReplies, replies]
-  );
-  const visibleReplies = expandReplies ? mergedReplies : mergedReplies.slice(0, 10);
-  const hasMoreReplies = mergedReplies.length > 10;
+  const mergedReplies = useMemo(() => [...optimisticReplies, ...(replies ?? [])], [optimisticReplies, replies]);
+  const repliesByParent = useMemo(() => {
+    const map = new Map<string, typeof mergedReplies>();
+    for (const reply of mergedReplies) {
+      const key = reply.parentReplyId ?? "root";
+      const list = map.get(key) ?? [];
+      list.push(reply);
+      map.set(key, list);
+    }
+    return map;
+  }, [mergedReplies]);
+  const topLevelReplies = repliesByParent.get("root") ?? [];
+  const visibleReplies = expandReplies ? topLevelReplies : topLevelReplies.slice(0, 10);
+  const hasMoreReplies = topLevelReplies.length > 10;
   const shouldBlurSpoiler = blurred && !isSpoilerRevealed;
 
   // Keep local counters synced with live query updates/pusher refreshes.
   useEffect(() => {
     setLocalReactionCount(thought.reactionCount);
     setLocalReplyCount(thought.replyCount);
-    setLocalMyReaction(thought.myReactions[0] ?? null);
+    setLocalMyReactions(thought.myReactions ?? []);
     if (!blurred) setIsSpoilerRevealed(false);
   }, [thought.reactionCount, thought.replyCount, thought.myReactions, blurred]);
 
   const handleReactionToggle = async (reactionType: string) => {
-    const previousReaction = localMyReaction;
-    const hasReaction = previousReaction === reactionType;
-    setLocalMyReaction(hasReaction ? null : reactionType);
-    setLocalReactionCount((count) => {
-      if (hasReaction) return Math.max(0, count - 1);
-      if (previousReaction) return count;
-      return count + 1;
-    });
+    const previousReactions = [...localMyReactions];
+    const hasReaction = previousReactions.includes(reactionType);
+    setLocalMyReactions((prev) =>
+      hasReaction ? prev.filter((reaction) => reaction !== reactionType) : [...prev, reactionType]
+    );
+    setLocalReactionCount((count) => Math.max(0, hasReaction ? count - 1 : count + 1));
     try {
       if (hasReaction) {
         await removeMutation.mutateAsync({ thoughtId: thought.thoughtId, reactionType });
       } else {
-        if (previousReaction && previousReaction !== reactionType) {
-          await removeMutation.mutateAsync({ thoughtId: thought.thoughtId, reactionType: previousReaction });
-        }
         await addMutation.mutateAsync({ thoughtId: thought.thoughtId, reactionType });
       }
     } catch (error) {
       // rollback optimistic update
-      setLocalMyReaction(previousReaction);
-      setLocalReactionCount((count) => {
-        if (hasReaction) return count + 1;
-        if (previousReaction) return count;
-        return Math.max(0, count - 1);
-      });
+      setLocalMyReactions(previousReactions);
+      setLocalReactionCount((count) => Math.max(0, hasReaction ? count + 1 : count - 1));
       toast.error(error instanceof Error ? error.message : "Failed to update reaction");
     }
   };
@@ -103,6 +111,8 @@ function ThoughtCard({
         id: optimisticId,
         content: optimisticContent,
         user: { displayName: "You", username: "you" },
+        parentReplyId: replyParentId,
+        createdAt: new Date().toISOString(),
       },
     ]);
     setLocalReplyCount((count) => count + 1);
@@ -111,8 +121,10 @@ function ThoughtCard({
       await addReplyMutation.mutateAsync({
         thoughtId: thought.thoughtId,
         content: optimisticContent,
+        parentReplyId: replyParentId,
       });
       setShowReplies(true);
+      setReplyParentId(null);
       setOptimisticReplies((prev) => prev.filter((reply) => reply.id !== optimisticId));
     } catch (error) {
       setOptimisticReplies((prev) => prev.filter((reply) => reply.id !== optimisticId));
@@ -181,15 +193,18 @@ function ThoughtCard({
             variant="ghost"
             size="sm"
             className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
-            onClick={() => setShowReplies((v) => !v)}
+            onClick={() => {
+              setShowReplies((v) => !v);
+              setReplyParentId(null);
+            }}
           >
-            <MessageCircle className="h-3.5 w-3.5" /> Reply ({localReplyCount})
+            <Reply className="h-3.5 w-3.5" /> Reply ({localReplyCount})
           </Button>
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
           {EMOJI_REACTIONS.map((reactionType) => {
-            const selected = localMyReaction === reactionType;
+            const selected = localMyReactions.includes(reactionType);
             return (
               <button
                 key={reactionType}
@@ -204,9 +219,12 @@ function ThoughtCard({
               </button>
             );
           })}
-          {localMyReaction ? (
+          {localMyReactions.length > 0 ? (
             <span className="text-[11px] text-muted-foreground">
-              You reacted: {localMyReaction === "like" ? "👍" : localMyReaction}
+              You reacted:{" "}
+              {localMyReactions
+                .map((reaction) => (reaction === "like" ? "👍" : reaction))
+                .join(" ")}
             </span>
           ) : null}
         </div>
@@ -216,11 +234,38 @@ function ThoughtCard({
           {visibleReplies.map((reply) => {
             const replyUser = reply.user.displayName || reply.user.username || "Unknown";
             const isOptimistic = String(reply.id).startsWith("temp-");
+            const nestedReplies = repliesByParent.get(reply.id) ?? [];
             return (
-              <div key={reply.id} className={`text-xs text-muted-foreground ${isOptimistic ? "opacity-80" : ""}`}>
-                <span className="font-medium text-foreground/90">{replyUser}</span>
-                <span className="mx-1">·</span>
-                <span>{reply.content}</span>
+              <div key={reply.id} className={`space-y-1 text-xs text-muted-foreground ${isOptimistic ? "opacity-80" : ""}`}>
+                <div>
+                  <span className="font-medium text-foreground/90">{replyUser}</span>
+                  <span className="mx-1">·</span>
+                  <span>{reply.content}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReplyParentId(reply.id);
+                    setReplyInput(`@${replyUser} `);
+                  }}
+                  className="inline-flex cursor-pointer items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                >
+                  <Reply className="h-3 w-3" /> Reply
+                </button>
+                {nestedReplies.length ? (
+                  <div className="space-y-1 border-l border-border/50 pl-3">
+                    {nestedReplies.slice(0, 2).map((nested) => {
+                      const nestedUser = nested.user.displayName || nested.user.username || "Unknown";
+                      return (
+                        <div key={nested.id}>
+                          <span className="font-medium text-foreground/90">{nestedUser}</span>
+                          <span className="mx-1">·</span>
+                          <span>{nested.content}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             );
           })}
@@ -232,7 +277,7 @@ function ThoughtCard({
               onClick={() => setExpandReplies((v) => !v)}
               className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
             >
-              {expandReplies ? "Show less" : `Show more (${mergedReplies.length - 10})`}
+              {expandReplies ? "Show less" : `Show more (${topLevelReplies.length - 10})`}
             </Button>
           ) : null}
           <div className="flex items-center gap-2">
@@ -248,7 +293,7 @@ function ThoughtCard({
                 onClick={handleReply}
                 disabled={addReplyMutation.isPending || !replyInput.trim()}
               >
-              Reply
+              <Reply className="h-3.5 w-3.5" /> Reply
             </Button>
           </div>
           </div>
