@@ -12,7 +12,9 @@ import {
   ChevronRight,
   ListPlus,
   MessageSquare,
+  Pause,
   PlayCircle,
+  Square,
   Smile,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -43,6 +45,8 @@ import { toast } from "sonner";
 
 type WatchingFeedCard = {
   id: string;
+  userId: string;
+  startedAt: string;
   tmdbId: number;
   mediaType: "movie" | "tv";
   backdropPath: string | null;
@@ -61,15 +65,20 @@ type WatchingFeedCard = {
     isSpoiler: boolean;
     createdAt: string;
     user: string;
+    avatar: string | null;
     sessionStatus: "WATCHING_NOW" | "JUST_FINISHED" | "STOPPED";
   }>;
   startedOrFinished: string;
   reactions: number;
   replies: number;
+  progressPercent: number | null;
+  runtimeMinutes: number | null;
 };
 
 const timeAgo = (iso: string) => {
   const ms = Date.now() - new Date(iso).getTime();
+  const secs = Math.max(1, Math.round(ms / 1000));
+  if (secs < 60) return `${secs}s ago`;
   const mins = Math.max(1, Math.round(ms / 60000));
   if (mins < 60) return `${mins} min ago`;
   const hrs = Math.round(mins / 60);
@@ -116,10 +125,13 @@ const toFeedCard = (session: WatchingSessionDTO): WatchingFeedCard => {
     isSpoiler: entry.isSpoiler,
     createdAt: entry.createdAt,
     user: entry.user.displayName || entry.user.username || "Unknown",
+    avatar: entry.user.avatarUrl ?? null,
     sessionStatus: session.status,
   }));
   return {
     id: session.id,
+    userId: session.userId,
+    startedAt: session.startedAt,
     tmdbId: session.tmdbId,
     mediaType: session.mediaType,
     backdropPath: session.backdropPath,
@@ -140,6 +152,8 @@ const toFeedCard = (session: WatchingSessionDTO): WatchingFeedCard => {
       : `Finished ${timeAgo(session.endedAt || session.updatedAt)}`,
     reactions: 0,
     replies: session.thoughts.length,
+    progressPercent: session.progressPercent ?? null,
+    runtimeMinutes: session.runtimeMinutes ?? null,
   };
 };
 
@@ -183,22 +197,28 @@ function JustFinishedComment({
 
   return (
     <div className={cn("px-[14px] py-[13px]", showBorder ? "border-b border-border/60 dark:border-border/50" : "")}>
-      <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
-        <span className="text-[13px] font-medium text-foreground">{comment.user}</span>
-        <span>·</span>
-        <span>{timeAgo(comment.createdAt)}</span>
-        <span>·</span>
-        {isLive ? (
-          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            LIVE
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-primary">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary/80" />
-            FINISHED
-          </span>
-        )}
+      <div className="mb-1.5 flex items-center gap-[10px]">
+        <Avatar className="h-7 w-7 shrink-0">
+          <AvatarImage src={comment.avatar ?? undefined} alt={comment.user} />
+          <AvatarFallback>{comment.user[0]}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+          <span className="truncate text-[13px] font-medium text-foreground">{comment.user}</span>
+          <span>·</span>
+          <span>{timeAgo(comment.createdAt)}</span>
+          <span>·</span>
+          {isLive ? (
+            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              LIVE
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-primary">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary/80" />
+              FINISHED
+            </span>
+          )}
+        </div>
       </div>
       {comment.isSpoiler ? (
         <div className="mb-1.5">
@@ -262,11 +282,11 @@ function JustFinishedComment({
         </div>
       ) : null}
       {previewReplies.length ? (
-        <div className="mt-2 space-y-1.5 border-l border-border/60 pl-3">
+        <div className="mt-2 space-y-1.5">
           {previewReplies.map((reply) => {
             const replyUser = reply.user.displayName || reply.user.username || "Someone";
             return (
-              <div key={reply.id} className="text-xs text-muted-foreground">
+              <div key={reply.id} className="rounded-md bg-muted/25 px-2 py-1.5 text-xs text-muted-foreground">
                 <span className="font-medium text-foreground/90">{replyUser}</span>
                 <span className="mx-1">·</span>
                 <span className="line-clamp-1">{reply.content}</span>
@@ -282,7 +302,7 @@ function JustFinishedComment({
   );
 }
 
-function FeedCard({ item }: { item: WatchingFeedCard }) {
+function FeedCard({ item, currentUserId }: { item: WatchingFeedCard; currentUserId?: string | null }) {
   const [expandedComments, setExpandedComments] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -295,13 +315,15 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
   const hasMoreComments = item.comments.length > 10;
   const addReply = useAddWatchingThoughtReply();
   const { addMutation } = useWatchingThoughtReaction();
+  const watchingMutation = useWatchingMutation();
   const { toggle: toggleWatchlist, isLoading: isWatchlistMutating, isInWatchlist } = useToggleWatchlist();
-  const { data: primaryReplies, isLoading: isPrimaryRepliesLoading } = useWatchingThoughtReplies(
-    item.primaryThoughtId ?? "",
-    Boolean(item.primaryThoughtId)
-  );
   const actualInWatchlist = isInWatchlist(item.tmdbId, item.mediaType);
   const inWatchlist = optimisticInWatchlist ?? actualInWatchlist;
+  const canControlPlayback = item.status === "watching" && item.userId === currentUserId;
+  const playbackBusy = watchingMutation.isPending;
+  const elapsedMinutes = Math.max(1, Math.round((Date.now() - new Date(item.startedAt).getTime()) / 60000));
+  const movieRuntime = item.mediaType === "movie" ? item.runtimeMinutes : null;
+  const isMovieFinishLocked = canControlPlayback && item.mediaType === "movie" && movieRuntime != null && elapsedMinutes < movieRuntime;
 
   useEffect(() => {
     if (!showEmojiPicker) return;
@@ -397,6 +419,52 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
     }
   };
 
+  const handlePlaybackStart = async () => {
+    if (!canControlPlayback) return;
+    try {
+      const nextProgress = Math.max(1, Math.min(99, item.progressPercent ?? 1));
+      await watchingMutation.mutateAsync({
+        action: "update_progress",
+        sessionId: item.id,
+        progressPercent: nextProgress,
+      });
+      toast.success("Playback active.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to resume playback");
+    }
+  };
+
+  const handlePlaybackPause = async () => {
+    if (!canControlPlayback) return;
+    try {
+      await watchingMutation.mutateAsync({
+        action: "stop",
+        sessionId: item.id,
+      });
+      toast.success("Session paused.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to pause session");
+    }
+  };
+
+  const handlePlaybackFinish = async () => {
+    if (!canControlPlayback) return;
+    if (isMovieFinishLocked && movieRuntime != null) {
+      const remaining = Math.max(1, movieRuntime - elapsedMinutes);
+      toast.message(`You can mark finished in about ${remaining} min.`);
+      return;
+    }
+    try {
+      await watchingMutation.mutateAsync({
+        action: "finish",
+        sessionId: item.id,
+      });
+      toast.success("Marked as finished.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to finish session");
+    }
+  };
+
   return (
     <Card className="gap-0 overflow-hidden rounded-[15px] border border-border/60 bg-muted/25 p-0 dark:border-border/50 dark:bg-muted/15">
       <div className="border-b border-border/60 bg-muted/35 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
@@ -451,6 +519,50 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
               </Badge>
             </div>
             <p className="line-clamp-1 text-xs text-muted-foreground">{item.detailLine}</p>
+            {canControlPlayback ? (
+              <div className="mt-2 flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 cursor-pointer rounded-full text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  onClick={handlePlaybackStart}
+                  disabled={playbackBusy}
+                  aria-label="Start playback"
+                  title="Start playback"
+                >
+                  <PlayCircle className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 cursor-pointer rounded-full text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  onClick={handlePlaybackPause}
+                  disabled={playbackBusy}
+                  aria-label="Pause session"
+                  title="Pause session"
+                >
+                  <Pause className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 cursor-pointer rounded-full text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-500"
+                  onClick={handlePlaybackFinish}
+                  disabled={playbackBusy || isMovieFinishLocked}
+                  aria-label="Stop and mark finished"
+                  title={
+                    isMovieFinishLocked && movieRuntime != null
+                      ? `Finish available after runtime (${movieRuntime} min)`
+                      : "Stop and mark finished"
+                  }
+                >
+                  <Square className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -527,32 +639,6 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
               {addReply.isPending ? "Sending..." : "Send"}
             </Button>
           </div>
-        </div>
-      ) : null}
-
-      {item.status === "finished" && item.primaryThoughtId ? (
-        <div className="border-b border-border/60 px-[14px] py-[10px] dark:border-border/50">
-          {isPrimaryRepliesLoading ? (
-            <p className="text-xs text-muted-foreground">Loading replies...</p>
-          ) : primaryReplies && primaryReplies.length > 0 ? (
-            <div className="space-y-1.5 border-l border-border/60 pl-3">
-              {primaryReplies.slice(0, 3).map((reply) => {
-                const replyUser = reply.user.displayName || reply.user.username || "Someone";
-                return (
-                  <div key={reply.id} className="text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground/90">{replyUser}</span>
-                    <span className="mx-1">·</span>
-                    <span className="line-clamp-1">{reply.content}</span>
-                  </div>
-                );
-              })}
-              {primaryReplies.length > 3 ? (
-                <p className="text-[11px] text-muted-foreground">+{primaryReplies.length - 3} more replies</p>
-              ) : null}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">No replies yet.</p>
-          )}
         </div>
       ) : null}
 
@@ -734,7 +820,7 @@ function RightRail({
 
   return (
     <aside className="w-full">
-      <section className="border-b border-border/70 px-[14px] py-6">
+      <section className="border-b border-border/70 px-[16px] py-6">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">You&apos;re watching</p>
           <Button
@@ -749,8 +835,8 @@ function RightRail({
         </div>
 
         {currentSession ? (
-          <div className="overflow-hidden rounded-[15px] border border-border/60 bg-muted/35 dark:bg-muted/20">
-            <div className="flex items-center justify-between border-b border-border/60 px-[10px] py-[8px]">
+          <div className="overflow-hidden rounded-[15px] border border-border/60 bg-muted/45 dark:bg-muted/25">
+            <div className="flex items-center justify-between border-b border-border/60 px-[13px] py-[8px]">
               <p className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 Watching now
@@ -758,7 +844,7 @@ function RightRail({
               <p className="text-[12px] text-muted-foreground">Started {timeAgo(currentSession.startedAt)}</p>
             </div>
 
-            <div className="space-y-[10px] px-[10px] py-[10px]">
+            <div className="space-y-[10px] px-[13px] py-[12px]">
               <div className="flex items-start gap-[10px]">
                 <Link href={titlePageHref(currentSession.mediaType, currentSession.tmdbId, currentSession.title)} className="shrink-0">
                   {currentSession.posterPath ? (
@@ -827,7 +913,7 @@ function RightRail({
         )}
       </section>
 
-      <section className="border-b border-border/70 px-[14px] py-6">
+      <section className="border-b border-border/70 px-[16px] py-6">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="truncate text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
               ALSO WATCHING {alsoWatchingTitleLabel}
@@ -909,7 +995,7 @@ function RightRail({
           ) : null}
       </section>
 
-      <section className="border-b border-border/70 px-[14px] py-6">
+      <section className="border-b border-border/70 px-[16px] py-6">
         <p className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Trending tonight</p>
         <div className="divide-y divide-border/60">
           {trendingTonight.map((item, i) => (
@@ -966,7 +1052,7 @@ function RightRail({
         </div>
       </section>
 
-      <section className="px-[14px] py-6">
+      <section className="px-[16px] py-6">
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Replies to you</p>
           <div className="flex items-center gap-1">
@@ -1040,6 +1126,7 @@ export default function WatchingContent() {
   const { data: currentUser, isLoading } = useCurrentUser();
   const { data: watchingData, isLoading: isWatchingLoading } = useWatchingDashboard(true);
   const watchingMutation = useWatchingMutation();
+  const [uiNowTick, setUiNowTick] = useState(() => Date.now());
   const [isRightOpen, setIsRightOpen] = useState(false);
   const [watchSearchQuery, setWatchSearchQuery] = useState("");
   const debouncedWatchSearch = useDebounce(watchSearchQuery, 300);
@@ -1071,6 +1158,11 @@ export default function WatchingContent() {
   });
 
   useEffect(() => {
+    const t = window.setInterval(() => setUiNowTick(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  useEffect(() => {
     const sync = () => setIsRightOpen(window.innerWidth >= 1280);
     sync();
     window.addEventListener("resize", sync);
@@ -1092,11 +1184,11 @@ export default function WatchingContent() {
 
   const watchingNow = useMemo(
     () => (watchingData?.watchingNow ?? []).map(toFeedCard),
-    [watchingData?.watchingNow]
+    [watchingData?.watchingNow, uiNowTick]
   );
   const justFinished = useMemo(
     () => (watchingData?.justFinished ?? []).map(toFeedCard),
-    [watchingData?.justFinished]
+    [watchingData?.justFinished, uiNowTick]
   );
   const WATCHING_NOW_PAGE_SIZE = 10;
   const JUST_FINISHED_PAGE_SIZE = 10;
@@ -1274,7 +1366,7 @@ export default function WatchingContent() {
           </div>
 
           <div
-            className="rounded-[15px] border border-border/60 bg-muted/25 p-4 dark:border-border/50 dark:bg-muted/15"
+            className="rounded-[15px] border border-border/60 bg-muted/25 p-4 ring-1 ring-transparent transition hover:ring-primary/25 focus-visible:ring-2 focus-visible:ring-primary/30 dark:border-border/50 dark:bg-muted/15"
             role="button"
             tabIndex={0}
             onClick={() => setSearchModalOpen(true)}
@@ -1302,8 +1394,11 @@ export default function WatchingContent() {
               </div>
               <Button
                 type="button"
-                className="h-10 shrink-0 cursor-pointer rounded-[20px] px-4 text-[14px] whitespace-nowrap"
-                onClick={submitStartWatching}
+                className="h-9 shrink-0 cursor-pointer rounded-[20px] border border-border/60 bg-muted/45 px-4 text-[14px] text-foreground hover:bg-muted/60 whitespace-nowrap dark:bg-muted/35"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void submitStartWatching();
+                }}
                 disabled={watchingMutation.isPending || !selectedPick}
               >
                 I&apos;m watching...
@@ -1417,7 +1512,7 @@ export default function WatchingContent() {
           </div>
 
           {visibleWatchingNow.map((item) => (
-            <FeedCard key={item.id} item={item} />
+            <FeedCard key={item.id} item={item} currentUserId={currentUser?.id} />
           ))}
           {!watchingNow.length ? <p className="text-sm text-muted-foreground">No one in your network is watching right now.</p> : null}
 
@@ -1474,7 +1569,7 @@ export default function WatchingContent() {
           </div>
 
           {visibleJustFinished.map((item) => (
-            <FeedCard key={item.id} item={item} />
+            <FeedCard key={item.id} item={item} currentUserId={currentUser?.id} />
           ))}
           {!justFinished.length ? <p className="text-sm text-muted-foreground">No recent finishes yet.</p> : null}
 
@@ -1509,7 +1604,7 @@ export default function WatchingContent() {
           <aside className="relative hidden border-l border-border/70 bg-muted/20 lg:block dark:bg-muted/10">
             <button
               type="button"
-              className="absolute -left-3 top-[20px] inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground cursor-pointer"
+              className="absolute -left-3 top-[12px] inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground cursor-pointer"
               onClick={() => setIsRightOpen(false)}
               aria-label="Collapse sidebar"
             >

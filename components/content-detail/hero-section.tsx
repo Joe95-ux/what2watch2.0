@@ -290,14 +290,11 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
         <div className="flex flex-col gap-4">
           <div className="mt-[14px] flex flex-col gap-3 md:mt-0 md:flex-row md:items-start md:justify-between">
             {titleWatchingData && titleWatchingData.watcherCount > 0 ? (
-              <div className="w-full max-w-[600px] rounded-[15px] bg-muted/70 px-3 py-2.5 dark:bg-muted/30">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Watching now
-                </p>
-                <div className="flex items-center justify-between gap-4">
+              <div className="w-full max-w-[620px]">
+                <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex -space-x-2">
-                      {titleWatchingData.watchers.slice(0, 5).map((watcher) => {
+                      {titleWatchingData.watchers.slice(0, 6).map((watcher) => {
                         const label = watcher.user.displayName || watcher.user.username || "U";
                         return (
                           <Avatar key={watcher.sessionId} className="h-7 w-7 border border-background">
@@ -307,19 +304,25 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                         );
                       })}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {titleWatchingData.watcherCount} {titleWatchingData.watcherCount === 1 ? "person" : "people"} watching right now
+                    <p className="truncate text-xs text-muted-foreground">
+                      {titleWatchingData.watcherCount} {titleWatchingData.watcherCount === 1 ? "person" : "people"} watching
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    className="h-8 shrink-0 cursor-pointer rounded-[20px] text-[13px]"
-                    variant={titleWatchingData.isCurrentUserWatching ? "outline" : "default"}
-                    disabled={watchingMutation.isPending || titleWatchingData.isCurrentUserWatching}
-                    onClick={handleWatchingToo}
-                  >
-                    {titleWatchingData.isCurrentUserWatching ? "Watching now" : "I'm watching too"}
-                  </Button>
+                  {titleWatchingData.isCurrentUserWatching ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      Watching now
+                    </span>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="h-8 shrink-0 cursor-pointer rounded-[20px] text-[12px]"
+                      disabled={watchingMutation.isPending}
+                      onClick={handleWatchingToo}
+                    >
+                      I&apos;m watching too
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : null}

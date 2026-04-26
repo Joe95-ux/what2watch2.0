@@ -25,6 +25,7 @@ export type WatchingSessionDTO = {
   backdropPath: string | null;
   releaseYear: number | null;
   creatorOrDirector: string | null;
+  runtimeMinutes: number | null;
   status: WatchingStatus;
   visibility: WatchingVisibility;
   progressPercent: number | null;

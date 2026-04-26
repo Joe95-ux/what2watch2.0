@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import type { WatchingTitlePresenceResponse } from "@/lib/watching-types";
 import {
   useAddWatchingThoughtReply,
+  useWatchingMutation,
   useWatchingThoughtReaction,
   useWatchingThoughtReplies,
 } from "@/hooks/use-watching";
@@ -111,41 +112,41 @@ function ThoughtCard({
   };
 
   return (
-    <div className="space-y-2 px-[2px] py-[2px]">
-      <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
-        <Avatar className="h-6 w-6">
+    <div className="px-[2px] py-[2px]">
+      <div className="flex items-start gap-[10px]">
+        <Avatar className="mt-0.5 h-7 w-7 shrink-0">
           <AvatarImage src={thought.user.avatarUrl ?? undefined} alt={name} />
           <AvatarFallback>{name[0]}</AvatarFallback>
         </Avatar>
-        <span className="truncate text-[13px] font-medium text-foreground">{name}</span>
-        <span>·</span>
-        <span>{timeAgo(thought.createdAt)}</span>
-        <span>·</span>
-        {isLive ? (
-          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            LIVE
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-primary">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary/80" />
-            FINISHED
-          </span>
-        )}
-      </div>
-
-      <div>
-        {blurred ? (
-          <div className="mb-1">
-            <Badge variant="secondary" className="rounded-full bg-amber-500/15 text-[10px] text-amber-600 dark:text-amber-400">
-              Spoiler discussion
-            </Badge>
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+            <span className="truncate text-[13px] font-medium text-foreground">{name}</span>
+            <span>·</span>
+            <span>{timeAgo(thought.createdAt)}</span>
+            <span>·</span>
+            {isLive ? (
+              <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                Live
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                Finished
+              </span>
+            )}
           </div>
-        ) : null}
-        <p className={`text-[13px] text-foreground ${blurred ? "select-none blur-sm" : ""}`}>{thought.content}</p>
-      </div>
 
-      <div className="space-y-2">
+          <div>
+            {blurred ? (
+              <div className="mb-1">
+                <Badge variant="secondary" className="rounded-full bg-amber-500/15 text-[10px] text-amber-600 dark:text-amber-400">
+                  Spoiler discussion
+                </Badge>
+              </div>
+            ) : null}
+            <p className={`text-[13px] text-foreground ${blurred ? "select-none blur-sm" : ""}`}>{thought.content}</p>
+          </div>
+
+          <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
@@ -233,6 +234,8 @@ function ThoughtCard({
           </div>
           </div>
         ) : null}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -241,11 +244,36 @@ function ThoughtCard({
 export default function WatchingDiscussionsSection({
   data,
   isLoading,
+  titleContext,
 }: {
   data: WatchingTitlePresenceResponse | undefined;
   isLoading: boolean;
+  titleContext: {
+    tmdbId: number;
+    mediaType: "movie" | "tv";
+    title: string;
+    posterPath: string | null;
+    backdropPath: string | null;
+  };
 }) {
   const [showSpoilers, setShowSpoilers] = useState(false);
+  const watchingMutation = useWatchingMutation();
+
+  const handleWatchingToo = async () => {
+    try {
+      await watchingMutation.mutateAsync({
+        action: "start",
+        tmdbId: titleContext.tmdbId,
+        mediaType: titleContext.mediaType,
+        title: titleContext.title,
+        posterPath: titleContext.posterPath,
+        backdropPath: titleContext.backdropPath,
+      });
+      toast.success("You are now marked as watching this.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to start watching session");
+    }
+  };
 
   if (isLoading) {
     return <div className="py-6 text-sm text-muted-foreground">Loading discussions...</div>;
@@ -253,6 +281,51 @@ export default function WatchingDiscussionsSection({
 
   return (
     <section className="space-y-6 py-6">
+      <div className="rounded-[15px] border border-border/60 bg-muted/25 p-3 dark:border-border/50 dark:bg-muted/15">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Watching now</p>
+          <p className="text-xs text-muted-foreground">
+            {data?.watcherCount ?? 0} {(data?.watcherCount ?? 0) === 1 ? "person" : "people"}
+          </p>
+        </div>
+        {(data?.watcherCount ?? 0) > 0 ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex -space-x-2">
+                  {(data?.watchers ?? []).slice(0, 8).map((watcher) => {
+                    const label = watcher.user.displayName || watcher.user.username || "U";
+                    return (
+                      <Avatar key={watcher.sessionId} className="h-8 w-8 border border-background">
+                        <AvatarImage src={watcher.user.avatarUrl ?? undefined} alt={label} />
+                        <AvatarFallback className="text-[10px]">{label[0]}</AvatarFallback>
+                      </Avatar>
+                    );
+                  })}
+                </div>
+                <p className="truncate text-[13px] text-muted-foreground">Friends currently watching this title</p>
+              </div>
+              {data?.isCurrentUserWatching ? (
+                <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                  Watching now
+                </span>
+              ) : (
+                <Button
+                  size="sm"
+                  className="h-8 shrink-0 cursor-pointer rounded-[20px] px-3 text-[12px]"
+                  disabled={watchingMutation.isPending}
+                  onClick={handleWatchingToo}
+                >
+                  I&apos;m watching too
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No one is watching this right now.</p>
+        )}
+      </div>
+
       <div>
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Recent thoughts - no spoilers

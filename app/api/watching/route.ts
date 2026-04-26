@@ -67,7 +67,7 @@ async function autoTimeoutWatchingSessions(userIds: string[]): Promise<void> {
       updatedAt: { lt: threshold },
     },
     data: {
-      status: "STOPPED",
+      status: "JUST_FINISHED",
       endedAt: new Date(),
     },
   });
@@ -76,6 +76,7 @@ async function autoTimeoutWatchingSessions(userIds: string[]): Promise<void> {
 type SessionTitleMetadata = {
   releaseYear: number | null;
   creatorOrDirector: string | null;
+  runtimeMinutes: number | null;
 };
 
 async function buildSessionMetadataMap(
@@ -100,7 +101,13 @@ async function buildSessionMetadataMap(
             crew.find((member) => member.job === "Director")?.name ??
             crew.find((member) => member.job === "Co-Director")?.name ??
             null;
-          map.set(key, { releaseYear: Number.isFinite(releaseYear) ? releaseYear : null, creatorOrDirector: director });
+          const runtimeMinutes =
+            typeof details.runtime === "number" && Number.isFinite(details.runtime) ? Math.max(1, Math.round(details.runtime)) : null;
+          map.set(key, {
+            releaseYear: Number.isFinite(releaseYear) ? releaseYear : null,
+            creatorOrDirector: director,
+            runtimeMinutes,
+          });
           return;
         }
 
@@ -109,11 +116,21 @@ async function buildSessionMetadataMap(
           const releaseYear = details.first_air_date ? Number(details.first_air_date.slice(0, 4)) : null;
           const creators = (details as { created_by?: Array<{ name?: string }> }).created_by ?? [];
           const creator = creators[0]?.name ?? null;
-          map.set(key, { releaseYear: Number.isFinite(releaseYear) ? releaseYear : null, creatorOrDirector: creator });
+          const episodeRunTime = Array.isArray(details.episode_run_time)
+            ? details.episode_run_time.filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value > 0)
+            : [];
+          const runtimeMinutes = episodeRunTime.length
+            ? Math.max(1, Math.round(episodeRunTime.reduce((sum, value) => sum + value, 0) / episodeRunTime.length))
+            : null;
+          map.set(key, {
+            releaseYear: Number.isFinite(releaseYear) ? releaseYear : null,
+            creatorOrDirector: creator,
+            runtimeMinutes,
+          });
         }
       } catch (error) {
         console.warn(`watching metadata fetch failed for ${key}:`, error);
-        map.set(key, { releaseYear: null, creatorOrDirector: null });
+        map.set(key, { releaseYear: null, creatorOrDirector: null, runtimeMinutes: null });
       }
     })
   );
@@ -160,6 +177,7 @@ function toSessionDTO(
     backdropPath: session.backdropPath,
     releaseYear: metadata?.releaseYear ?? null,
     creatorOrDirector: metadata?.creatorOrDirector ?? null,
+    runtimeMinutes: metadata?.runtimeMinutes ?? null,
     status: session.status,
     visibility: session.visibility,
     progressPercent: session.progressPercent,
@@ -320,12 +338,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
     const followingIds = followRows.map((f) => f.followingId);
     const networkIds = [currentUser.id, ...followingIds];
     await autoTimeoutWatchingSessions(networkIds);
-    const dayStart = new Date();
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date();
-    dayEnd.setHours(23, 59, 59, 999);
+    const justFinishedWindowStart = new Date(Date.now() - 1000 * 60 * 60 * 48);
 
-    const [currentSessionRaw, watchingNowRaw, justFinishedRaw] = await Promise.all([
+    let [currentSessionRaw, watchingNowRaw, justFinishedRaw] = await Promise.all([
       db.watchingSession.findFirst({
         where: { userId: currentUser.id, status: "WATCHING_NOW" },
         include: {
@@ -342,7 +357,6 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
         where: {
           status: "WATCHING_NOW",
           userId: { in: networkIds },
-          startedAt: { gte: dayStart, lte: dayEnd },
           OR: [
             { visibility: "PUBLIC" },
             { visibility: "FOLLOWERS_ONLY", userId: { in: followingIds } },
@@ -364,7 +378,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
         where: {
           status: "JUST_FINISHED",
           userId: { in: networkIds },
-          endedAt: { gte: dayStart, lte: dayEnd },
+          endedAt: { gte: justFinishedWindowStart },
           OR: [
             { visibility: "PUBLIC" },
             { visibility: "FOLLOWERS_ONLY", userId: { in: followingIds } },
@@ -395,6 +409,54 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
         mediaType: session.mediaType as "movie" | "tv",
       }))
     );
+
+    const autoFinishNow = new Date();
+    const autoFinishSessionIds = watchingNowRaw
+      .filter((session) => {
+        if (session.mediaType !== "movie") return false;
+        const key = `${session.mediaType}:${session.tmdbId}`;
+        const runtimeMinutes = metadataByTitle.get(key)?.runtimeMinutes;
+        if (!runtimeMinutes || runtimeMinutes <= 0) return false;
+        const elapsedMs = autoFinishNow.getTime() - new Date(session.startedAt).getTime();
+        return elapsedMs >= runtimeMinutes * 60 * 1000;
+      })
+      .map((session) => session.id);
+
+    if (autoFinishSessionIds.length) {
+      await db.watchingSession.updateMany({
+        where: {
+          id: { in: autoFinishSessionIds },
+          status: "WATCHING_NOW",
+        },
+        data: {
+          status: "JUST_FINISHED",
+          endedAt: autoFinishNow,
+        },
+      });
+
+      const autoFinishedSet = new Set(autoFinishSessionIds);
+      const autoFinishedSessions = watchingNowRaw
+        .filter((session) => autoFinishedSet.has(session.id))
+        .map((session) => ({
+          ...session,
+          status: "JUST_FINISHED" as const,
+          endedAt: session.endedAt ?? autoFinishNow,
+          updatedAt: autoFinishNow,
+        }));
+
+      watchingNowRaw = watchingNowRaw.filter((session) => !autoFinishedSet.has(session.id));
+      justFinishedRaw = [...autoFinishedSessions, ...justFinishedRaw]
+        .sort(
+          (a, b) =>
+            new Date(b.endedAt ?? b.updatedAt).getTime() -
+            new Date(a.endedAt ?? a.updatedAt).getTime()
+        )
+        .slice(0, 40);
+
+      if (currentSessionRaw && autoFinishedSet.has(currentSessionRaw.id)) {
+        currentSessionRaw = null;
+      }
+    }
 
     const currentSession = currentSessionRaw ? toSessionDTO(currentSessionRaw, metadataByTitle) : null;
     const watchingNow = watchingNowRaw.map((session) => toSessionDTO(session, metadataByTitle));

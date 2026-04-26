@@ -418,7 +418,17 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           />
         )}
         {activeTab === "discussions" && (
-          <WatchingDiscussionsSection data={watchingTitleData} isLoading={isWatchingTitleLoading} />
+          <WatchingDiscussionsSection
+            data={watchingTitleData}
+            isLoading={isWatchingTitleLoading}
+            titleContext={{
+              tmdbId: item.id,
+              mediaType: type,
+              title: type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name,
+              posterPath: item.poster_path || null,
+              backdropPath: item.backdrop_path || null,
+            }}
+          />
         )}
         {activeTab === "reviews" && (
           <ReviewsSection
