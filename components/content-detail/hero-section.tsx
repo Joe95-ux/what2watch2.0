@@ -290,11 +290,11 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
         <div className="flex flex-col gap-4">
           <div className="mt-[14px] flex flex-col gap-3 md:mt-0 md:flex-row md:items-start md:justify-between">
             {titleWatchingData && titleWatchingData.watcherCount > 0 ? (
-              <div className="w-full max-w-[420px] rounded-xl bg-muted px-4 py-3">
-                <p className="border-b border-border/50 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <div className="w-full max-w-[600px] rounded-[15px] bg-muted/70 px-3 py-2.5 dark:bg-muted/30">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Watching now
                 </p>
-                <div className="mt-3 flex items-center justify-between gap-6">
+                <div className="flex items-center justify-between gap-4">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex -space-x-2">
                       {titleWatchingData.watchers.slice(0, 5).map((watcher) => {
@@ -313,7 +313,7 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
                   </div>
                   <Button
                     size="sm"
-                    className="h-8 shrink-0 cursor-pointer rounded-[20px]"
+                    className="h-8 shrink-0 cursor-pointer rounded-[20px] text-[13px]"
                     variant={titleWatchingData.isCurrentUserWatching ? "outline" : "default"}
                     disabled={watchingMutation.isPending || titleWatchingData.isCurrentUserWatching}
                     onClick={handleWatchingToo}

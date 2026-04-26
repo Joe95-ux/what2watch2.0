@@ -24,6 +24,7 @@ import {
 } from "@/hooks/use-watching";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useSearch } from "@/hooks/use-search";
+import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { WatchingSessionDTO } from "@/lib/watching-types";
 import { getPosterUrl, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -42,6 +43,8 @@ type WatchingFeedCard = {
   id: string;
   tmdbId: number;
   mediaType: "movie" | "tv";
+  backdropPath: string | null;
+  primaryThoughtId: string | null;
   user: string;
   avatar?: string | null;
   status: "watching" | "finished";
@@ -85,6 +88,8 @@ const toFeedCard = (session: WatchingSessionDTO): WatchingFeedCard => {
     id: session.id,
     tmdbId: session.tmdbId,
     mediaType: session.mediaType,
+    backdropPath: session.backdropPath,
+    primaryThoughtId: session.thoughts[0]?.id ?? null,
     user: userLabel,
     avatar: session.user.avatarUrl,
     status: isWatching ? "watching" : "finished",
@@ -227,12 +232,93 @@ function JustFinishedComment({
 
 function FeedCard({ item }: { item: WatchingFeedCard }) {
   const [expandedComments, setExpandedComments] = useState(false);
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [localReactions, setLocalReactions] = useState(item.reactions);
+  const [localReplies, setLocalReplies] = useState(item.replies);
   const visibleComments = expandedComments ? item.comments : item.comments.slice(0, 10);
   const hasMoreComments = item.comments.length > 10;
+  const addReply = useAddWatchingThoughtReply();
+  const { addMutation } = useWatchingThoughtReaction();
+  const { toggle: toggleWatchlist, isLoading: isWatchlistMutating } = useToggleWatchlist();
+
+  const handleCardReaction = async () => {
+    if (!item.primaryThoughtId) {
+      toast.message("No thought yet to react to.");
+      return;
+    }
+    try {
+      await addMutation.mutateAsync({ thoughtId: item.primaryThoughtId, reactionType: "🔥" });
+      setLocalReactions((count) => count + 1);
+      toast.success("Reaction added.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to react");
+    }
+  };
+
+  const handleCardReply = async () => {
+    const content = replyText.trim();
+    if (!item.primaryThoughtId || !content) return;
+    try {
+      await addReply.mutateAsync({ thoughtId: item.primaryThoughtId, content });
+      setReplyText("");
+      setIsReplying(false);
+      setLocalReplies((count) => count + 1);
+      toast.success("Reply posted.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to post reply");
+    }
+  };
+
+  const handleWatchlistToggle = async () => {
+    try {
+      if (item.mediaType === "movie") {
+        await toggleWatchlist(
+          {
+            id: item.tmdbId,
+            title: item.title,
+            overview: "",
+            poster_path: item.posterPath ?? item.backdropPath ?? null,
+            backdrop_path: item.backdropPath,
+            release_date: "",
+            vote_average: 0,
+            vote_count: 0,
+            genre_ids: [],
+            popularity: 0,
+            adult: false,
+            original_language: "en",
+            original_title: item.title,
+          },
+          "movie"
+        );
+      } else {
+        await toggleWatchlist(
+          {
+            id: item.tmdbId,
+            name: item.title,
+            overview: "",
+            poster_path: item.posterPath ?? item.backdropPath ?? null,
+            backdrop_path: item.backdropPath,
+            first_air_date: "",
+            vote_average: 0,
+            vote_count: 0,
+            genre_ids: [],
+            popularity: 0,
+            original_language: "en",
+            original_name: item.title,
+          },
+          "tv"
+        );
+      }
+      toast.success("Watchlist updated.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update watchlist");
+    }
+  };
 
   return (
-    <Card className="overflow-hidden rounded-lg border border-border/60 bg-muted/25 p-0 dark:border-border/50 dark:bg-muted/15">
-      <div className="border-b border-border/60 px-[14px] py-[13px] dark:border-border/50">
+    <Card className="gap-0 overflow-hidden rounded-[15px] border border-border/60 bg-muted/25 p-0 dark:border-border/50 dark:bg-muted/15">
+      <div className="border-b border-border/60 bg-muted/35 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
         <div className="flex items-start gap-[10px]">
           <Avatar className="h-9 w-9">
             <AvatarImage src={item.avatar ?? undefined} alt={item.user} />
@@ -259,10 +345,17 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
 
       <div className="border-b border-border/60 px-[14px] py-[13px] dark:border-border/50">
         <div className="flex items-start gap-[10px]">
-          <Link href={`/content/${item.mediaType}/${item.tmdbId}`} className="shrink-0">
-            {item.posterPath ? (
+          <Link href={item.mediaType === "movie" ? `/movie/${item.tmdbId}` : `/tv/${item.tmdbId}`} className="shrink-0">
+            {item.posterPath || item.backdropPath ? (
               <div className="relative h-16 w-12 overflow-hidden rounded-md bg-muted">
-                <Image src={getPosterUrl(item.posterPath, "w185")} alt="" fill className="object-cover" sizes="48px" unoptimized />
+                <Image
+                  src={getPosterUrl(item.posterPath ?? item.backdropPath, "w200")}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="48px"
+                  unoptimized
+                />
               </div>
             ) : (
               <div className="flex h-16 w-12 items-center justify-center rounded-md bg-muted text-[10px] text-muted-foreground">
@@ -272,7 +365,10 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
           </Link>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <Link href={`/content/${item.mediaType}/${item.tmdbId}`} className="truncate text-sm font-medium hover:underline">
+              <Link
+                href={item.mediaType === "movie" ? `/movie/${item.tmdbId}` : `/tv/${item.tmdbId}`}
+                className="truncate text-sm font-medium hover:underline"
+              >
                 {item.title}
               </Link>
               <Badge variant="secondary" className="rounded-full text-[10px]">
@@ -299,25 +395,53 @@ function FeedCard({ item }: { item: WatchingFeedCard }) {
         <Button
           variant="ghost"
           size="sm"
+          onClick={handleCardReaction}
+          disabled={addMutation.isPending || !item.primaryThoughtId}
           className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         >
-          <Smile className="h-3.5 w-3.5" /> {item.reactions}
+          <Smile className="h-3.5 w-3.5" /> {localReactions}
         </Button>
         <Button
           variant="ghost"
           size="sm"
+          onClick={() => setIsReplying((v) => !v)}
+          disabled={!item.primaryThoughtId}
           className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         >
-          <MessageSquare className="h-3.5 w-3.5" /> {item.replies} replies
+          <MessageSquare className="h-3.5 w-3.5" /> {localReplies} replies
         </Button>
         <Button
           variant="ghost"
           size="sm"
+          onClick={handleWatchlistToggle}
+          disabled={isWatchlistMutating}
           className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         >
           <Bookmark className="h-3.5 w-3.5" /> Watchlist
         </Button>
       </div>
+
+      {isReplying ? (
+        <div className="border-b border-border/60 px-[14px] py-[10px] dark:border-border/50">
+          <div className="flex items-center gap-2">
+            <Input
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="Write a reply..."
+              className="h-8 border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleCardReply}
+              disabled={addReply.isPending || !replyText.trim()}
+              className="h-8 cursor-pointer rounded-[20px] px-3 text-xs"
+            >
+              Send
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {item.status === "finished" ? (
         <div className="p-0">
@@ -489,7 +613,7 @@ function RightRail({
 
   return (
     <aside className="w-full">
-      <section className="border-b border-border/70 px-[14px] py-[13px]">
+      <section className="border-b border-border/70 px-[14px] py-6">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">You&apos;re watching</p>
           <Button
@@ -504,7 +628,7 @@ function RightRail({
         </div>
 
         {currentSession ? (
-          <div className="overflow-hidden rounded-lg border border-border/60 bg-background/70">
+          <div className="overflow-hidden rounded-[15px] border border-border/60 bg-muted/35 dark:bg-muted/20">
             <div className="flex items-center justify-between border-b border-border/60 px-[10px] py-[8px]">
               <p className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -515,11 +639,14 @@ function RightRail({
 
             <div className="space-y-[10px] px-[10px] py-[10px]">
               <div className="flex items-start gap-[10px]">
-                <Link href={`/content/${currentSession.mediaType}/${currentSession.tmdbId}`} className="shrink-0">
+                <Link
+                  href={currentSession.mediaType === "movie" ? `/movie/${currentSession.tmdbId}` : `/tv/${currentSession.tmdbId}`}
+                  className="shrink-0"
+                >
                   {currentSession.posterPath ? (
                     <div className="relative h-16 w-12 overflow-hidden rounded-md bg-muted">
                       <Image
-                        src={getPosterUrl(currentSession.posterPath, "w185")}
+                        src={getPosterUrl(currentSession.posterPath, "w200")}
                         alt=""
                         fill
                         className="object-cover"
@@ -536,7 +663,7 @@ function RightRail({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <Link
-                      href={`/content/${currentSession.mediaType}/${currentSession.tmdbId}`}
+                      href={currentSession.mediaType === "movie" ? `/movie/${currentSession.tmdbId}` : `/tv/${currentSession.tmdbId}`}
                       className="truncate text-[14px] font-medium hover:underline"
                     >
                       {currentSession.title}
@@ -582,8 +709,7 @@ function RightRail({
         )}
       </section>
 
-      {!!alsoWatchingCurrent.length && (
-        <section className="border-b border-border/70 px-[14px] py-[13px]">
+      <section className="border-b border-border/70 px-[14px] py-6">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="truncate text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
               ALSO WATCHING [{alsoWatchingTitleLabel}]
@@ -627,12 +753,12 @@ function RightRail({
               ) : null}
             </div>
           </div>
-          <div className="divide-y divide-border/60 rounded-md border border-border/60 bg-background/50">
+          <div className="divide-y divide-border/60">
             {visibleAlsoWatching.map((session) => {
               const minsIn = Math.max(1, Math.round((Date.now() - new Date(session.startedAt).getTime()) / 60000));
               const inLabel = minsIn <= 1 ? "just started" : `${minsIn} min in`;
               return (
-                <div key={session.id} className="flex items-center justify-between gap-2 px-[10px] py-[8px]">
+                <div key={session.id} className="flex items-center justify-between gap-2 py-[8px]">
                   <div className="flex min-w-0 items-center gap-[10px]">
                     <Avatar className="h-7 w-7">
                       <AvatarImage src={session.user.avatarUrl ?? undefined} />
@@ -654,28 +780,30 @@ function RightRail({
                 </div>
               );
             })}
+            {!visibleAlsoWatching.length ? (
+              <p className="py-[8px] text-[12px] text-muted-foreground">No one else is watching this right now.</p>
+            ) : null}
           </div>
           {showAllAlsoWatching && alsoWatchingTotalPages > 1 ? (
             <div className="mt-2 text-right text-[11px] text-muted-foreground">
               {alsoWatchingPage} / {alsoWatchingTotalPages}
             </div>
           ) : null}
-        </section>
-      )}
+      </section>
 
-      <section className="border-b border-border/70 px-[14px] py-[13px]">
+      <section className="border-b border-border/70 px-[14px] py-6">
         <p className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Trending tonight</p>
-        <div className="divide-y divide-border/60 rounded-md border border-border/60 bg-background/50">
+        <div className="divide-y divide-border/60">
           {trendingTonight.map((item, i) => (
             <div
               key={`${item.mediaType}-${item.tmdbId}`}
-              className="flex w-full items-center gap-[10px] px-[10px] py-[8px] text-left hover:bg-muted/40"
+              className="flex w-full items-center gap-[10px] py-[8px] text-left hover:bg-muted/30"
             >
               <span className="w-4 text-[12px] font-semibold text-muted-foreground">{i + 1}</span>
-              <Link href={`/content/${item.mediaType}/${item.tmdbId}`} className="shrink-0">
+              <Link href={item.mediaType === "movie" ? `/movie/${item.tmdbId}` : `/tv/${item.tmdbId}`} className="shrink-0">
                 {item.posterPath ? (
                   <div className="relative h-12 w-9 overflow-hidden rounded bg-muted">
-                    <Image src={getPosterUrl(item.posterPath, "w185")} alt="" fill className="object-cover" sizes="36px" unoptimized />
+                    <Image src={getPosterUrl(item.posterPath, "w200")} alt="" fill className="object-cover" sizes="36px" unoptimized />
                   </div>
                 ) : (
                   <div className="flex h-12 w-9 items-center justify-center rounded bg-muted text-[10px] text-muted-foreground">
@@ -684,7 +812,10 @@ function RightRail({
                 )}
               </Link>
               <div className="min-w-0 flex-1">
-                <Link href={`/content/${item.mediaType}/${item.tmdbId}`} className="truncate text-[13px] font-medium hover:underline">
+                <Link
+                  href={item.mediaType === "movie" ? `/movie/${item.tmdbId}` : `/tv/${item.tmdbId}`}
+                  className="truncate text-[13px] font-medium hover:underline"
+                >
                   {item.title}
                 </Link>
                 <p className="text-[12px] text-muted-foreground">
@@ -713,11 +844,11 @@ function RightRail({
               </Button>
             </div>
           ))}
-          {!trendingTonight.length ? <p className="text-[12px] text-muted-foreground">No sessions yet.</p> : null}
+          {!trendingTonight.length ? <p className="py-[8px] text-[12px] text-muted-foreground">No sessions yet.</p> : null}
         </div>
       </section>
 
-      <section className="px-[14px] py-[13px]">
+      <section className="px-[14px] py-6">
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Replies to you</p>
           <div className="flex items-center gap-1">
@@ -759,9 +890,9 @@ function RightRail({
             ) : null}
           </div>
         </div>
-        <div className="divide-y divide-border/60 rounded-md border border-border/60 bg-background/50">
+        <div className="divide-y divide-border/60">
           {visibleRepliesToYou.map((reply) => (
-            <div key={reply.id} className="px-[10px] py-[8px]">
+            <div key={reply.id} className="py-[8px]">
               <div className="mb-1 flex items-center gap-[10px]">
                 <Avatar className="h-7 w-7">
                   <AvatarImage src={reply.userAvatar ?? undefined} />
@@ -772,10 +903,10 @@ function RightRail({
                   <p className="text-[12px] text-muted-foreground">{timeAgo(reply.createdAt)}</p>
                 </div>
               </div>
-              <p className="pl-[38px] text-[13px] text-foreground/90">{reply.text}</p>
+              <p className="pl-[38px] pr-1 text-[13px] text-foreground/90">{reply.text}</p>
             </div>
           ))}
-          {!repliesToYou.length ? <p className="px-[10px] py-[8px] text-[12px] text-muted-foreground">No replies yet.</p> : null}
+          {!repliesToYou.length ? <p className="py-[8px] text-[12px] text-muted-foreground">No replies yet.</p> : null}
         </div>
         {showAllRepliesToYou && repliesToYouTotalPages > 1 ? (
           <div className="mt-2 text-right text-[11px] text-muted-foreground">
@@ -973,7 +1104,7 @@ export default function WatchingContent() {
   }
 
   return (
-    <div className="min-h-screen py-6">
+    <div className="min-h-screen">
       <div
         className={cn(
           "grid min-h-[calc(100vh-6rem)] grid-cols-1",
@@ -982,7 +1113,7 @@ export default function WatchingContent() {
             : "xl:grid-cols-[minmax(0,1fr)]"
         )}
       >
-        <main className="relative min-w-0 space-y-4 px-4 sm:px-6 lg:px-8">
+        <main className="relative min-w-0 space-y-4 px-4 py-6 sm:px-6 lg:px-8">
           {!isRightOpen ? (
             <button
               type="button"
@@ -1004,7 +1135,7 @@ export default function WatchingContent() {
 
           <div
             ref={composeWrapRef}
-            className="rounded-lg border border-border/60 bg-muted/25 px-3 py-2.5 dark:border-border/50 dark:bg-muted/15"
+            className="rounded-[15px] border border-border/60 bg-muted/25 p-4 dark:border-border/50 dark:bg-muted/15"
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Avatar className="h-9 w-9 shrink-0">
@@ -1024,7 +1155,7 @@ export default function WatchingContent() {
                   }}
                   onFocus={() => setSuggestionsOpen(true)}
                   placeholder={`What are you watching right now, ${currentUser?.displayName || currentUser?.username || "there"}?`}
-                  className="h-10 w-full border border-border/70 bg-transparent text-sm shadow-none focus-visible:border-border/70 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="h-10 w-full border-0 bg-transparent px-0 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
                   autoComplete="off"
                 />
                 {suggestionsOpen && debouncedWatchSearch.trim() ? (
@@ -1063,7 +1194,7 @@ export default function WatchingContent() {
                               {poster ? (
                                 <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded bg-muted">
                                   <Image
-                                    src={getPosterUrl(poster, "w185")}
+                                    src={getPosterUrl(poster, "w200")}
                                     alt=""
                                     fill
                                     className="object-cover"
@@ -1095,7 +1226,7 @@ export default function WatchingContent() {
               </div>
               <Button
                 type="button"
-                className="h-10 shrink-0 cursor-pointer rounded-[20px] px-4 whitespace-nowrap"
+                className="h-10 shrink-0 cursor-pointer rounded-[20px] px-4 text-[14px] whitespace-nowrap"
                 onClick={submitStartWatching}
                 disabled={watchingMutation.isPending || !selectedPick}
               >
@@ -1226,7 +1357,7 @@ export default function WatchingContent() {
           <aside className="relative hidden border-l border-border/70 bg-muted/20 lg:block dark:bg-muted/10">
             <button
               type="button"
-              className="absolute left-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground cursor-pointer"
+              className="absolute -left-3 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground cursor-pointer"
               onClick={() => setIsRightOpen(false)}
               aria-label="Collapse sidebar"
             >
