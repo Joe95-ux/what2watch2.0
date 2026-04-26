@@ -16,6 +16,7 @@ import {
   PlayCircle,
   Square,
   Smile,
+  X,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import {
@@ -119,7 +120,7 @@ const toFeedCard = (session: WatchingSessionDTO): WatchingFeedCard => {
   const userLabel = session.user.displayName || session.user.username || "Unknown user";
   const isWatching = session.status === "WATCHING_NOW";
   const thought = session.thoughts[0]?.content;
-  const comments = session.thoughts.slice(1).map((entry) => ({
+  const mappedComments = session.thoughts.slice(1).map((entry) => ({
     id: entry.id,
     content: entry.content,
     isSpoiler: entry.isSpoiler,
@@ -128,6 +129,22 @@ const toFeedCard = (session: WatchingSessionDTO): WatchingFeedCard => {
     avatar: entry.user.avatarUrl ?? null,
     sessionStatus: session.status,
   }));
+  const comments =
+    mappedComments.length > 0
+      ? mappedComments
+      : session.thoughts[0]
+      ? [
+          {
+            id: session.thoughts[0].id,
+            content: session.thoughts[0].content,
+            isSpoiler: session.thoughts[0].isSpoiler,
+            createdAt: session.thoughts[0].createdAt,
+            user: session.thoughts[0].user.displayName || session.thoughts[0].user.username || "Unknown",
+            avatar: session.thoughts[0].user.avatarUrl ?? null,
+            sessionStatus: session.status,
+          },
+        ]
+      : [];
   return {
     id: session.id,
     userId: session.userId,
@@ -237,7 +254,7 @@ function JustFinishedComment({
             : "text-foreground"
         )}
       >
-        {comment.isSpoiler && !isSpoilerRevealed ? "Click to reveal spoiler" : comment.content}
+        {comment.isSpoiler && !isSpoilerRevealed ? "Tap to reveal spoiler" : comment.content}
       </button>
       <div className="mt-1.5 flex items-center gap-2">
         <Button
@@ -246,7 +263,7 @@ function JustFinishedComment({
           size="sm"
           onClick={reactToComment}
           disabled={addMutation.isPending}
-          className="h-7 cursor-pointer rounded-[20px] px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+          className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
         >
           <Smile className="h-3.5 w-3.5" />
           React
@@ -256,7 +273,7 @@ function JustFinishedComment({
           variant="ghost"
           size="sm"
           onClick={() => setIsReplying((v) => !v)}
-          className="h-7 cursor-pointer rounded-[20px] px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+          className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
         >
           <MessageSquare className="h-3.5 w-3.5" />
           Reply{typeof replies?.length === "number" ? ` (${replies.length})` : ""}
@@ -302,7 +319,17 @@ function JustFinishedComment({
   );
 }
 
-function FeedCard({ item, currentUserId }: { item: WatchingFeedCard; currentUserId?: string | null }) {
+function FeedCard({
+  item,
+  currentUserId,
+  isSelected,
+  onSelect,
+}: {
+  item: WatchingFeedCard;
+  currentUserId?: string | null;
+  isSelected?: boolean;
+  onSelect?: (item: WatchingFeedCard) => void;
+}) {
   const [expandedComments, setExpandedComments] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -466,7 +493,21 @@ function FeedCard({ item, currentUserId }: { item: WatchingFeedCard; currentUser
   };
 
   return (
-    <Card className="gap-0 overflow-hidden rounded-[15px] border border-border/60 bg-muted/25 p-0 dark:border-border/50 dark:bg-muted/15">
+    <Card
+      className={cn(
+        "gap-0 overflow-hidden rounded-[15px] border border-border/60 bg-muted/25 p-0 transition dark:border-border/50 dark:bg-muted/15",
+        isSelected ? "ring-2 ring-primary/35 border-primary/40" : "hover:ring-1 hover:ring-primary/20"
+      )}
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect?.(item)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect?.(item);
+        }
+      }}
+    >
       <div className="border-b border-border/60 bg-muted/35 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
         <div className="flex items-start gap-[10px]">
           <Avatar className="h-9 w-9">
@@ -486,6 +527,11 @@ function FeedCard({ item, currentUserId }: { item: WatchingFeedCard; currentUser
                   just finished
                 </Badge>
               )}
+              {isSelected ? (
+                <Badge variant="secondary" className="rounded-full bg-primary/15 text-[10px] text-primary">
+                  Focused
+                </Badge>
+              ) : null}
             </div>
             <p className="text-xs text-muted-foreground">{item.startedOrFinished}</p>
           </div>
@@ -576,7 +622,7 @@ function FeedCard({ item, currentUserId }: { item: WatchingFeedCard; currentUser
       <div
         className={cn(
           "grid grid-cols-3 divide-x divide-border/60",
-          item.status === "finished" ? "border-b border-border/60 dark:border-border/50" : ""
+          item.comments.length > 0 ? "border-b border-border/60 dark:border-border/50" : ""
         )}
       >
         <div ref={emojiPickerRef} className="relative">
@@ -642,7 +688,7 @@ function FeedCard({ item, currentUserId }: { item: WatchingFeedCard; currentUser
         </div>
       ) : null}
 
-      {item.status === "finished" ? (
+      {item.comments.length > 0 ? (
         <div className="p-0">
           {visibleComments.map((comment, index) => {
             const showBorder = index < visibleComments.length - 1 || hasMoreComments;
@@ -670,6 +716,7 @@ function FeedCard({ item, currentUserId }: { item: WatchingFeedCard; currentUser
 function RightRail({
   currentSession,
   alsoWatchingCurrent,
+  alsoWatchingTitle,
   watchingNow,
   justFinished,
   trendingTonight,
@@ -685,6 +732,7 @@ function RightRail({
 }: {
   currentSession: WatchingSessionDTO | null;
   alsoWatchingCurrent: WatchingSessionDTO[];
+  alsoWatchingTitle?: string | null;
   watchingNow: WatchingSessionDTO[];
   justFinished: WatchingSessionDTO[];
   trendingTonight: Array<{
@@ -712,12 +760,20 @@ function RightRail({
 }) {
   const currentProgress = useMemo(() => {
     if (!currentSession) return 0;
+    const capForActiveSession = (value: number) =>
+      currentSession.status === "WATCHING_NOW" ? Math.min(99, value) : Math.min(100, value);
     if (typeof currentSession.progressPercent === "number") {
-      return Math.max(0, Math.min(100, currentSession.progressPercent));
+      return Math.max(0, capForActiveSession(currentSession.progressPercent));
     }
     // Fallback to elapsed-time estimate when explicit progress isn't set yet.
+    // For active sessions, never show 100% until the session is actually finished.
     const minutesIn = Math.max(1, Math.round((Date.now() - new Date(currentSession.startedAt).getTime()) / 60000));
-    return Math.max(0, Math.min(100, Math.round((minutesIn / 120) * 100)));
+    const estimatedTotalMinutes =
+      currentSession.mediaType === "movie" && currentSession.runtimeMinutes && currentSession.runtimeMinutes > 0
+        ? currentSession.runtimeMinutes
+        : 120;
+    const estimated = Math.round((minutesIn / estimatedTotalMinutes) * 100);
+    return Math.max(0, capForActiveSession(estimated));
   }, [currentSession]);
   const [showAllAlsoWatching, setShowAllAlsoWatching] = useState(false);
   const [alsoWatchingPage, setAlsoWatchingPage] = useState(1);
@@ -730,10 +786,10 @@ function RightRail({
     return alsoWatchingCurrent.slice(start, start + alsoWatchingPageSize);
   }, [alsoWatchingCurrent, alsoWatchingPage, alsoWatchingPageSize]);
   const alsoWatchingTitleLabel = useMemo(() => {
-    const title = currentSession?.title?.trim();
+    const title = alsoWatchingTitle?.trim() || currentSession?.title?.trim();
     if (!title) return "THIS TITLE";
     return title.length > 24 ? `${title.slice(0, 24)}...` : title;
-  }, [currentSession?.title]);
+  }, [alsoWatchingTitle, currentSession?.title]);
   const myThoughtTargets = useMemo(() => {
     const allSessions = [
       ...(currentSession ? [currentSession] : []),
@@ -1149,6 +1205,12 @@ export default function WatchingContent() {
   const [watchingNowPage, setWatchingNowPage] = useState(1);
   const [showAllJustFinished, setShowAllJustFinished] = useState(false);
   const [justFinishedPage, setJustFinishedPage] = useState(1);
+  const [isChangingTitle, setIsChangingTitle] = useState(false);
+  const [activeCardContext, setActiveCardContext] = useState<{
+    tmdbId: number;
+    mediaType: "movie" | "tv";
+    title: string;
+  } | null>(null);
   const [watchMomentLabel, setWatchMomentLabel] = useState(() => {
     const now = new Date();
     const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(now);
@@ -1188,7 +1250,7 @@ export default function WatchingContent() {
   );
   const justFinished = useMemo(
     () => (watchingData?.justFinished ?? []).map(toFeedCard),
-    [watchingData?.justFinished, uiNowTick]
+    [watchingData?.justFinished]
   );
   const WATCHING_NOW_PAGE_SIZE = 10;
   const JUST_FINISHED_PAGE_SIZE = 10;
@@ -1204,6 +1266,39 @@ export default function WatchingContent() {
     const start = (justFinishedPage - 1) * JUST_FINISHED_PAGE_SIZE;
     return justFinished.slice(start, start + JUST_FINISHED_PAGE_SIZE);
   }, [showAllJustFinished, justFinished, justFinishedPage]);
+
+  const effectiveAlsoWatchingContext = useMemo(() => {
+    if (activeCardContext) return activeCardContext;
+    const currentSession = watchingData?.currentSession;
+    if (!currentSession) return null;
+    return {
+      tmdbId: currentSession.tmdbId,
+      mediaType: currentSession.mediaType,
+      title: currentSession.title,
+    } as const;
+  }, [activeCardContext, watchingData?.currentSession]);
+
+  const contextualAlsoWatching = useMemo(() => {
+    const watchingSessions = watchingData?.watchingNow ?? [];
+    const currentUserId = currentUser?.id;
+    if (!effectiveAlsoWatchingContext) return watchingData?.alsoWatchingCurrent ?? [];
+    return watchingSessions.filter(
+      (session) =>
+        session.tmdbId === effectiveAlsoWatchingContext.tmdbId &&
+        session.mediaType === effectiveAlsoWatchingContext.mediaType &&
+        session.userId !== currentUserId
+    );
+  }, [watchingData?.watchingNow, watchingData?.alsoWatchingCurrent, effectiveAlsoWatchingContext, currentUser?.id]);
+
+  useEffect(() => {
+    if (!activeCardContext) return;
+    const existsInFeed = (watchingData?.watchingNow ?? []).some(
+      (session) => session.tmdbId === activeCardContext.tmdbId && session.mediaType === activeCardContext.mediaType
+    );
+    if (!existsInFeed) {
+      setActiveCardContext(null);
+    }
+  }, [activeCardContext, watchingData?.watchingNow]);
 
   useEffect(() => {
     if (!showAllWatchingNow) {
@@ -1228,6 +1323,16 @@ export default function WatchingContent() {
     }
 
     try {
+      const activeSession = watchingData?.currentSession;
+      if (
+        activeSession &&
+        (activeSession.tmdbId !== selectedPick.tmdbId || activeSession.mediaType !== selectedPick.mediaType)
+      ) {
+        await watchingMutation.mutateAsync({
+          action: "stop",
+          sessionId: activeSession.id,
+        });
+      }
       await watchingMutation.mutateAsync({
         action: "start",
         tmdbId: selectedPick.tmdbId,
@@ -1241,10 +1346,38 @@ export default function WatchingContent() {
       setSelectedPick(null);
       setThoughtText("");
       setSpoilerMode(false);
+      setIsChangingTitle(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to start session");
     }
   };
+
+  const clearActiveWatching = async () => {
+    const activeSession = watchingData?.currentSession;
+    if (!activeSession) return;
+    try {
+      await watchingMutation.mutateAsync({
+        action: "stop",
+        sessionId: activeSession.id,
+      });
+      setWatchSearchQuery("");
+      setSelectedPick(null);
+      setIsChangingTitle(false);
+      toast.success("Stopped current watching session.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to stop current session");
+    }
+  };
+
+  const activeSession = watchingData?.currentSession ?? null;
+  const isWatchingActive = Boolean(activeSession) && !isChangingTitle;
+  const composeInputValue = isWatchingActive ? activeSession?.title ?? "" : watchSearchQuery;
+
+  useEffect(() => {
+    if (!watchingData?.currentSession) {
+      setIsChangingTitle(false);
+    }
+  }, [watchingData?.currentSession]);
 
   const submitShareThought = async () => {
     const sessionId = watchingData?.currentSession?.id;
@@ -1369,8 +1502,11 @@ export default function WatchingContent() {
             className="rounded-[15px] border border-border/60 bg-muted/25 p-4 ring-1 ring-transparent transition hover:ring-primary/25 focus-visible:ring-2 focus-visible:ring-primary/30 dark:border-border/50 dark:bg-muted/15"
             role="button"
             tabIndex={0}
-            onClick={() => setSearchModalOpen(true)}
+            onClick={() => {
+              if (!isWatchingActive) setSearchModalOpen(true);
+            }}
             onKeyDown={(e) => {
+              if (isWatchingActive) return;
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 setSearchModalOpen(true);
@@ -1384,24 +1520,49 @@ export default function WatchingContent() {
               </Avatar>
               <div className="min-w-0 flex-1">
                 <Input
-                  value={watchSearchQuery}
+                  value={composeInputValue}
                   readOnly
-                  onClick={() => setSearchModalOpen(true)}
+                  onClick={() => {
+                    if (!isWatchingActive) setSearchModalOpen(true);
+                  }}
                   placeholder={`What are you watching right now, ${currentUser?.displayName || currentUser?.username || "there"}?`}
                   className="h-10 w-full cursor-pointer border-0 bg-transparent px-0 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
                   autoComplete="off"
                 />
               </div>
+              {isWatchingActive ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 cursor-pointer rounded-[20px] border border-border/60 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void clearActiveWatching();
+                  }}
+                  disabled={watchingMutation.isPending}
+                  aria-label="Clear active watching session"
+                  title="Clear active watching session"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              ) : null}
               <Button
                 type="button"
-                className="h-9 shrink-0 cursor-pointer rounded-[20px] border border-border/60 bg-muted/45 px-4 text-[14px] text-foreground hover:bg-muted/60 whitespace-nowrap dark:bg-muted/35"
+                className={cn(
+                  "h-9 shrink-0 cursor-pointer rounded-[20px] border px-4 text-[14px] whitespace-nowrap",
+                  isWatchingActive
+                    ? "border-emerald-500/35 bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+                    : "border-primary/30 bg-primary/15 text-primary hover:bg-primary/20 dark:border-primary/35 dark:bg-primary/20 dark:text-primary-foreground"
+                )}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (isWatchingActive) return;
                   void submitStartWatching();
                 }}
-                disabled={watchingMutation.isPending || !selectedPick}
+                disabled={isWatchingActive || watchingMutation.isPending || !selectedPick}
               >
-                I&apos;m watching...
+                {isWatchingActive ? "Watching now" : "I&apos;m watching..."}
               </Button>
             </div>
           </div>
@@ -1512,7 +1673,23 @@ export default function WatchingContent() {
           </div>
 
           {visibleWatchingNow.map((item) => (
-            <FeedCard key={item.id} item={item} currentUserId={currentUser?.id} />
+            <FeedCard
+              key={item.id}
+              item={item}
+              currentUserId={currentUser?.id}
+              isSelected={
+                Boolean(activeCardContext) &&
+                activeCardContext?.tmdbId === item.tmdbId &&
+                activeCardContext?.mediaType === item.mediaType
+              }
+              onSelect={(selectedItem) =>
+                setActiveCardContext({
+                  tmdbId: selectedItem.tmdbId,
+                  mediaType: selectedItem.mediaType,
+                  title: selectedItem.title,
+                })
+              }
+            />
           ))}
           {!watchingNow.length ? <p className="text-sm text-muted-foreground">No one in your network is watching right now.</p> : null}
 
@@ -1569,7 +1746,23 @@ export default function WatchingContent() {
           </div>
 
           {visibleJustFinished.map((item) => (
-            <FeedCard key={item.id} item={item} currentUserId={currentUser?.id} />
+            <FeedCard
+              key={item.id}
+              item={item}
+              currentUserId={currentUser?.id}
+              isSelected={
+                Boolean(activeCardContext) &&
+                activeCardContext?.tmdbId === item.tmdbId &&
+                activeCardContext?.mediaType === item.mediaType
+              }
+              onSelect={(selectedItem) =>
+                setActiveCardContext({
+                  tmdbId: selectedItem.tmdbId,
+                  mediaType: selectedItem.mediaType,
+                  title: selectedItem.title,
+                })
+              }
+            />
           ))}
           {!justFinished.length ? <p className="text-sm text-muted-foreground">No recent finishes yet.</p> : null}
 
@@ -1612,7 +1805,8 @@ export default function WatchingContent() {
             </button>
             <RightRail
               currentSession={watchingData?.currentSession ?? null}
-              alsoWatchingCurrent={watchingData?.alsoWatchingCurrent ?? []}
+              alsoWatchingCurrent={contextualAlsoWatching}
+              alsoWatchingTitle={effectiveAlsoWatchingContext?.title ?? null}
               watchingNow={watchingData?.watchingNow ?? []}
               justFinished={watchingData?.justFinished ?? []}
               trendingTonight={watchingData?.trendingTonight ?? []}

@@ -19,6 +19,20 @@ export interface ViewingLog {
   updatedAt: string;
 }
 
+export interface WatchedTitle {
+  id: string;
+  userId: string;
+  tmdbId: number;
+  mediaType: "movie" | "tv";
+  title: string;
+  posterPath: string | null;
+  backdropPath: string | null;
+  seenAt: string;
+  source: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Unified log entry that can represent both ViewingLog and EpisodeViewingLog entries
 export interface UnifiedViewingLog {
   id: string;
@@ -70,6 +84,13 @@ const fetchViewingLogs = async (limit?: number, orderBy: "watchedAt" | "createdA
   if (!res.ok) throw new Error("Failed to fetch viewing logs");
   const data = await res.json();
   return data.logs;
+};
+
+const fetchWatchedTitles = async (): Promise<WatchedTitle[]> => {
+  const res = await fetch("/api/watched-titles");
+  if (!res.ok) throw new Error("Failed to fetch watched titles");
+  const data = await res.json();
+  return data.titles;
 };
 
 // Create viewing log
@@ -131,6 +152,14 @@ export function useViewingLogs(limit?: number, orderBy: "watchedAt" | "createdAt
   });
 }
 
+export function useWatchedTitles() {
+  return useQuery<WatchedTitle[]>({
+    queryKey: ["watched-titles"],
+    queryFn: fetchWatchedTitles,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
 // Hook to fetch viewing logs for a specific movie/TV show (returns unified logs including episodes)
 export function useViewingLogsByContent(tmdbId: number | null, mediaType: "movie" | "tv" | null) {
   return useQuery<UnifiedViewingLog[]>({
@@ -154,6 +183,7 @@ export function useLogViewing() {
       // Invalidate viewing logs queries
       queryClient.invalidateQueries({ queryKey: ["viewing-logs"] });
       queryClient.invalidateQueries({ queryKey: ["viewing-logs-by-content"] });
+      queryClient.invalidateQueries({ queryKey: ["watched-titles"] });
     },
   });
 }
@@ -344,6 +374,7 @@ export function useQuickWatch() {
       // Invalidate viewing logs and watched status queries
       queryClient.invalidateQueries({ queryKey: ["viewing-logs"] });
       queryClient.invalidateQueries({ queryKey: ["is-watched"] });
+      queryClient.invalidateQueries({ queryKey: ["watched-titles"] });
     },
   });
 }

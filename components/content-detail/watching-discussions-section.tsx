@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MessageCircle, Smile } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,7 @@ function ThoughtCard({
 }) {
   const [showReplies, setShowReplies] = useState(false);
   const [expandReplies, setExpandReplies] = useState(false);
+  const [isSpoilerRevealed, setIsSpoilerRevealed] = useState(false);
   const [replyInput, setReplyInput] = useState("");
   const [localReactionCount, setLocalReactionCount] = useState(thought.reactionCount);
   const [localReplyCount, setLocalReplyCount] = useState(thought.replyCount);
@@ -52,6 +53,15 @@ function ThoughtCard({
   );
   const visibleReplies = expandReplies ? mergedReplies : mergedReplies.slice(0, 10);
   const hasMoreReplies = mergedReplies.length > 10;
+  const shouldBlurSpoiler = blurred && !isSpoilerRevealed;
+
+  // Keep local counters synced with live query updates/pusher refreshes.
+  useEffect(() => {
+    setLocalReactionCount(thought.reactionCount);
+    setLocalReplyCount(thought.replyCount);
+    setLocalMyReaction(thought.myReactions[0] ?? null);
+    if (!blurred) setIsSpoilerRevealed(false);
+  }, [thought.reactionCount, thought.replyCount, thought.myReactions, blurred]);
 
   const handleReactionToggle = async (reactionType: string) => {
     const previousReaction = localMyReaction;
@@ -136,14 +146,22 @@ function ThoughtCard({
           </div>
 
           <div>
-            {blurred ? (
+            {shouldBlurSpoiler ? (
               <div className="mb-1">
                 <Badge variant="secondary" className="rounded-full bg-amber-500/15 text-[10px] text-amber-600 dark:text-amber-400">
                   Spoiler discussion
                 </Badge>
               </div>
             ) : null}
-            <p className={`text-[13px] text-foreground ${blurred ? "select-none blur-sm" : ""}`}>{thought.content}</p>
+            <button
+              type="button"
+              onClick={() => setIsSpoilerRevealed(true)}
+              className="w-full cursor-pointer text-left"
+            >
+              <p className={`text-[13px] text-foreground ${shouldBlurSpoiler ? "select-none blur-sm" : ""}`}>
+                {shouldBlurSpoiler ? "Tap to reveal spoiler comment" : thought.content}
+              </p>
+            </button>
           </div>
 
           <div className="space-y-2">
@@ -152,9 +170,9 @@ function ThoughtCard({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-7 cursor-pointer rounded-[20px] px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+            className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
             onClick={() => handleReactionToggle("like")}
-            disabled={addMutation.isPending || removeMutation.isPending || blurred}
+            disabled={addMutation.isPending || removeMutation.isPending || shouldBlurSpoiler}
           >
             <Smile className="h-3.5 w-3.5" /> {localReactionCount}
           </Button>
@@ -162,7 +180,7 @@ function ThoughtCard({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-7 cursor-pointer rounded-[20px] px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+            className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
             onClick={() => setShowReplies((v) => !v)}
           >
             <MessageCircle className="h-3.5 w-3.5" /> Reply ({localReplyCount})
@@ -180,7 +198,7 @@ function ThoughtCard({
                   selected ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground"
                 }`}
                 onClick={() => handleReactionToggle(reactionType)}
-                disabled={addMutation.isPending || removeMutation.isPending || blurred}
+                disabled={addMutation.isPending || removeMutation.isPending || shouldBlurSpoiler}
               >
                 {reactionType === "like" ? "👍" : reactionType}
               </button>
@@ -199,9 +217,10 @@ function ThoughtCard({
             const replyUser = reply.user.displayName || reply.user.username || "Unknown";
             const isOptimistic = String(reply.id).startsWith("temp-");
             return (
-              <div key={reply.id} className={`rounded-md bg-muted/25 px-2 py-1.5 ${isOptimistic ? "opacity-80" : ""}`}>
-                <p className="text-xs font-medium">{replyUser}</p>
-                <p className="text-xs text-muted-foreground">{reply.content}</p>
+              <div key={reply.id} className={`text-xs text-muted-foreground ${isOptimistic ? "opacity-80" : ""}`}>
+                <span className="font-medium text-foreground/90">{replyUser}</span>
+                <span className="mx-1">·</span>
+                <span>{reply.content}</span>
               </div>
             );
           })}
@@ -343,10 +362,10 @@ export default function WatchingDiscussionsSection({
       <div className="rounded-lg border border-border/60 bg-muted/20 p-3 dark:border-border/50 dark:bg-muted/10">
         <button
           type="button"
-          className="text-xs font-semibold uppercase tracking-wide text-muted-foreground cursor-pointer"
+          className="text-xs font-semibold tracking-wide text-muted-foreground cursor-pointer"
           onClick={() => setShowSpoilers((v) => !v)}
         >
-          SPOILER DISCUSSIONS - tap to reveal
+          Spoiler discussions - Tap to reveal
         </button>
         <div className="mt-3 space-y-3">
           {(data?.spoilerThoughts ?? []).map((thought) => (

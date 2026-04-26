@@ -198,6 +198,7 @@ export function useWatchingForTitle(tmdbId: number, mediaType: "movie" | "tv", e
     const channel = pusher.subscribe(channelName);
     const handleUpdate = () => {
       queryClient.invalidateQueries({ queryKey: ["watching-title", tmdbId, mediaType] });
+      queryClient.invalidateQueries({ queryKey: ["watching-thought-replies"] });
     };
 
     channel.bind(PUSHER_EVENTS.WATCHING_TITLE_UPDATED, handleUpdate);

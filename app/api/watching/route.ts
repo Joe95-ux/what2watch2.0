@@ -57,9 +57,76 @@ function isRequireUserFailure(result: RequireUserResult): result is Extract<Requ
   return result.ok === false;
 }
 
+type WatchedUpsertSession = {
+  userId: string;
+  tmdbId: number;
+  mediaType: string;
+  title: string;
+  posterPath: string | null;
+  backdropPath: string | null;
+};
+
+async function upsertWatchedTitle(
+  session: WatchedUpsertSession,
+  source: string,
+  seenAt: Date = new Date()
+): Promise<void> {
+  await db.watchedTitle.upsert({
+    where: {
+      userId_tmdbId_mediaType: {
+        userId: session.userId,
+        tmdbId: session.tmdbId,
+        mediaType: session.mediaType,
+      },
+    },
+    create: {
+      userId: session.userId,
+      tmdbId: session.tmdbId,
+      mediaType: session.mediaType,
+      title: session.title,
+      posterPath: session.posterPath ?? null,
+      backdropPath: session.backdropPath ?? null,
+      seenAt,
+      source,
+    },
+    update: {
+      title: session.title,
+      posterPath: session.posterPath ?? null,
+      backdropPath: session.backdropPath ?? null,
+      seenAt,
+      source,
+    },
+  });
+}
+
+async function upsertWatchedTitles(
+  sessions: WatchedUpsertSession[],
+  source: string,
+  seenAt: Date = new Date()
+): Promise<void> {
+  if (!sessions.length) return;
+  await Promise.all(sessions.map((session) => upsertWatchedTitle(session, source, seenAt)));
+}
+
 async function autoTimeoutWatchingSessions(userIds: string[]): Promise<void> {
   if (!userIds.length) return;
   const threshold = new Date(Date.now() - WATCHING_AUTO_TIMEOUT_MS);
+  const timeoutAt = new Date();
+  const staleSessions = await db.watchingSession.findMany({
+    where: {
+      userId: { in: userIds },
+      status: "WATCHING_NOW",
+      updatedAt: { lt: threshold },
+    },
+    select: {
+      userId: true,
+      tmdbId: true,
+      mediaType: true,
+      title: true,
+      posterPath: true,
+      backdropPath: true,
+    },
+  });
   await db.watchingSession.updateMany({
     where: {
       userId: { in: userIds },
@@ -68,9 +135,10 @@ async function autoTimeoutWatchingSessions(userIds: string[]): Promise<void> {
     },
     data: {
       status: "JUST_FINISHED",
-      endedAt: new Date(),
+      endedAt: timeoutAt,
     },
   });
+  await upsertWatchedTitles(staleSessions, "watching_timeout_finish", timeoutAt);
 }
 
 type SessionTitleMetadata = {
@@ -433,6 +501,18 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
           endedAt: autoFinishNow,
         },
       });
+      await upsertWatchedTitles(
+        watchingNowRaw.filter((session) => autoFinishSessionIds.includes(session.id)).map((session) => ({
+          userId: session.userId,
+          tmdbId: session.tmdbId,
+          mediaType: session.mediaType,
+          title: session.title,
+          posterPath: session.posterPath ?? null,
+          backdropPath: session.backdropPath ?? null,
+        })),
+        "watching_auto_finish",
+        autoFinishNow
+      );
 
       const autoFinishedSet = new Set(autoFinishSessionIds);
       const autoFinishedSessions = watchingNowRaw
@@ -662,6 +742,20 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
             isSpoiler: Boolean(body.spoiler),
           },
         });
+      }
+      if (nextStatus === "JUST_FINISHED") {
+        await upsertWatchedTitle(
+          {
+            userId: updated.userId,
+            tmdbId: updated.tmdbId,
+            mediaType: updated.mediaType,
+            title: updated.title,
+            posterPath: updated.posterPath ?? null,
+            backdropPath: updated.backdropPath ?? null,
+          },
+          "watching_finish",
+          updated.endedAt ?? new Date()
+        );
       }
       await Promise.all([
         triggerWatchingDashboardUpdated({ action: body.action, userId: currentUser.id }),

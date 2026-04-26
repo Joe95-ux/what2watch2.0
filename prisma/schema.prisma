@@ -162,6 +162,7 @@ model User {
   followedActivities Activity[] @relation("UserFollowedActivities")
   activityLikes ActivityLike[]
   watchingSessions WatchingSession[]
+  watchedTitles WatchedTitle[]
   watchingThoughts WatchingThought[]
   watchingThoughtReactions WatchingThoughtReaction[]
   watchingThoughtReplies WatchingThoughtReply[]
@@ -1375,6 +1376,27 @@ model WatchingThoughtReply {
   @@map("watching_thought_replies")
   @@index([thoughtId, createdAt])
   @@index([userId, createdAt])
+}
+
+model WatchedTitle {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tmdbId        Int
+  mediaType     String   // "movie" or "tv"
+  title         String
+  posterPath    String?
+  backdropPath  String?
+  seenAt        DateTime @default(now())
+  source        String?  // e.g. "watching_finish", "watching_auto_finish"
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("watched_titles")
+  @@unique([userId, tmdbId, mediaType])
+  @@index([userId, seenAt])
 }
 
 // Activity likes - users can like activities in the feed

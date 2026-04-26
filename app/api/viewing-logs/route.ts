@@ -133,6 +133,34 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       },
     });
 
+    // Logged titles are always watched, but watched titles are not diary logs.
+    await db.watchedTitle.upsert({
+      where: {
+        userId_tmdbId_mediaType: {
+          userId: user.id,
+          tmdbId,
+          mediaType,
+        },
+      },
+      create: {
+        userId: user.id,
+        tmdbId,
+        mediaType,
+        title,
+        posterPath: posterPath || null,
+        backdropPath: backdropPath || null,
+        seenAt: watchedDate,
+        source: "diary_log",
+      },
+      update: {
+        title,
+        posterPath: posterPath || null,
+        backdropPath: backdropPath || null,
+        seenAt: watchedDate,
+        source: "diary_log",
+      },
+    });
+
     // Create or update review if notes are provided
     if (notes && notes.trim().length > 0) {
       try {
