@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   WatchingDashboardResponse,
@@ -5,6 +6,12 @@ import type {
   WatchingTitlePresenceResponse,
   WatchingVisibility,
 } from "@/lib/watching-types";
+import { getPusherClient } from "@/lib/pusher/client";
+import {
+  getWatchingDashboardChannelName,
+  getWatchingTitleChannelName,
+  PUSHER_EVENTS,
+} from "@/lib/pusher/channels";
 
 type WatchingActionBody =
   | {
@@ -151,6 +158,26 @@ async function removeThoughtReaction({
 }
 
 export function useWatchingDashboard(enabled = true) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!enabled) return;
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channelName = getWatchingDashboardChannelName();
+    const channel = pusher.subscribe(channelName);
+    const handleUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+    };
+
+    channel.bind(PUSHER_EVENTS.WATCHING_DASHBOARD_UPDATED, handleUpdate);
+    return () => {
+      channel.unbind(PUSHER_EVENTS.WATCHING_DASHBOARD_UPDATED, handleUpdate);
+      pusher.unsubscribe(channelName);
+    };
+  }, [enabled, queryClient]);
+
   return useQuery({
     queryKey: ["watching-dashboard"],
     queryFn: fetchWatchingDashboard,
@@ -160,6 +187,26 @@ export function useWatchingDashboard(enabled = true) {
 }
 
 export function useWatchingForTitle(tmdbId: number, mediaType: "movie" | "tv", enabled = true) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!enabled || tmdbId <= 0) return;
+    const pusher = getPusherClient();
+    if (!pusher) return;
+
+    const channelName = getWatchingTitleChannelName(mediaType, tmdbId);
+    const channel = pusher.subscribe(channelName);
+    const handleUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["watching-title", tmdbId, mediaType] });
+    };
+
+    channel.bind(PUSHER_EVENTS.WATCHING_TITLE_UPDATED, handleUpdate);
+    return () => {
+      channel.unbind(PUSHER_EVENTS.WATCHING_TITLE_UPDATED, handleUpdate);
+      pusher.unsubscribe(channelName);
+    };
+  }, [enabled, mediaType, queryClient, tmdbId]);
+
   return useQuery({
     queryKey: ["watching-title", tmdbId, mediaType],
     queryFn: () => fetchWatchingForTitle(tmdbId, mediaType),

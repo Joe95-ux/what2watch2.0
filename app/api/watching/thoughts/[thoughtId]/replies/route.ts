@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { moderateContent } from "@/lib/moderation";
+import {
+  triggerUserNotificationsChanged,
+  triggerWatchingTitleUpdated,
+} from "@/lib/pusher/server";
+import { publishUserNotification } from "@/lib/pusher/beams-server";
 
 type RequireUserIdResult =
   | { ok: true; userId: string }
@@ -70,7 +75,14 @@ export async function POST(
       return NextResponse.json({ error: moderation.error || "Reply does not meet content guidelines." }, { status: 400 });
     }
 
-    const thought = await db.watchingThought.findUnique({ where: { id: thoughtId }, select: { id: true } });
+    const thought = await db.watchingThought.findUnique({
+      where: { id: thoughtId },
+      select: {
+        id: true,
+        userId: true,
+        session: { select: { tmdbId: true, mediaType: true, title: true } },
+      },
+    });
     if (!thought) return NextResponse.json({ error: "Thought not found" }, { status: 404 });
 
     const reply = await db.watchingThoughtReply.create({
@@ -90,6 +102,46 @@ export async function POST(
         },
       },
     });
+    await triggerWatchingTitleUpdated(thought.session.mediaType as "movie" | "tv", thought.session.tmdbId, {
+      action: "thought_replied",
+      thoughtId,
+      actorId: authResult.userId,
+    });
+
+    if (thought.userId !== authResult.userId) {
+      const actor = await db.user.findUnique({
+        where: { id: authResult.userId },
+        select: { username: true, displayName: true },
+      });
+      const actorName = actor?.displayName || actor?.username || "Someone";
+      await db.generalNotification.create({
+        data: {
+          userId: thought.userId,
+          type: "ACTIVITY_LIKED",
+          title: "New reply on your thought",
+          message: `${actorName} replied to your thought on ${thought.session.title}`,
+          linkUrl: "/dashboard/watching",
+          metadata: {
+            thoughtId,
+            replyId: reply.id,
+            actorId: authResult.userId,
+            tmdbId: thought.session.tmdbId,
+            mediaType: thought.session.mediaType,
+          },
+        },
+      });
+      await triggerUserNotificationsChanged([thought.userId], "general", {
+        source: "watching-thought-reply",
+        thoughtId,
+      });
+      await publishUserNotification({
+        userIds: [thought.userId],
+        title: "New reply on your thought",
+        body: `${actorName} replied to your thought on ${thought.session.title}`,
+        linkUrl: "/dashboard/watching",
+        data: { thoughtId, replyId: reply.id },
+      });
+    }
     return NextResponse.json({ success: true, reply });
   } catch (error) {
     console.error("watching thought replies POST error:", error);

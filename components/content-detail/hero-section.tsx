@@ -290,30 +290,30 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
         <div className="flex flex-col gap-4">
           <div className="mt-[14px] flex flex-col gap-3 md:mt-0 md:flex-row md:items-start md:justify-between">
             {titleWatchingData && titleWatchingData.watcherCount > 0 ? (
-              <div className="rounded-xl border border-border bg-card/80 px-3 py-2">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Watching now</p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <div className="flex -space-x-2">
-                        {titleWatchingData.watchers.slice(0, 5).map((watcher) => {
-                          const label = watcher.user.displayName || watcher.user.username || "U";
-                          return (
-                            <Avatar key={watcher.sessionId} className="h-6 w-6 border border-background">
-                              <AvatarImage src={watcher.user.avatarUrl ?? undefined} alt={label} />
-                              <AvatarFallback className="text-[10px]">{label[0]}</AvatarFallback>
-                            </Avatar>
-                          );
-                        })}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {titleWatchingData.watcherCount} {titleWatchingData.watcherCount === 1 ? "person" : "people"} watching right now
-                      </p>
+              <div className="w-full max-w-[420px] rounded-xl bg-muted px-4 py-3">
+                <p className="border-b border-border/50 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Watching now
+                </p>
+                <div className="mt-3 flex items-center justify-between gap-6">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex -space-x-2">
+                      {titleWatchingData.watchers.slice(0, 5).map((watcher) => {
+                        const label = watcher.user.displayName || watcher.user.username || "U";
+                        return (
+                          <Avatar key={watcher.sessionId} className="h-7 w-7 border border-background">
+                            <AvatarImage src={watcher.user.avatarUrl ?? undefined} alt={label} />
+                            <AvatarFallback className="text-[10px]">{label[0]}</AvatarFallback>
+                          </Avatar>
+                        );
+                      })}
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      {titleWatchingData.watcherCount} {titleWatchingData.watcherCount === 1 ? "person" : "people"} watching right now
+                    </p>
                   </div>
                   <Button
                     size="sm"
-                    className="h-8 cursor-pointer rounded-[20px]"
+                    className="h-8 shrink-0 cursor-pointer rounded-[20px]"
                     variant={titleWatchingData.isCurrentUserWatching ? "outline" : "default"}
                     disabled={watchingMutation.isPending || titleWatchingData.isCurrentUserWatching}
                     onClick={handleWatchingToo}

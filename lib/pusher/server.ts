@@ -11,6 +11,8 @@ import {
   getReviewsChannelName,
   getUserChannelName,
   getViewingLogCommentsChannelName,
+  getWatchingDashboardChannelName,
+  getWatchingTitleChannelName,
   PUSHER_EVENTS,
 } from "@/lib/pusher/channels";
 
@@ -187,5 +189,25 @@ export async function triggerYouTubeListAnalyticsUpdated(ownerId: string, payloa
     getUserChannelName(ownerId),
     PUSHER_EVENTS.YOUTUBE_LIST_ANALYTICS_UPDATED,
     { ownerId, ...payload }
+  );
+}
+
+export async function triggerWatchingDashboardUpdated(payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getWatchingDashboardChannelName(),
+    PUSHER_EVENTS.WATCHING_DASHBOARD_UPDATED,
+    payload
+  );
+}
+
+export async function triggerWatchingTitleUpdated(
+  mediaType: "movie" | "tv",
+  tmdbId: number,
+  payload: Record<string, unknown> = {}
+) {
+  await triggerChannelEvent(
+    getWatchingTitleChannelName(mediaType, tmdbId),
+    PUSHER_EVENTS.WATCHING_TITLE_UPDATED,
+    { mediaType, tmdbId, ...payload }
   );
 }

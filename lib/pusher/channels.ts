@@ -14,6 +14,8 @@ export const PUSHER_EVENTS = {
   GENERAL_NOTIFICATIONS_CHANGED: "notifications.general.changed",
   FORUM_NOTIFICATIONS_CHANGED: "notifications.forum.changed",
   YOUTUBE_NOTIFICATIONS_CHANGED: "notifications.youtube.changed",
+  WATCHING_DASHBOARD_UPDATED: "watching.dashboard.updated",
+  WATCHING_TITLE_UPDATED: "watching.title.updated",
 } as const;
 
 export function getForumPostChannelName(postId: string) {
@@ -58,4 +60,12 @@ export function getListCommentsChannelName(listId: string) {
 
 export function getViewingLogCommentsChannelName(logId: string) {
   return `viewing-log-comments-${logId}`;
+}
+
+export function getWatchingDashboardChannelName() {
+  return "watching-dashboard-global";
+}
+
+export function getWatchingTitleChannelName(mediaType: "movie" | "tv", tmdbId: number) {
+  return `watching-title-${mediaType}-${tmdbId}`;
 }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import type { WatchingDashboardResponse, WatchingSessionDTO, WatchingTitlePresenceResponse } from "@/lib/watching-types";
+import { triggerWatchingDashboardUpdated, triggerWatchingTitleUpdated } from "@/lib/pusher/server";
+import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
 
 const WATCHING_AUTO_TIMEOUT_MS = 1000 * 60 * 60 * 4; // 4 hours
 
@@ -71,6 +73,54 @@ async function autoTimeoutWatchingSessions(userIds: string[]): Promise<void> {
   });
 }
 
+type SessionTitleMetadata = {
+  releaseYear: number | null;
+  creatorOrDirector: string | null;
+};
+
+async function buildSessionMetadataMap(
+  sessions: Array<{ tmdbId: number; mediaType: "movie" | "tv" }>
+): Promise<Map<string, SessionTitleMetadata>> {
+  const uniqueKeys = new Set<string>();
+  for (const session of sessions) {
+    uniqueKeys.add(`${session.mediaType}:${session.tmdbId}`);
+  }
+
+  const map = new Map<string, SessionTitleMetadata>();
+  await Promise.all(
+    Array.from(uniqueKeys).map(async (key) => {
+      const [mediaType, idRaw] = key.split(":");
+      const tmdbId = Number(idRaw);
+      try {
+        if (mediaType === "movie") {
+          const details = await getMovieDetails(tmdbId);
+          const releaseYear = details.release_date ? Number(details.release_date.slice(0, 4)) : null;
+          const crew = (details as { credits?: { crew?: Array<{ job?: string; name?: string }> } }).credits?.crew ?? [];
+          const director =
+            crew.find((member) => member.job === "Director")?.name ??
+            crew.find((member) => member.job === "Co-Director")?.name ??
+            null;
+          map.set(key, { releaseYear: Number.isFinite(releaseYear) ? releaseYear : null, creatorOrDirector: director });
+          return;
+        }
+
+        if (mediaType === "tv") {
+          const details = await getTVDetails(tmdbId);
+          const releaseYear = details.first_air_date ? Number(details.first_air_date.slice(0, 4)) : null;
+          const creators = (details as { created_by?: Array<{ name?: string }> }).created_by ?? [];
+          const creator = creators[0]?.name ?? null;
+          map.set(key, { releaseYear: Number.isFinite(releaseYear) ? releaseYear : null, creatorOrDirector: creator });
+        }
+      } catch (error) {
+        console.warn(`watching metadata fetch failed for ${key}:`, error);
+        map.set(key, { releaseYear: null, creatorOrDirector: null });
+      }
+    })
+  );
+
+  return map;
+}
+
 function toSessionDTO(
   session: {
     id: string;
@@ -95,8 +145,11 @@ function toSessionDTO(
       createdAt: Date;
       user: { id: string; username: string | null; displayName: string | null; avatarUrl: string | null };
     }>;
-  }
+  },
+  metadataByTitle?: Map<string, SessionTitleMetadata>
 ): WatchingSessionDTO {
+  const metaKey = `${session.mediaType}:${session.tmdbId}`;
+  const metadata = metadataByTitle?.get(metaKey);
   return {
     id: session.id,
     userId: session.userId,
@@ -105,6 +158,8 @@ function toSessionDTO(
     title: session.title,
     posterPath: session.posterPath,
     backdropPath: session.backdropPath,
+    releaseYear: metadata?.releaseYear ?? null,
+    creatorOrDirector: metadata?.creatorOrDirector ?? null,
     status: session.status,
     visibility: session.visibility,
     progressPercent: session.progressPercent,
@@ -161,12 +216,14 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
           session: {
             tmdbId,
             mediaType: mediaTypeParam,
-            status: "JUST_FINISHED",
+            status: {
+              in: ["WATCHING_NOW", "JUST_FINISHED"],
+            },
           },
         },
         include: {
           user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
-          session: { select: { id: true } },
+          session: { select: { id: true, status: true } },
         },
         orderBy: { createdAt: "desc" },
         take: 60,
@@ -231,6 +288,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
             reactionCount: reactionCountMap.get(thought.id) ?? 0,
             replyCount: replyCountMap.get(thought.id) ?? 0,
             myReactions: myReactionsMap.get(thought.id) ?? [],
+            sessionStatus: thought.session.status,
             user: thought.user,
           })),
         spoilerThoughts: thoughts
@@ -245,6 +303,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
             reactionCount: reactionCountMap.get(thought.id) ?? 0,
             replyCount: replyCountMap.get(thought.id) ?? 0,
             myReactions: myReactionsMap.get(thought.id) ?? [],
+            sessionStatus: thought.session.status,
             user: thought.user,
           })),
       });
@@ -261,6 +320,10 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
     const followingIds = followRows.map((f) => f.followingId);
     const networkIds = [currentUser.id, ...followingIds];
     await autoTimeoutWatchingSessions(networkIds);
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date();
+    dayEnd.setHours(23, 59, 59, 999);
 
     const [currentSessionRaw, watchingNowRaw, justFinishedRaw] = await Promise.all([
       db.watchingSession.findFirst({
@@ -279,6 +342,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
         where: {
           status: "WATCHING_NOW",
           userId: { in: networkIds },
+          startedAt: { gte: dayStart, lte: dayEnd },
           OR: [
             { visibility: "PUBLIC" },
             { visibility: "FOLLOWERS_ONLY", userId: { in: followingIds } },
@@ -300,7 +364,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
         where: {
           status: "JUST_FINISHED",
           userId: { in: networkIds },
-          createdAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 48) },
+          endedAt: { gte: dayStart, lte: dayEnd },
           OR: [
             { visibility: "PUBLIC" },
             { visibility: "FOLLOWERS_ONLY", userId: { in: followingIds } },
@@ -320,9 +384,21 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
       }),
     ]);
 
-    const currentSession = currentSessionRaw ? toSessionDTO(currentSessionRaw) : null;
-    const watchingNow = watchingNowRaw.map(toSessionDTO);
-    const justFinished = justFinishedRaw.map(toSessionDTO);
+    const allSessionsRaw = [
+      ...(currentSessionRaw ? [currentSessionRaw] : []),
+      ...watchingNowRaw,
+      ...justFinishedRaw,
+    ];
+    const metadataByTitle = await buildSessionMetadataMap(
+      allSessionsRaw.map((session) => ({
+        tmdbId: session.tmdbId,
+        mediaType: session.mediaType as "movie" | "tv",
+      }))
+    );
+
+    const currentSession = currentSessionRaw ? toSessionDTO(currentSessionRaw, metadataByTitle) : null;
+    const watchingNow = watchingNowRaw.map((session) => toSessionDTO(session, metadataByTitle));
+    const justFinished = justFinishedRaw.map((session) => toSessionDTO(session, metadataByTitle));
 
     const alsoWatchingCurrent = currentSession
       ? watchingNow.filter(
@@ -333,7 +409,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
         )
       : [];
 
-    const trendingMap = new Map<string, { tmdbId: number; mediaType: "movie" | "tv"; title: string; posterPath: string | null; watchingCount: number }>();
+    const trendingMap = new Map<string, { tmdbId: number; mediaType: "movie" | "tv"; title: string; posterPath: string | null; releaseYear: number | null; watchingCount: number }>();
     for (const session of watchingNow) {
       const key = `${session.mediaType}:${session.tmdbId}`;
       const prev = trendingMap.get(key);
@@ -343,6 +419,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
           mediaType: session.mediaType,
           title: session.title,
           posterPath: session.posterPath,
+          releaseYear: session.releaseYear,
           watchingCount: 1,
         });
       } else {
@@ -351,7 +428,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
     }
     const trendingTonight = Array.from(trendingMap.values())
       .sort((a, b) => b.watchingCount - a.watchingCount || a.title.localeCompare(b.title))
-      .slice(0, 8);
+      .slice(0, 5);
 
     return NextResponse.json({
       currentSession,
@@ -427,6 +504,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
           },
         },
       });
+      await Promise.all([
+        triggerWatchingDashboardUpdated({ action: "start", userId: currentUser.id }),
+        triggerWatchingTitleUpdated(created.mediaType as "movie" | "tv", created.tmdbId, {
+          action: "start",
+          userId: currentUser.id,
+        }),
+      ]);
       return NextResponse.json({ session: toSessionDTO(created) });
     }
 
@@ -448,13 +532,20 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
           },
         },
       });
+      await Promise.all([
+        triggerWatchingDashboardUpdated({ action: "update_progress", userId: currentUser.id }),
+        triggerWatchingTitleUpdated(updated.mediaType as "movie" | "tv", updated.tmdbId, {
+          action: "update_progress",
+          userId: currentUser.id,
+        }),
+      ]);
       return NextResponse.json({ session: toSessionDTO(updated) });
     }
 
     if (body.action === "share_thought") {
       const session = await db.watchingSession.findFirst({
         where: { id: body.sessionId, userId: currentUser.id, status: "WATCHING_NOW" },
-        select: { id: true },
+        select: { id: true, tmdbId: true, mediaType: true },
       });
       if (!session) return NextResponse.json({ error: "Active session not found" }, { status: 404 });
 
@@ -470,6 +561,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
           isSpoiler: Boolean(body.spoiler),
         },
       });
+      await Promise.all([
+        triggerWatchingDashboardUpdated({ action: "share_thought", userId: currentUser.id }),
+        triggerWatchingTitleUpdated(session.mediaType as "movie" | "tv", session.tmdbId, {
+          action: "share_thought",
+          userId: currentUser.id,
+        }),
+      ]);
       return NextResponse.json({ success: true });
     }
 
@@ -503,6 +601,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
           },
         });
       }
+      await Promise.all([
+        triggerWatchingDashboardUpdated({ action: body.action, userId: currentUser.id }),
+        triggerWatchingTitleUpdated(updated.mediaType as "movie" | "tv", updated.tmdbId, {
+          action: body.action,
+          userId: currentUser.id,
+        }),
+      ]);
       return NextResponse.json({ session: toSessionDTO(updated) });
     }
 

@@ -61,6 +61,7 @@ import { useWatchlist } from "@/hooks/use-watchlist";
 import { usePlaylists } from "@/hooks/use-playlists";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useWatchingDashboard } from "@/hooks/use-watching";
 import { useAvatar } from "@/contexts/avatar-context";
 import { useClerk } from "@clerk/nextjs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -109,12 +110,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   // Admin links visibility
   const isAdmin = currentUser?.isForumAdmin || currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN";
+  const { data: watchingDashboard } = useWatchingDashboard(Boolean(isAdmin));
+  const watchingBadgeCount = watchingDashboard?.watchingNow?.length ?? 0;
 
   // User links
   const userLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/dashboard/activity", label: "Activity", icon: Activity },
-    ...(isAdmin ? [{ href: "/dashboard/watching", label: "Watching", icon: Radio }] : []),
+    ...(isAdmin ? [{ href: "/dashboard/watching", label: "Watching", icon: Radio, badge: watchingBadgeCount }] : []),
     { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
     { href: "/dashboard/my-list", label: "My List", icon: Heart, badge: favorites.length },
     { href: "/dashboard/watchlist", label: "Watchlist", icon: Bookmark, badge: watchlist.length },

@@ -36,6 +36,19 @@ type ApiPicks = {
 type RerankMode = "lighter" | "shorter" | "intense" | "different";
 type ExploreViewMode = "cards" | "table";
 type PendingMode = RerankMode | "base" | null;
+const PICK_CACHE_KEY = "pick-for-tonight-cache-v1";
+
+type PickCachePayload = {
+  dayKey: string;
+  onlyUnseen: boolean;
+  trendingToday: boolean;
+  data: ApiPicks | null;
+  insufficientMessage: string | null;
+};
+
+function getDayKey(date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
 
 export function usePickForTonight() {
   const [showRow, setShowRow] = useState(false);
@@ -47,13 +60,56 @@ export function usePickForTonight() {
   const [onlyUnseen, setOnlyUnseen] = useState(true);
   const [trendingToday, setTrendingToday] = useState(false);
   const pickInFlightRef = useRef(false);
+  const hydratedFromCacheRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(PICK_CACHE_KEY);
+      if (!raw) return;
+      const cached = JSON.parse(raw) as PickCachePayload;
+      if (cached.dayKey !== getDayKey()) return;
+      setOnlyUnseen(cached.onlyUnseen);
+      setTrendingToday(cached.trendingToday);
+      setData(cached.data);
+      setInsufficientMessage(cached.insufficientMessage);
+      setShowRow(Boolean(cached.data?.picks?.length || cached.insufficientMessage));
+      hydratedFromCacheRef.current = true;
+    } catch {
+      // ignore stale/invalid cache payload
+    }
+  }, []);
 
   const runPick = useCallback(
     async (options?: { onlyUnseen?: boolean; trendingToday?: boolean; rerankMode?: RerankMode; avoidTmdbId?: number }) => {
       if (pickInFlightRef.current) return;
-      pickInFlightRef.current = true;
       const unseenFlag = options?.onlyUnseen !== undefined ? options.onlyUnseen : onlyUnseen;
       const trendingFlag = options?.trendingToday !== undefined ? options.trendingToday : trendingToday;
+      const hasRerank = typeof options?.rerankMode === "string";
+      const hasAvoid = typeof options?.avoidTmdbId === "number";
+      if (!hasRerank && !hasAvoid && typeof window !== "undefined") {
+        try {
+          const raw = window.localStorage.getItem(PICK_CACHE_KEY);
+          if (raw) {
+            const cached = JSON.parse(raw) as PickCachePayload;
+            if (
+              cached.dayKey === getDayKey() &&
+              cached.onlyUnseen === unseenFlag &&
+              cached.trendingToday === trendingFlag &&
+              (cached.data?.picks?.length || cached.insufficientMessage)
+            ) {
+              setShowRow(true);
+              setLoading(false);
+              setData(cached.data);
+              setInsufficientMessage(cached.insufficientMessage);
+              return;
+            }
+          }
+        } catch {
+          // ignore stale/invalid cache payload
+        }
+      }
+      pickInFlightRef.current = true;
       setShowRow(true);
       setLoading(true);
       setData(null);
@@ -86,12 +142,34 @@ export function usePickForTonight() {
         }
 
         if (json.insufficientContext) {
-          setInsufficientMessage(json.message || "Add titles to your library first.");
+          const nextMessage = json.message || "Add titles to your library first.";
+          setInsufficientMessage(nextMessage);
+          if (typeof window !== "undefined") {
+            const payload: PickCachePayload = {
+              dayKey: getDayKey(),
+              onlyUnseen: unseenFlag,
+              trendingToday: trendingFlag,
+              data: null,
+              insufficientMessage: nextMessage,
+            };
+            window.localStorage.setItem(PICK_CACHE_KEY, JSON.stringify(payload));
+          }
           return;
         }
 
         if (json.picks) {
-          setData(json as ApiPicks);
+          const nextData = json as ApiPicks;
+          setData(nextData);
+          if (typeof window !== "undefined") {
+            const payload: PickCachePayload = {
+              dayKey: getDayKey(),
+              onlyUnseen: unseenFlag,
+              trendingToday: trendingFlag,
+              data: nextData,
+              insufficientMessage: null,
+            };
+            window.localStorage.setItem(PICK_CACHE_KEY, JSON.stringify(payload));
+          }
           return;
         }
 
@@ -118,6 +196,7 @@ export function usePickForTonight() {
     setOnlyUnseen,
     trendingToday,
     setTrendingToday,
+    hydratedFromCache: hydratedFromCacheRef.current,
   };
 }
 

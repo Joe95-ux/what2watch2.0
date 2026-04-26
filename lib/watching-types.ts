@@ -23,6 +23,8 @@ export type WatchingSessionDTO = {
   title: string;
   posterPath: string | null;
   backdropPath: string | null;
+  releaseYear: number | null;
+  creatorOrDirector: string | null;
   status: WatchingStatus;
   visibility: WatchingVisibility;
   progressPercent: number | null;
@@ -49,6 +51,7 @@ export type WatchingDashboardResponse = {
     mediaType: WatchingMediaType;
     title: string;
     posterPath: string | null;
+    releaseYear: number | null;
     watchingCount: number;
   }>;
 };
@@ -79,6 +82,7 @@ export type WatchingTitlePresenceResponse = {
     reactionCount: number;
     replyCount: number;
     myReactions: string[];
+    sessionStatus: WatchingStatus;
     user: {
       id: string;
       username: string | null;
@@ -95,6 +99,7 @@ export type WatchingTitlePresenceResponse = {
     reactionCount: number;
     replyCount: number;
     myReactions: string[];
+    sessionStatus: WatchingStatus;
     user: {
       id: string;
       username: string | null;
