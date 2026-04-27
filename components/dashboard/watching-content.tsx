@@ -2775,11 +2775,11 @@ export default function WatchingContent() {
       seasonNumber?: number | null;
       episodeNumber?: number | null;
     }
-  ) => {
+  ): Promise<boolean> => {
     const pick = overridePick ?? selectedPick;
     if (!pick) {
       toast.error("Search and pick a movie or TV show to start.");
-      return;
+      return false;
     }
     const parsedSeason =
       pick.mediaType === "tv" ? Number.parseInt(selectedSeasonNumber, 10) : NaN;
@@ -2827,8 +2827,10 @@ export default function WatchingContent() {
       setThoughtText("");
       setSpoilerMode(false);
       setIsChangingTitle(false);
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to start session");
+      return false;
     }
   };
 
@@ -3277,7 +3279,10 @@ export default function WatchingContent() {
                     <Button
                       type="button"
                       size="sm"
-                      onClick={() => setSearchModalOpen(false)}
+                      onClick={async () => {
+                        const started = await submitStartWatching();
+                        if (started) setSearchModalOpen(false);
+                      }}
                       disabled={
                         !Number.isInteger(Number.parseInt(selectedSeasonNumber, 10)) ||
                         Number.parseInt(selectedSeasonNumber, 10) <= 0 ||
