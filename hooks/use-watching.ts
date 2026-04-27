@@ -95,6 +95,26 @@ type WatchingThoughtReply = {
   };
 };
 
+type UpdateThoughtPayload = {
+  thoughtId: string;
+  content: string;
+};
+
+type DeleteThoughtPayload = {
+  thoughtId: string;
+};
+
+type UpdateReplyPayload = {
+  thoughtId: string;
+  replyId: string;
+  content: string;
+};
+
+type DeleteReplyPayload = {
+  thoughtId: string;
+  replyId: string;
+};
+
 async function fetchThoughtReplies(thoughtId: string): Promise<WatchingThoughtReply[]> {
   const res = await fetch(`/api/watching/thoughts/${thoughtId}/replies`);
   if (!res.ok) {
@@ -142,6 +162,50 @@ async function addThoughtReaction({
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || "Failed to add reaction");
+  }
+}
+
+async function updateThought({ thoughtId, content }: UpdateThoughtPayload): Promise<void> {
+  const res = await fetch(`/api/watching/thoughts/${thoughtId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to update thought");
+  }
+}
+
+async function deleteThought({ thoughtId }: DeleteThoughtPayload): Promise<void> {
+  const res = await fetch(`/api/watching/thoughts/${thoughtId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to delete thought");
+  }
+}
+
+async function updateThoughtReply({ thoughtId, replyId, content }: UpdateReplyPayload): Promise<void> {
+  const res = await fetch(`/api/watching/thoughts/${thoughtId}/replies/${replyId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to update reply");
+  }
+}
+
+async function deleteThoughtReply({ thoughtId, replyId }: DeleteReplyPayload): Promise<void> {
+  const res = await fetch(`/api/watching/thoughts/${thoughtId}/replies/${replyId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to delete reply");
   }
 }
 
@@ -256,6 +320,54 @@ export function useWatchingThoughtReaction() {
     },
   });
   return { addMutation, removeMutation };
+}
+
+export function useUpdateWatchingThought() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateThought,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["watching-title"] });
+      queryClient.invalidateQueries({ queryKey: ["watching-thought-replies"] });
+    },
+  });
+}
+
+export function useDeleteWatchingThought() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteThought,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["watching-title"] });
+      queryClient.invalidateQueries({ queryKey: ["watching-thought-replies"] });
+    },
+  });
+}
+
+export function useUpdateWatchingThoughtReply() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateThoughtReply,
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["watching-thought-replies", variables.thoughtId] });
+      queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["watching-title"] });
+    },
+  });
+}
+
+export function useDeleteWatchingThoughtReply() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteThoughtReply,
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["watching-thought-replies", variables.thoughtId] });
+      queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["watching-title"] });
+    },
+  });
 }
 
 export function useWatchingMutation() {

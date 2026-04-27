@@ -15,15 +15,22 @@ import {
   Pause,
   PlayCircle,
   Plus,
+  MoreHorizontal,
   Reply,
   Square,
   Smile,
+  Pencil,
   ThumbsUp,
+  Trash2,
   X,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import {
   useAddWatchingThoughtReply,
+  useDeleteWatchingThought,
+  useDeleteWatchingThoughtReply,
+  useUpdateWatchingThought,
+  useUpdateWatchingThoughtReply,
   useWatchingDashboard,
   useWatchingMutation,
   useWatchingThoughtReaction,
@@ -44,6 +51,22 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -67,6 +90,7 @@ type WatchingFeedCard = {
   thought?: string;
   comments: Array<{
     id: string;
+    userId: string;
     content: string;
     isSpoiler: boolean;
     createdAt: string;
@@ -106,6 +130,7 @@ type WatchingNowRoomCard = {
   featuredThought: WatchingFeedCard["comments"][number] | null;
   thoughts: WatchingFeedCard["comments"];
   thoughtCount: number;
+  reactionCount: number;
   primaryThoughtId: string | null;
 };
 
@@ -128,6 +153,7 @@ type JustFinishedRoomCard = {
     avatar: string | null;
   }>;
   thoughts: WatchingFeedCard["comments"];
+  reactionCount: number;
 };
 
 const COMMENT_EMOJI_REACTIONS = ["like", "🔥", "😂", "😮", "😭"] as const;
@@ -178,6 +204,7 @@ const toFeedCard = (session: WatchingSessionDTO): WatchingFeedCard => {
   const thought = session.thoughts[0]?.content;
   const mappedComments = session.thoughts.slice(1).map((entry) => ({
     id: entry.id,
+    userId: entry.user.id,
     content: entry.content,
     isSpoiler: entry.isSpoiler,
     createdAt: entry.createdAt,
@@ -233,10 +260,12 @@ function JustFinishedComment({
   comment,
   showBorder,
   parentThoughtId,
+  currentUserId,
 }: {
   comment: WatchingFeedCard["comments"][number];
   showBorder: boolean;
   parentThoughtId?: string | null;
+  currentUserId?: string | null;
 }) {
   const [isSpoilerRevealed, setIsSpoilerRevealed] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
@@ -245,15 +274,25 @@ function JustFinishedComment({
   const [replyParentId, setReplyParentId] = useState<string | null>(null);
   const [localReactionCount, setLocalReactionCount] = useState(comment.reactionCount);
   const [localMyReactions, setLocalMyReactions] = useState<string[]>(comment.myReactions ?? []);
+  const [editText, setEditText] = useState(comment.content);
+  const [isEditing, setIsEditing] = useState(false);
+  const [replyEditState, setReplyEditState] = useState<{ id: string; content: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "thought" | "reply"; id: string } | null>(null);
   const thoughtIdForThread = parentThoughtId ?? comment.id;
   const { data: replies } = useWatchingThoughtReplies(thoughtIdForThread, true);
   const addReply = useAddWatchingThoughtReply();
   const { addMutation, removeMutation } = useWatchingThoughtReaction();
+  const updateThoughtMutation = useUpdateWatchingThought();
+  const deleteThoughtMutation = useDeleteWatchingThought();
+  const updateReplyMutation = useUpdateWatchingThoughtReply();
+  const deleteReplyMutation = useDeleteWatchingThoughtReply();
 
   useEffect(() => {
     setLocalReactionCount(comment.reactionCount);
     setLocalMyReactions(comment.myReactions ?? []);
+    setEditText(comment.content);
   }, [comment.reactionCount, comment.myReactions]);
+  const canManageComment = !!currentUserId && comment.userId === currentUserId;
 
   const submitReply = async () => {
     const text = replyText.trim();
@@ -310,121 +349,235 @@ function JustFinishedComment({
     : Math.max(comment.replyCount, replies?.length ?? 0);
   const isLive = comment.sessionStatus === "WATCHING_NOW";
 
+  const submitThoughtEdit = async () => {
+    const content = editText.trim();
+    if (!content) return;
+    try {
+      await updateThoughtMutation.mutateAsync({ thoughtId: comment.id, content });
+      setIsEditing(false);
+      toast.success("Comment updated.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update comment");
+    }
+  };
+
+  const submitReplyEdit = async () => {
+    if (!replyEditState) return;
+    const content = replyEditState.content.trim();
+    if (!content) return;
+    try {
+      await updateReplyMutation.mutateAsync({
+        thoughtId: thoughtIdForThread,
+        replyId: replyEditState.id,
+        content,
+      });
+      setReplyEditState(null);
+      toast.success("Reply updated.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update reply");
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      if (deleteTarget.type === "thought") {
+        await deleteThoughtMutation.mutateAsync({ thoughtId: comment.id });
+        toast.success("Comment deleted.");
+      } else {
+        await deleteReplyMutation.mutateAsync({
+          thoughtId: thoughtIdForThread,
+          replyId: deleteTarget.id,
+        });
+        toast.success("Reply deleted.");
+      }
+      setDeleteTarget(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete item");
+    }
+  };
+
   return (
     <div className={cn("px-[14px] py-[13px]", showBorder ? "border-b border-border/60 dark:border-border/50" : "")}>
-      <div className="mb-1.5 flex items-center gap-[10px]">
-        <Avatar className="h-7 w-7 shrink-0">
+      <div className="flex items-start gap-[10px]">
+        <Avatar className="mt-0.5 h-7 w-7 shrink-0">
           <AvatarImage src={comment.avatar ?? undefined} alt={comment.user} />
           <AvatarFallback>{comment.user[0]}</AvatarFallback>
         </Avatar>
-        <div className="min-w-0 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
-          <span className="truncate text-[13px] font-medium text-foreground">{comment.user}</span>
-          <span>·</span>
-          <span>{timeAgo(comment.createdAt)}</span>
-          <span>·</span>
-          {isLive ? (
-            <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-              Live
-            </span>
+        <div className="min-w-0 flex-1">
+          <div className="mb-1.5 min-w-0 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+            <span className="truncate text-[13px] font-medium text-foreground">{comment.user}</span>
+            <span>·</span>
+            <span>{timeAgo(comment.createdAt)}</span>
+            <span>·</span>
+            {isLive ? (
+              <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                Live
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                Finished
+              </span>
+            )}
+            {canManageComment ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="ml-auto h-6 w-6 cursor-pointer rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-36">
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => {
+                      setIsEditing(true);
+                      setEditText(comment.content);
+                    }}
+                  >
+                    <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                    onClick={() => setDeleteTarget({ type: "thought", id: comment.id })}
+                  >
+                    <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+          </div>
+          {comment.isSpoiler ? (
+            <div className="mb-1.5">
+              <Badge variant="secondary" className="rounded-full bg-amber-500/15 text-[10px] text-amber-600 dark:text-amber-400">
+                Spoiler discussion
+              </Badge>
+            </div>
+          ) : null}
+          {isEditing ? (
+            <div className="space-y-2">
+              <Textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                className="min-h-[72px] border-border/60 bg-transparent text-[13px] focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={submitThoughtEdit}
+                  disabled={updateThoughtMutation.isPending || !editText.trim()}
+                  className="h-8 cursor-pointer rounded-[20px] px-3 text-xs"
+                >
+                  {updateThoughtMutation.isPending ? "Saving..." : "Save"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditText(comment.content);
+                  }}
+                  className="h-8 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs text-muted-foreground hover:bg-muted"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
           ) : (
-            <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
-              Finished
-            </span>
+            <button
+              type="button"
+              onClick={() => setIsSpoilerRevealed(true)}
+              className={cn(
+                "w-full cursor-pointer text-left text-[13px] transition",
+                comment.isSpoiler && !isSpoilerRevealed
+                  ? "select-none text-transparent [text-shadow:0_0_8px_rgba(148,163,184,0.95)]"
+                  : "text-foreground"
+              )}
+            >
+              {comment.isSpoiler && !isSpoilerRevealed ? "Tap to reveal spoiler comment" : comment.content}
+            </button>
           )}
-        </div>
-      </div>
-      {comment.isSpoiler ? (
-        <div className="mb-1.5">
-          <Badge variant="secondary" className="rounded-full bg-amber-500/15 text-[10px] text-amber-600 dark:text-amber-400">
-            Spoiler discussion
-          </Badge>
-        </div>
-      ) : null}
-      <button
-        type="button"
-        onClick={() => setIsSpoilerRevealed(true)}
-        className={cn(
-          "w-full cursor-pointer text-left text-[13px] transition",
-          comment.isSpoiler && !isSpoilerRevealed
-            ? "select-none text-transparent [text-shadow:0_0_8px_rgba(148,163,184,0.95)]"
-            : "text-foreground"
-        )}
-      >
-        {comment.isSpoiler && !isSpoilerRevealed ? "Tap to reveal spoiler comment" : comment.content}
-      </button>
-      <div className="mt-1.5 flex items-center gap-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowReactionPicker((v) => !v)}
-          disabled={parentThoughtId != null || addMutation.isPending || removeMutation.isPending}
-          className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
-        >
-          <Smile className="h-3.5 w-3.5" />
-          {localReactionCount}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setIsReplying((v) => !v);
-            setReplyParentId(null);
-          }}
-          className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
-        >
-          <Reply className="h-3.5 w-3.5" />
-          Reply ({totalReplies})
-        </Button>
-      </div>
-      {showReactionPicker ? (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {COMMENT_EMOJI_REACTIONS.map((reactionType) => {
-            const selected = localMyReactions.includes(reactionType);
-            return (
-              <button
-                key={reactionType}
+          <div className="mt-1.5 flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowReactionPicker((v) => !v)}
+          disabled={addMutation.isPending || removeMutation.isPending}
+              className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+            >
+              <Smile className="h-3.5 w-3.5" />
+              {localReactionCount}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsReplying((v) => !v);
+                setReplyParentId(null);
+              }}
+              className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+            >
+              <Reply className="h-3.5 w-3.5" />
+              Reply ({totalReplies})
+            </Button>
+          </div>
+          {showReactionPicker ? (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {COMMENT_EMOJI_REACTIONS.map((reactionType) => {
+                const selected = localMyReactions.includes(reactionType);
+                return (
+                  <button
+                    key={reactionType}
+                    type="button"
+                    className={`h-7 rounded-[20px] border border-border/60 px-3 text-xs font-medium cursor-pointer ${
+                      selected ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground"
+                    }`}
+                    onClick={() => handleReactionToggle(reactionType)}
+                disabled={addMutation.isPending || removeMutation.isPending}
+                  >
+                    {reactionType === "like" ? "👍" : reactionType}
+                  </button>
+                );
+              })}
+              {localMyReactions.length > 0 ? (
+                <span className="text-[11px] text-muted-foreground">
+                  You reacted:{" "}
+                  {localMyReactions
+                    .map((reaction) => (reaction === "like" ? "👍" : reaction))
+                    .join(" ")}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+          {isReplying ? (
+            <div className="mt-2 flex items-center gap-2">
+              <Input
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="Write a reply..."
+                className="h-8 border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+              <Button
                 type="button"
-                className={`h-7 rounded-[20px] border border-border/60 px-3 text-xs font-medium cursor-pointer ${
-                  selected ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground"
-                }`}
-                onClick={() => handleReactionToggle(reactionType)}
-                disabled={parentThoughtId != null || addMutation.isPending || removeMutation.isPending}
+                size="sm"
+                onClick={submitReply}
+                disabled={addReply.isPending || !replyText.trim()}
+                className="h-8 cursor-pointer rounded-[20px] px-3 text-xs"
               >
-                {reactionType === "like" ? "👍" : reactionType}
-              </button>
-            );
-          })}
-          {localMyReactions.length > 0 ? (
-            <span className="text-[11px] text-muted-foreground">
-              You reacted:{" "}
-              {localMyReactions
-                .map((reaction) => (reaction === "like" ? "👍" : reaction))
-                .join(" ")}
-            </span>
+                {addReply.isPending ? "Sending..." : "Send"}
+              </Button>
+            </div>
           ) : null}
         </div>
-      ) : null}
-      {isReplying ? (
-        <div className="mt-2 flex items-center gap-2">
-          <Input
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-            placeholder="Write a reply..."
-            className="h-8 border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
-          />
-          <Button
-            type="button"
-            size="sm"
-            onClick={submitReply}
-            disabled={addReply.isPending || !replyText.trim()}
-            className="h-8 cursor-pointer rounded-[20px] px-3 text-xs"
-          >
-            {addReply.isPending ? "Sending..." : "Send"}
-          </Button>
-        </div>
-      ) : null}
+      </div>
       {primaryReplies.length ? (
         <div className="mt-2 space-y-2 border-t border-border/50 pt-2">
           {primaryReplies.map((reply) => {
@@ -441,8 +594,66 @@ function JustFinishedComment({
                     <span className="truncate text-[13px] font-medium text-foreground">{replyUser}</span>
                     <span>·</span>
                     <span>{timeAgo(reply.createdAt)}</span>
+                    {currentUserId && reply.user.id === currentUserId ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="ml-1 h-6 w-6 cursor-pointer rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-36">
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => setReplyEditState({ id: reply.id, content: reply.content })}
+                          >
+                            <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="cursor-pointer text-destructive focus:text-destructive"
+                            onClick={() => setDeleteTarget({ type: "reply", id: reply.id })}
+                          >
+                            <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : null}
                   </div>
-                  <p className="text-[13px] text-foreground">{reply.content}</p>
+                  {replyEditState?.id === reply.id ? (
+                    <div className="space-y-2">
+                      <Input
+                        value={replyEditState.content}
+                        onChange={(e) => setReplyEditState({ id: reply.id, content: e.target.value })}
+                        className="h-8 border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={submitReplyEdit}
+                          disabled={updateReplyMutation.isPending || !replyEditState.content.trim()}
+                          className="h-7 cursor-pointer rounded-[20px] px-3 text-xs"
+                        >
+                          {updateReplyMutation.isPending ? "Saving..." : "Save"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setReplyEditState(null)}
+                          className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs text-muted-foreground hover:bg-muted"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[13px] text-foreground">{reply.content}</p>
+                  )}
                   <Button
                     type="button"
                     variant="ghost"
@@ -482,6 +693,25 @@ function JustFinishedComment({
           ) : null}
         </div>
       ) : null}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {deleteTarget?.type === "reply" ? "reply" : "comment"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="cursor-pointer bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={confirmDelete}
+            >
+              {(deleteThoughtMutation.isPending || deleteReplyMutation.isPending) ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -522,6 +752,7 @@ function FeedCard({
       .filter((reply) => !reply.parentReplyId)
       .map((reply) => ({
         id: reply.id,
+        userId: reply.user.id,
         content: reply.content,
         isSpoiler: false,
         createdAt: reply.createdAt,
@@ -870,6 +1101,7 @@ function FeedCard({
                 comment={comment}
                 showBorder={showBorder}
                 parentThoughtId={item.primaryThoughtId}
+                currentUserId={currentUserId}
               />
             );
           })}
@@ -896,24 +1128,18 @@ function WatchingNowGroupCard({
   room,
   onJoinRoom,
   onSelect,
+  currentUserId,
 }: {
   room: WatchingNowRoomCard;
   onJoinRoom: (room: WatchingNowRoomCard) => void;
   onSelect?: (room: WatchingNowRoomCard) => void;
+  currentUserId?: string | null;
 }) {
   const [showThoughts, setShowThoughts] = useState(false);
-  const [localReactions, setLocalReactions] = useState(room.featuredThought?.reactionCount ?? 0);
-  const [localLiked, setLocalLiked] = useState(
-    Boolean(room.featuredThought?.myReactions?.includes("like"))
-  );
-  const { addMutation, removeMutation } = useWatchingThoughtReaction();
+  const localReactions = room.reactionCount ?? 0;
+  const localLiked = Boolean(room.featuredThought?.myReactions?.includes("like"));
   const { toggle: toggleWatchlist, isLoading: isWatchlistMutating, isInWatchlist } = useToggleWatchlist();
   const inWatchlist = isInWatchlist(room.tmdbId, room.mediaType);
-
-  useEffect(() => {
-    setLocalReactions(room.featuredThought?.reactionCount ?? 0);
-    setLocalLiked(Boolean(room.featuredThought?.myReactions?.includes("like")));
-  }, [room.featuredThought?.reactionCount, room.featuredThought?.myReactions]);
 
   const participantLabel = useMemo(() => {
     if (!room.participants.length) return "No participants yet";
@@ -923,24 +1149,7 @@ function WatchingNowGroupCard({
     const remaining = names.length - 3;
     return remaining > 0 ? `${first} and ${remaining} others` : first;
   }, [room.participants]);
-
-  const handleFeaturedLikeToggle = async () => {
-    if (!room.featuredThought) return;
-    const wasLiked = localLiked;
-    setLocalLiked(!wasLiked);
-    setLocalReactions((count) => Math.max(0, wasLiked ? count - 1 : count + 1));
-    try {
-      if (wasLiked) {
-        await removeMutation.mutateAsync({ thoughtId: room.featuredThought.id, reactionType: "like" });
-      } else {
-        await addMutation.mutateAsync({ thoughtId: room.featuredThought.id, reactionType: "like" });
-      }
-    } catch (error) {
-      setLocalLiked(wasLiked);
-      setLocalReactions((count) => Math.max(0, wasLiked ? count + 1 : count - 1));
-      toast.error(error instanceof Error ? error.message : "Failed to react");
-    }
-  };
+  const isCurrentUserInRoom = !!currentUserId && room.participants.some((participant) => participant.userId === currentUserId);
 
   const handleWatchlistToggle = async () => {
     try {
@@ -1001,27 +1210,45 @@ function WatchingNowGroupCard({
       }}
     >
       <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-muted/35 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <Link
-              href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
-              className="truncate text-sm font-medium hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {room.title}
-            </Link>
-            <Badge variant="secondary" className="rounded-full text-[10px]">
-              {room.mediaTypeLabel}
-            </Badge>
-            {room.mediaType === "tv" && room.seasonNumber && room.episodeNumber ? (
-              <Badge variant="secondary" className="rounded-full bg-primary/15 text-[10px] text-primary">
-                S{String(room.seasonNumber).padStart(2, "0")} · E{String(room.episodeNumber).padStart(2, "0")}
+        <div className="flex min-w-0 items-start gap-3">
+          <Link
+            href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
+            className="shrink-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative h-14 w-10 overflow-hidden rounded-md bg-muted">
+              <Image
+                src={resolveTmdbImageSrc(room.posterPath, room.backdropPath, "w200")}
+                alt={`${room.title} poster`}
+                fill
+                className="object-cover"
+                sizes="40px"
+                unoptimized
+              />
+            </div>
+          </Link>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <Link
+                href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
+                className="truncate text-sm font-medium hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {room.title}
+              </Link>
+              <Badge variant="secondary" className="rounded-full text-[10px]">
+                {room.mediaTypeLabel}
               </Badge>
-            ) : null}
+              {room.mediaType === "tv" && room.seasonNumber && room.episodeNumber ? (
+                <Badge variant="secondary" className="rounded-full bg-primary/15 text-[10px] text-primary">
+                  S{String(room.seasonNumber).padStart(2, "0")} · E{String(room.episodeNumber).padStart(2, "0")}
+                </Badge>
+              ) : null}
+            </div>
+            <p className="line-clamp-1 text-xs text-muted-foreground">
+              {room.releaseYear ?? "Year unknown"} · {room.creatorOrDirector ?? "Creator unknown"}
+            </p>
           </div>
-          <p className="line-clamp-1 text-xs text-muted-foreground">
-            {room.releaseYear ?? "Year unknown"} · {room.creatorOrDirector ?? "Creator unknown"}
-          </p>
         </div>
         <p className="shrink-0 text-[12px] font-medium text-emerald-500">• {room.watchingCount} watching</p>
       </div>
@@ -1044,11 +1271,13 @@ function WatchingNowGroupCard({
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
+              if (isCurrentUserInRoom) return;
               onJoinRoom(room);
             }}
+            disabled={isCurrentUserInRoom}
             className="h-8 shrink-0 cursor-pointer rounded-[20px] border border-emerald-500/35 bg-emerald-500/15 px-3 text-xs text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
           >
-            Join room
+            {isCurrentUserInRoom ? "In room" : "Join room"}
           </Button>
         </div>
       </div>
@@ -1086,24 +1315,17 @@ function WatchingNowGroupCard({
               comment={thought}
               showBorder={index < room.thoughts.length - 1}
               parentThoughtId={thought.id}
+              currentUserId={currentUserId}
             />
           ))}
         </div>
       ) : null}
 
-      <div className="grid grid-cols-4 divide-x divide-border/60">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            void handleFeaturedLikeToggle();
-          }}
-          disabled={!room.featuredThought || (addMutation.isPending && !localLiked) || (removeMutation.isPending && localLiked)}
-          className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-        >
+      <div className="border-t border-border/80">
+        <div className="grid grid-cols-4 divide-x divide-border/60">
+        <div className="inline-flex h-10 items-center justify-center gap-1.5 rounded-none text-xs text-muted-foreground">
           <ThumbsUp className={cn("h-3.5 w-3.5", localLiked ? "fill-yellow-400 text-yellow-400" : "")} /> {localReactions}
-        </Button>
+        </div>
         <Button
           variant="ghost"
           size="sm"
@@ -1134,6 +1356,7 @@ function WatchingNowGroupCard({
         >
           <ArrowUpRight className="h-3.5 w-3.5" /> Open film page
         </Link>
+        </div>
       </div>
     </Card>
   );
@@ -1142,12 +1365,64 @@ function WatchingNowGroupCard({
 function JustFinishedGroupCard({
   room,
   onSelect,
+  currentUserId,
 }: {
   room: JustFinishedRoomCard;
   onSelect?: (room: JustFinishedRoomCard) => void;
+  currentUserId?: string | null;
 }) {
   const [showThoughts, setShowThoughts] = useState(true);
   const topAvatars = room.participants.slice(0, 6);
+  const featuredThought = room.thoughts[0] ?? null;
+  const localReactions = room.reactionCount ?? 0;
+  const localLiked = Boolean(featuredThought?.myReactions?.includes("like"));
+  const { toggle: toggleWatchlist, isLoading: isWatchlistMutating, isInWatchlist } = useToggleWatchlist();
+  const inWatchlist = isInWatchlist(room.tmdbId, room.mediaType);
+
+  const handleWatchlistToggle = async () => {
+    try {
+      if (room.mediaType === "movie") {
+        await toggleWatchlist(
+          {
+            id: room.tmdbId,
+            title: room.title,
+            overview: "",
+            poster_path: room.posterPath ?? room.backdropPath ?? null,
+            backdrop_path: room.backdropPath,
+            release_date: "",
+            vote_average: 0,
+            vote_count: 0,
+            genre_ids: [],
+            popularity: 0,
+            adult: false,
+            original_language: "en",
+            original_title: room.title,
+          },
+          "movie"
+        );
+      } else {
+        await toggleWatchlist(
+          {
+            id: room.tmdbId,
+            name: room.title,
+            overview: "",
+            poster_path: room.posterPath ?? room.backdropPath ?? null,
+            backdrop_path: room.backdropPath,
+            first_air_date: "",
+            vote_average: 0,
+            vote_count: 0,
+            genre_ids: [],
+            popularity: 0,
+            original_language: "en",
+            original_name: room.title,
+          },
+          "tv"
+        );
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update watchlist");
+    }
+  };
 
   return (
     <Card
@@ -1163,29 +1438,49 @@ function JustFinishedGroupCard({
       }}
     >
       <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-muted/35 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <Link
-              href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
-              className="truncate text-sm font-medium hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {room.title}
-            </Link>
-            <Badge variant="secondary" className="rounded-full text-[10px]">
-              {room.mediaTypeLabel}
-            </Badge>
-            {room.mediaType === "tv" && room.seasonNumber && room.episodeNumber ? (
-              <Badge variant="secondary" className="rounded-full bg-primary/15 text-[10px] text-primary">
-                S{String(room.seasonNumber).padStart(2, "0")} · E{String(room.episodeNumber).padStart(2, "0")}
+        <div className="flex min-w-0 items-start gap-3">
+          <Link
+            href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
+            className="shrink-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative h-14 w-10 overflow-hidden rounded-md bg-muted">
+              <Image
+                src={resolveTmdbImageSrc(room.posterPath, room.backdropPath, "w200")}
+                alt={`${room.title} poster`}
+                fill
+                className="object-cover"
+                sizes="40px"
+                unoptimized
+              />
+            </div>
+          </Link>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <Link
+                href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
+                className="truncate text-sm font-medium hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {room.title}
+              </Link>
+              <Badge variant="secondary" className="rounded-full text-[10px]">
+                {room.mediaTypeLabel}
               </Badge>
-            ) : null}
+              {room.mediaType === "tv" && room.seasonNumber && room.episodeNumber ? (
+                <Badge variant="secondary" className="rounded-full bg-primary/15 text-[10px] text-primary">
+                  S{String(room.seasonNumber).padStart(2, "0")} · E{String(room.episodeNumber).padStart(2, "0")}
+                </Badge>
+              ) : null}
+            </div>
+            <p className="line-clamp-1 text-xs text-muted-foreground">
+              {room.releaseYear ?? "Year unknown"} · {room.creatorOrDirector ?? "Creator unknown"}
+            </p>
           </div>
-          <p className="line-clamp-1 text-xs text-muted-foreground">
-            {room.releaseYear ?? "Year unknown"} · {room.creatorOrDirector ?? "Creator unknown"}
-          </p>
         </div>
-        <p className="shrink-0 text-[12px] font-medium text-emerald-500">• {room.finishedCount} finished tonight</p>
+        <Badge className="shrink-0 rounded-full border border-emerald-500/25 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 shadow-none dark:text-emerald-300">
+          {room.finishedCount} finished tonight
+        </Badge>
       </div>
 
       <div className="border-b border-border/60 bg-muted/30 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
@@ -1198,9 +1493,14 @@ function JustFinishedGroupCard({
               </Avatar>
             ))}
           </div>
-          <p className="truncate text-[13px] text-muted-foreground">
-            {room.participants.map((p) => p.name).slice(0, 3).join(", ")}
-            {room.participants.length > 3 ? ` and ${room.participants.length - 3} others` : ""}
+          <p className="truncate text-[13px] text-emerald-600 dark:text-emerald-400">
+            {(() => {
+              const names = room.participants.map((p) => p.name).slice(0, 3);
+              if (!names.length) return "Everyone finished within the last hour.";
+              if (names.length === 1) return `${names[0]} finished within the last hour.`;
+              if (names.length === 2) return `${names[0]} and ${names[1]} both finished within the last hour.`;
+              return `${names[0]}, ${names[1]} and ${names[2]} all finished within the last hour.`;
+            })()}
           </p>
         </div>
       </div>
@@ -1228,10 +1528,48 @@ function JustFinishedGroupCard({
               comment={thought}
               showBorder={index < room.thoughts.length - 1}
               parentThoughtId={thought.id}
+              currentUserId={currentUserId}
             />
           ))}
         </div>
       ) : null}
+      <div className="border-t border-border/60">
+        <div className="grid grid-cols-4 divide-x divide-border/60">
+          <div className="inline-flex h-10 items-center justify-center gap-1.5 rounded-none text-xs text-muted-foreground">
+            <ThumbsUp className={cn("h-3.5 w-3.5", localLiked ? "fill-yellow-400 text-yellow-400" : "")} /> {localReactions}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowThoughts((v) => !v);
+            }}
+            className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+          >
+            <Reply className="h-3.5 w-3.5" /> {room.thoughts.length} comments
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              void handleWatchlistToggle();
+            }}
+            disabled={isWatchlistMutating}
+            className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+          >
+            <Bookmark className={cn("h-3.5 w-3.5", inWatchlist ? "text-yellow-400 fill-yellow-400" : "")} /> Watchlist
+          </Button>
+          <Link
+            href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex h-10 items-center justify-center gap-1.5 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+          >
+            <ArrowUpRight className="h-3.5 w-3.5" /> Open film page
+          </Link>
+        </div>
+      </div>
     </Card>
   );
 }
@@ -1682,8 +2020,11 @@ function RightRail({
                   <AvatarFallback>{reply.userName[0]}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-medium text-foreground">{reply.userName}</p>
-                  <p className="text-[12px] text-muted-foreground">{timeAgo(reply.createdAt)}</p>
+                  <p className="truncate text-[13px] text-muted-foreground">
+                    <span className="font-medium text-foreground">{reply.userName}</span>
+                    <span className="px-1 text-muted-foreground/70">·</span>
+                    <span>{timeAgo(reply.createdAt)}</span>
+                  </p>
                 </div>
               </div>
               <p className="pl-[38px] pr-1 text-[13px] text-foreground/90">{reply.text}</p>
@@ -1721,6 +2062,8 @@ export default function WatchingContent() {
     title: string;
     posterPath: string | null;
     backdropPath: string | null;
+    seasonNumber?: number | null;
+    episodeNumber?: number | null;
   } | null>(null);
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<string>("");
   const [selectedEpisodeNumber, setSelectedEpisodeNumber] = useState<string>("");
@@ -1788,6 +2131,7 @@ export default function WatchingContent() {
       const participantName = session.user.displayName || session.user.username || "Unknown";
       const thoughtsForSession = session.thoughts.map((thought) => ({
         id: thought.id,
+        userId: thought.user.id,
         content: thought.content,
         isSpoiler: thought.isSpoiler,
         createdAt: thought.createdAt,
@@ -1816,6 +2160,7 @@ export default function WatchingContent() {
           featuredThought: thoughtsForSession[0] ?? null,
           thoughts: thoughtsForSession,
           thoughtCount: thoughtsForSession.length,
+          reactionCount: thoughtsForSession.reduce((sum, thought) => sum + (thought.reactionCount ?? 0), 0),
           primaryThoughtId: session.thoughts[0]?.id ?? null,
         });
       } else {
@@ -1833,6 +2178,7 @@ export default function WatchingContent() {
         );
         existing.featuredThought = existing.thoughts[0] ?? null;
         existing.thoughtCount = existing.thoughts.length;
+        existing.reactionCount = existing.thoughts.reduce((sum, thought) => sum + (thought.reactionCount ?? 0), 0);
       }
     }
     return Array.from(groups.values()).sort((a, b) => b.watchingCount - a.watchingCount);
@@ -1854,6 +2200,7 @@ export default function WatchingContent() {
       const participantName = session.user.displayName || session.user.username || "Unknown";
       const thoughtsForSession = session.thoughts.map((thought) => ({
         id: thought.id,
+        userId: thought.user.id,
         content: thought.content,
         isSpoiler: thought.isSpoiler,
         createdAt: thought.createdAt,
@@ -1880,6 +2227,7 @@ export default function WatchingContent() {
           finishedCount: 1,
           participants: [{ userId: session.user.id, name: participantName, avatar: session.user.avatarUrl ?? null }],
           thoughts: thoughtsForSession,
+          reactionCount: thoughtsForSession.reduce((sum, thought) => sum + (thought.reactionCount ?? 0), 0),
         });
       } else {
         existing.finishedCount += 1;
@@ -1891,6 +2239,7 @@ export default function WatchingContent() {
           });
         }
         existing.thoughts.push(...thoughtsForSession);
+        existing.reactionCount = existing.thoughts.reduce((sum, thought) => sum + (thought.reactionCount ?? 0), 0);
       }
     }
     const rooms = Array.from(groups.values()).map((room) => ({
@@ -2492,6 +2841,7 @@ export default function WatchingContent() {
             <WatchingNowGroupCard
               key={room.key}
               room={room}
+              currentUserId={currentUser?.id ?? null}
               onJoinRoom={(selectedRoom) => {
                 void submitStartWatching({
                   tmdbId: selectedRoom.tmdbId,
@@ -2572,6 +2922,7 @@ export default function WatchingContent() {
             <JustFinishedGroupCard
               key={room.key}
               room={room}
+              currentUserId={currentUser?.id ?? null}
               onSelect={(selectedRoom) =>
                 setActiveCardContext({
                   tmdbId: selectedRoom.tmdbId,

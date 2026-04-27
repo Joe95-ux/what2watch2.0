@@ -90,7 +90,7 @@ export default function Navbar() {
       className={cn(
         "sticky top-0 z-50 w-full backdrop-blur-md transition-all duration-300 ease-in-out",
         useDarkNavbar
-          ? "bg-black/85 border-b border-[rgba(255,255,255,0.1)] shadow-sm"
+          ? "bg-zinc-900/88 border-b border-zinc-700/35 shadow-sm"
           : "bg-background/95 dark:bg-background/80 border-b border-border/50 supports-[backdrop-filter]:bg-background/80 dark:supports-[backdrop-filter]:bg-background/80"
       )}
     >

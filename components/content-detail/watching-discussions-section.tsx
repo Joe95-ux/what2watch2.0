@@ -1,18 +1,40 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Reply, Smile } from "lucide-react";
+import { MoreHorizontal, Pencil, Reply, Smile, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { WatchingTitlePresenceResponse } from "@/lib/watching-types";
 import {
   useAddWatchingThoughtReply,
+  useDeleteWatchingThought,
+  useDeleteWatchingThoughtReply,
+  useUpdateWatchingThought,
+  useUpdateWatchingThoughtReply,
   useWatchingMutation,
   useWatchingThoughtReaction,
   useWatchingThoughtReplies,
 } from "@/hooks/use-watching";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 const EMOJI_REACTIONS = ["like", "🔥", "😂", "😮", "😭"] as const;
@@ -37,8 +59,13 @@ function ThoughtCard({
   const [showReplies, setShowReplies] = useState(false);
   const [expandReplies, setExpandReplies] = useState(false);
   const [isSpoilerRevealed, setIsSpoilerRevealed] = useState(false);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [replyInput, setReplyInput] = useState("");
   const [replyParentId, setReplyParentId] = useState<string | null>(null);
+  const [editText, setEditText] = useState(thought.content);
+  const [isEditing, setIsEditing] = useState(false);
+  const [replyEditState, setReplyEditState] = useState<{ id: string; content: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "thought" | "reply"; id: string } | null>(null);
   const [localReactionCount, setLocalReactionCount] = useState(thought.reactionCount);
   const [localReplyCount, setLocalReplyCount] = useState(thought.replyCount);
   const [localMyReactions, setLocalMyReactions] = useState<string[]>(thought.myReactions ?? []);
@@ -46,7 +73,7 @@ function ThoughtCard({
   const [optimisticReplies, setOptimisticReplies] = useState<
     Array<{
       id: string;
-      user: { displayName: string | null; username: string | null };
+      user: { id: string; displayName: string | null; username: string | null };
       content: string;
       parentReplyId: string | null;
       createdAt: string;
@@ -54,7 +81,13 @@ function ThoughtCard({
   >([]);
   const addReplyMutation = useAddWatchingThoughtReply();
   const { addMutation, removeMutation } = useWatchingThoughtReaction();
+  const updateThoughtMutation = useUpdateWatchingThought();
+  const deleteThoughtMutation = useDeleteWatchingThought();
+  const updateReplyMutation = useUpdateWatchingThoughtReply();
+  const deleteReplyMutation = useDeleteWatchingThoughtReply();
+  const { data: currentUser } = useCurrentUser();
   const name = thought.user.displayName || thought.user.username || "Unknown";
+  const canManageThought = !!currentUser?.id && currentUser.id === thought.user.id;
   const isLive = thought.sessionStatus === "WATCHING_NOW";
   const mergedReplies = useMemo(() => [...optimisticReplies, ...(replies ?? [])], [optimisticReplies, replies]);
   const repliesByParent = useMemo(() => {
@@ -77,6 +110,7 @@ function ThoughtCard({
     setLocalReactionCount(thought.reactionCount);
     setLocalReplyCount(thought.replyCount);
     setLocalMyReactions(thought.myReactions ?? []);
+    setEditText(thought.content);
     if (!blurred) setIsSpoilerRevealed(false);
   }, [thought.reactionCount, thought.replyCount, thought.myReactions, blurred]);
 
@@ -110,7 +144,7 @@ function ThoughtCard({
       {
         id: optimisticId,
         content: optimisticContent,
-        user: { displayName: "You", username: "you" },
+        user: { id: currentUser?.id ?? "optimistic-user", displayName: "You", username: "you" },
         parentReplyId: replyParentId,
         createdAt: new Date().toISOString(),
       },
@@ -130,6 +164,51 @@ function ThoughtCard({
       setOptimisticReplies((prev) => prev.filter((reply) => reply.id !== optimisticId));
       setLocalReplyCount((count) => Math.max(0, count - 1));
       toast.error(error instanceof Error ? error.message : "Failed to add reply");
+    }
+  };
+
+  const handleThoughtEdit = async () => {
+    const content = editText.trim();
+    if (!content) return;
+    try {
+      await updateThoughtMutation.mutateAsync({ thoughtId: thought.thoughtId, content });
+      setIsEditing(false);
+      toast.success("Comment updated.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update comment");
+    }
+  };
+
+  const handleReplyEdit = async () => {
+    if (!replyEditState) return;
+    const content = replyEditState.content.trim();
+    if (!content) return;
+    try {
+      await updateReplyMutation.mutateAsync({
+        thoughtId: thought.thoughtId,
+        replyId: replyEditState.id,
+        content,
+      });
+      setReplyEditState(null);
+      toast.success("Reply updated.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update reply");
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      if (deleteTarget.type === "thought") {
+        await deleteThoughtMutation.mutateAsync({ thoughtId: thought.thoughtId });
+        toast.success("Comment deleted.");
+      } else {
+        await deleteReplyMutation.mutateAsync({ thoughtId: thought.thoughtId, replyId: deleteTarget.id });
+        toast.success("Reply deleted.");
+      }
+      setDeleteTarget(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete item");
     }
   };
 
@@ -155,6 +234,37 @@ function ThoughtCard({
                 Finished
               </span>
             )}
+            {canManageThought ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="ml-auto h-6 w-6 cursor-pointer rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-36">
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => {
+                      setIsEditing(true);
+                      setEditText(thought.content);
+                    }}
+                  >
+                    <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                    onClick={() => setDeleteTarget({ type: "thought", id: thought.thoughtId })}
+                  >
+                    <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
           </div>
 
           <div>
@@ -165,69 +275,104 @@ function ThoughtCard({
                 </Badge>
               </div>
             ) : null}
-            <button
-              type="button"
-              onClick={() => setIsSpoilerRevealed(true)}
-              className="w-full cursor-pointer text-left"
-            >
-              <p className={`text-[13px] text-foreground ${shouldBlurSpoiler ? "select-none blur-sm" : ""}`}>
-                {shouldBlurSpoiler ? "Tap to reveal spoiler comment" : thought.content}
-              </p>
-            </button>
+            {isEditing ? (
+              <div className="space-y-2">
+                <Textarea
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  className="min-h-[72px] border-border/60 bg-transparent text-[13px] focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8 cursor-pointer rounded-[20px] px-3 text-xs"
+                    onClick={handleThoughtEdit}
+                    disabled={updateThoughtMutation.isPending || !editText.trim()}
+                  >
+                    {updateThoughtMutation.isPending ? "Saving..." : "Save"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs text-muted-foreground hover:bg-muted"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditText(thought.content);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsSpoilerRevealed(true)}
+                className="w-full cursor-pointer text-left"
+              >
+                <p className={`text-[13px] text-foreground ${shouldBlurSpoiler ? "select-none blur-sm" : ""}`}>
+                  {shouldBlurSpoiler ? "Tap to reveal spoiler comment" : thought.content}
+                </p>
+              </button>
+            )}
           </div>
 
           <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
-            onClick={() => handleReactionToggle("like")}
-            disabled={addMutation.isPending || removeMutation.isPending || shouldBlurSpoiler}
-          >
-            <Smile className="h-3.5 w-3.5" /> {localReactionCount}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
-            onClick={() => {
-              setShowReplies((v) => !v);
-              setReplyParentId(null);
-            }}
-          >
-            <Reply className="h-3.5 w-3.5" /> Reply ({localReplyCount})
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          {EMOJI_REACTIONS.map((reactionType) => {
-            const selected = localMyReactions.includes(reactionType);
-            return (
-              <button
-                key={reactionType}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
                 type="button"
-                className={`h-7 rounded-[20px] border border-border/60 px-3 text-xs font-medium cursor-pointer ${
-                  selected ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground"
-                }`}
-                onClick={() => handleReactionToggle(reactionType)}
+                variant="ghost"
+                size="sm"
+                className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+                onClick={() => setShowReactionPicker((v) => !v)}
                 disabled={addMutation.isPending || removeMutation.isPending || shouldBlurSpoiler}
               >
-                {reactionType === "like" ? "👍" : reactionType}
-              </button>
-            );
-          })}
-          {localMyReactions.length > 0 ? (
-            <span className="text-[11px] text-muted-foreground">
-              You reacted:{" "}
-              {localMyReactions
-                .map((reaction) => (reaction === "like" ? "👍" : reaction))
-                .join(" ")}
-            </span>
-          ) : null}
-        </div>
+                <Smile className="h-3.5 w-3.5" /> {localReactionCount}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+                onClick={() => {
+                  setShowReplies((v) => !v);
+                  setReplyParentId(null);
+                }}
+              >
+                <Reply className="h-3.5 w-3.5" /> Reply ({localReplyCount})
+              </Button>
+            </div>
+
+            {showReactionPicker ? (
+              <div className="flex flex-wrap items-center gap-1.5">
+                {EMOJI_REACTIONS.map((reactionType) => {
+                  const selected = localMyReactions.includes(reactionType);
+                  return (
+                    <button
+                      key={reactionType}
+                      type="button"
+                      className={`h-7 rounded-[20px] border border-border/60 px-3 text-xs font-medium cursor-pointer ${
+                        selected ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground"
+                      }`}
+                      onClick={() => handleReactionToggle(reactionType)}
+                      disabled={addMutation.isPending || removeMutation.isPending || shouldBlurSpoiler}
+                    >
+                      {reactionType === "like" ? "👍" : reactionType}
+                    </button>
+                  );
+                })}
+                {localMyReactions.length > 0 ? (
+                  <span className="text-[11px] text-muted-foreground">
+                    You reacted:{" "}
+                    {localMyReactions
+                      .map((reaction) => (reaction === "like" ? "👍" : reaction))
+                      .join(" ")}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
 
         {showReplies ? (
           <div className="mt-1 space-y-2">
@@ -240,7 +385,54 @@ function ThoughtCard({
                 <div>
                   <span className="font-medium text-foreground/90">{replyUser}</span>
                   <span className="mx-1">·</span>
-                  <span>{reply.content}</span>
+                  {replyEditState?.id === reply.id ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Input
+                        value={replyEditState.content}
+                        onChange={(e) => setReplyEditState({ id: reply.id, content: e.target.value })}
+                        className="h-7 border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-7 cursor-pointer rounded-[20px] px-2 text-[11px]"
+                        onClick={handleReplyEdit}
+                        disabled={updateReplyMutation.isPending || !replyEditState.content.trim()}
+                      >
+                        Save
+                      </Button>
+                    </span>
+                  ) : (
+                    <span>{reply.content}</span>
+                  )}
+                  {!!currentUser?.id && currentUser.id === reply.user.id ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="ml-1 h-6 w-6 cursor-pointer rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-36">
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => setReplyEditState({ id: reply.id, content: reply.content })}
+                        >
+                          <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer text-destructive focus:text-destructive"
+                          onClick={() => setDeleteTarget({ type: "reply", id: reply.id })}
+                        >
+                          <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : null}
                 </div>
                 <button
                   type="button"
@@ -301,6 +493,25 @@ function ThoughtCard({
           </div>
         </div>
       </div>
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {deleteTarget?.type === "reply" ? "reply" : "comment"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="cursor-pointer bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleConfirmDelete}
+            >
+              {(deleteThoughtMutation.isPending || deleteReplyMutation.isPending) ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
