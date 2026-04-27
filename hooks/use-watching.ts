@@ -379,26 +379,52 @@ export function useWatchingMutation() {
   return useMutation({
     mutationFn: mutateWatching,
     onMutate: async (action) => {
-      if (action.action !== "update_progress") return;
+      if (action.action !== "update_progress" && action.action !== "finish") return;
       await queryClient.cancelQueries({ queryKey: ["watching-dashboard"] });
       const previous = queryClient.getQueryData<WatchingDashboardResponse>(["watching-dashboard"]);
       if (!previous) return { previous };
 
-      const next = {
-        ...previous,
-        currentSession:
-          previous.currentSession?.id === action.sessionId
-            ? { ...previous.currentSession, progressPercent: action.progressPercent }
-            : previous.currentSession,
-        watchingNow: previous.watchingNow.map((session) =>
-          session.id === action.sessionId ? { ...session, progressPercent: action.progressPercent } : session
-        ),
-      };
+      const next =
+        action.action === "update_progress"
+          ? {
+              ...previous,
+              currentSession:
+                previous.currentSession?.id === action.sessionId
+                  ? { ...previous.currentSession, progressPercent: action.progressPercent }
+                  : previous.currentSession,
+              watchingNow: previous.watchingNow.map((session) =>
+                session.id === action.sessionId ? { ...session, progressPercent: action.progressPercent } : session
+              ),
+            }
+          : (() => {
+              const nowIso = new Date().toISOString();
+              let finishedSession = previous.watchingNow.find((session) => session.id === action.sessionId) ?? null;
+              if (!finishedSession && previous.currentSession?.id === action.sessionId) {
+                finishedSession = previous.currentSession;
+              }
+              const normalizedFinished = finishedSession
+                ? {
+                    ...finishedSession,
+                    status: "JUST_FINISHED" as const,
+                    progressPercent: 100,
+                    endedAt: nowIso,
+                    updatedAt: nowIso,
+                  }
+                : null;
+              return {
+                ...previous,
+                currentSession: previous.currentSession?.id === action.sessionId ? null : previous.currentSession,
+                watchingNow: previous.watchingNow.filter((session) => session.id !== action.sessionId),
+                justFinished: normalizedFinished
+                  ? [normalizedFinished, ...previous.justFinished.filter((session) => session.id !== action.sessionId)]
+                  : previous.justFinished,
+              };
+            })();
       queryClient.setQueryData(["watching-dashboard"], next);
       return { previous };
     },
     onError: (_error, action, context) => {
-      if (action.action !== "update_progress") return;
+      if (action.action !== "update_progress" && action.action !== "finish") return;
       if (context?.previous) {
         queryClient.setQueryData(["watching-dashboard"], context.previous);
       }
