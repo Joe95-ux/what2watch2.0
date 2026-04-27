@@ -72,6 +72,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { moderateContent } from "@/lib/moderation";
 import { toast } from "sonner";
 
 type WatchingFeedCard = {
@@ -177,6 +178,15 @@ type JustFinishedRoomCard = {
 };
 
 const COMMENT_EMOJI_REACTIONS = ["like", "🔥", "😂", "😮", "😭"] as const;
+const validateWatchingTextInput = (value: string) => {
+  const moderation = moderateContent(value, {
+    minLength: 1,
+    maxLength: 1000,
+    allowProfanity: false,
+    sanitizeHtml: false,
+  });
+  return moderation.allowed ? null : moderation.error || "Content does not meet guidelines.";
+};
 
 const timeAgo = (iso: string) => {
   const ms = Date.now() - new Date(iso).getTime();
@@ -319,6 +329,11 @@ function JustFinishedComment({
   const submitReply = async () => {
     const text = replyText.trim();
     if (!text) return;
+    const validationError = validateWatchingTextInput(text);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     try {
       await addReply.mutateAsync({
         thoughtId: thoughtIdForThread,
@@ -377,6 +392,11 @@ function JustFinishedComment({
   const submitThoughtEdit = async () => {
     const content = editText.trim();
     if (!content) return;
+    const validationError = validateWatchingTextInput(content);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     try {
       await updateThoughtMutation.mutateAsync({ thoughtId: comment.id, content });
       setIsEditing(false);
@@ -390,6 +410,11 @@ function JustFinishedComment({
     if (!replyEditState) return;
     const content = replyEditState.content.trim();
     if (!content) return;
+    const validationError = validateWatchingTextInput(content);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     try {
       await updateReplyMutation.mutateAsync({
         thoughtId: thoughtIdForThread,
@@ -586,7 +611,7 @@ function JustFinishedComment({
             </div>
           ) : null}
           {isReplying ? (
-            <div className="mt-2 flex items-center gap-2 border-t border-border/50 pt-2">
+            <div className="mt-2 flex items-center gap-2">
               <Input
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
@@ -621,7 +646,7 @@ function JustFinishedComment({
         </div>
       </div>
       {primaryReplies.length ? (
-        <div className="mt-2 space-y-2 border-t border-border/50 pt-2">
+        <div className="mt-2 ml-[38px] space-y-2 border-l border-border/50 pl-3">
           {primaryReplies.map((reply) => {
             const replyUser = reply.user.displayName || reply.user.username || "Someone";
             const nestedReplies = (repliesByParent.get(reply.id) ?? []).slice(0, 2);
@@ -856,6 +881,11 @@ function FeedCard({
   const handleCardReply = async () => {
     const content = replyText.trim();
     if (!item.primaryThoughtId || !content) return;
+    const validationError = validateWatchingTextInput(content);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     try {
       await addReply.mutateAsync({ thoughtId: item.primaryThoughtId, content });
       setReplyText("");
@@ -1183,14 +1213,17 @@ function WatchingNowGroupCard({
   onSelect,
   currentUserId,
   onWatchNow,
+  isJoiningRoom,
 }: {
   room: WatchingNowRoomCard;
-  onJoinRoom: (room: WatchingNowRoomCard) => void;
+  onJoinRoom: (room: WatchingNowRoomCard) => Promise<void>;
   onSelect?: (room: WatchingNowRoomCard) => void;
   currentUserId?: string | null;
   onWatchNow?: (room: { tmdbId: number; mediaType: "movie" | "tv"; title: string }) => void;
+  isJoiningRoom?: boolean;
 }) {
   const [showThoughts, setShowThoughts] = useState(false);
+  const [showFinishOverrideDialog, setShowFinishOverrideDialog] = useState(false);
   const [localReactions, setLocalReactions] = useState(room.reactionCount ?? 0);
   const localLiked = Boolean(room.featuredThought?.myReactions?.includes("like"));
   const { toggle: toggleWatchlist, isLoading: isWatchlistMutating, isInWatchlist } = useToggleWatchlist();
@@ -1214,9 +1247,8 @@ function WatchingNowGroupCard({
   const elapsedMinutes = room.currentUserSession
     ? Math.max(1, Math.round((Date.now() - new Date(room.currentUserSession.startedAt).getTime()) / 60000))
     : 0;
-  const movieRuntime = room.currentUserSession?.mediaType === "movie" ? room.currentUserSession.runtimeMinutes : null;
-  const isMovieFinishLocked =
-    canControlPlayback && room.currentUserSession?.mediaType === "movie" && movieRuntime != null && elapsedMinutes < movieRuntime;
+  const runtimeMinutes = room.currentUserSession?.runtimeMinutes ?? null;
+  const isFinishLocked = canControlPlayback && runtimeMinutes != null && runtimeMinutes > 0 && elapsedMinutes < runtimeMinutes;
 
   const handleWatchlistToggle = async () => {
     try {
@@ -1276,11 +1308,10 @@ function WatchingNowGroupCard({
     }
   };
 
-  const handlePlaybackFinish = async () => {
+  const handlePlaybackFinish = async (force: boolean = false) => {
     if (!room.currentUserSession) return;
-    if (isMovieFinishLocked && movieRuntime != null) {
-      const remaining = Math.max(1, movieRuntime - elapsedMinutes);
-      toast.message(`You can mark finished in about ${remaining} min.`);
+    if (!force && isFinishLocked && runtimeMinutes != null) {
+      setShowFinishOverrideDialog(true);
       return;
     }
     try {
@@ -1289,6 +1320,7 @@ function WatchingNowGroupCard({
         sessionId: room.currentUserSession.sessionId,
       });
       toast.success("Marked as finished.");
+      setShowFinishOverrideDialog(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to finish session");
     }
@@ -1373,9 +1405,9 @@ function WatchingNowGroupCard({
                   className="h-8 w-8 cursor-pointer rounded-full text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-500"
                   onClick={(e) => {
                     e.stopPropagation();
-                    void handlePlaybackFinish();
+                    void handlePlaybackFinish(false);
                   }}
-                  disabled={playbackBusy || isMovieFinishLocked}
+                  disabled={playbackBusy}
                   aria-label="Stop and mark finished"
                 >
                   <Square className="h-3.5 w-3.5" />
@@ -1406,12 +1438,12 @@ function WatchingNowGroupCard({
             onClick={(e) => {
               e.stopPropagation();
               if (isCurrentUserInRoom) return;
-              onJoinRoom(room);
+              void onJoinRoom(room);
             }}
-            disabled={isCurrentUserInRoom}
+            disabled={isCurrentUserInRoom || isJoiningRoom}
             className="h-8 shrink-0 cursor-pointer rounded-[20px] border border-emerald-500/35 bg-emerald-500/15 px-3 text-xs text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
           >
-            {isCurrentUserInRoom ? "In room" : "Join room"}
+            {isCurrentUserInRoom ? "In room" : isJoiningRoom ? "Joining..." : "Join room"}
           </Button>
         </div>
       </div>
@@ -1506,6 +1538,29 @@ function WatchingNowGroupCard({
         </Button>
         </div>
       </div>
+      <AlertDialog open={showFinishOverrideDialog} onOpenChange={setShowFinishOverrideDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finish before runtime ends?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {runtimeMinutes != null
+                ? `This title is around ${runtimeMinutes} min and you've watched about ${elapsedMinutes} min. You can still finish now if you ended early.`
+                : "You can still finish now if you ended early."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">Keep watching</AlertDialogCancel>
+            <AlertDialogAction
+              className="cursor-pointer"
+              onClick={() => {
+                void handlePlaybackFinish(true);
+              }}
+            >
+              Finish anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
@@ -1522,6 +1577,7 @@ function JustFinishedGroupCard({
   onWatchNow?: (room: { tmdbId: number; mediaType: "movie" | "tv"; title: string }) => void;
 }) {
   const [showThoughts, setShowThoughts] = useState(true);
+  const [showFinishOverrideDialog, setShowFinishOverrideDialog] = useState(false);
   const topAvatars = room.participants.slice(0, 6);
   const featuredThought = room.thoughts[0] ?? null;
   const [localReactions, setLocalReactions] = useState(room.reactionCount ?? 0);
@@ -1537,9 +1593,8 @@ function JustFinishedGroupCard({
   const elapsedMinutes = room.currentUserSession
     ? Math.max(1, Math.round((Date.now() - new Date(room.currentUserSession.startedAt).getTime()) / 60000))
     : 0;
-  const movieRuntime = room.currentUserSession?.mediaType === "movie" ? room.currentUserSession.runtimeMinutes : null;
-  const isMovieFinishLocked =
-    canControlPlayback && room.currentUserSession?.mediaType === "movie" && movieRuntime != null && elapsedMinutes < movieRuntime;
+  const runtimeMinutes = room.currentUserSession?.runtimeMinutes ?? null;
+  const isFinishLocked = canControlPlayback && runtimeMinutes != null && runtimeMinutes > 0 && elapsedMinutes < runtimeMinutes;
 
   const handleWatchlistToggle = async () => {
     try {
@@ -1599,11 +1654,10 @@ function JustFinishedGroupCard({
     }
   };
 
-  const handlePlaybackFinish = async () => {
+  const handlePlaybackFinish = async (force: boolean = false) => {
     if (!room.currentUserSession) return;
-    if (isMovieFinishLocked && movieRuntime != null) {
-      const remaining = Math.max(1, movieRuntime - elapsedMinutes);
-      toast.message(`You can mark finished in about ${remaining} min.`);
+    if (!force && isFinishLocked && runtimeMinutes != null) {
+      setShowFinishOverrideDialog(true);
       return;
     }
     try {
@@ -1612,6 +1666,7 @@ function JustFinishedGroupCard({
         sessionId: room.currentUserSession.sessionId,
       });
       toast.success("Marked as finished.");
+      setShowFinishOverrideDialog(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to finish session");
     }
@@ -1696,9 +1751,9 @@ function JustFinishedGroupCard({
                   className="h-8 w-8 cursor-pointer rounded-full text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-500"
                   onClick={(e) => {
                     e.stopPropagation();
-                    void handlePlaybackFinish();
+                    void handlePlaybackFinish(false);
                   }}
-                  disabled={playbackBusy || isMovieFinishLocked}
+                  disabled={playbackBusy}
                   aria-label="Stop and mark finished"
                 >
                   <Square className="h-3.5 w-3.5" />
@@ -1813,6 +1868,29 @@ function JustFinishedGroupCard({
           </Button>
         </div>
       </div>
+      <AlertDialog open={showFinishOverrideDialog} onOpenChange={setShowFinishOverrideDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finish before runtime ends?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {runtimeMinutes != null
+                ? `This title is around ${runtimeMinutes} min and you've watched about ${elapsedMinutes} min. You can still finish now if you ended early.`
+                : "You can still finish now if you ended early."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">Keep watching</AlertDialogCancel>
+            <AlertDialogAction
+              className="cursor-pointer"
+              onClick={() => {
+                void handlePlaybackFinish(true);
+              }}
+            >
+              Finish anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
@@ -2333,6 +2411,7 @@ export default function WatchingContent() {
   const [showAllJustFinished, setShowAllJustFinished] = useState(false);
   const [justFinishedPage, setJustFinishedPage] = useState(1);
   const [isChangingTitle, setIsChangingTitle] = useState(false);
+  const [joiningRoomKey, setJoiningRoomKey] = useState<string | null>(null);
   const [activeCardContext, setActiveCardContext] = useState<{
     tmdbId: number;
     mediaType: "movie" | "tv";
@@ -2756,6 +2835,11 @@ export default function WatchingContent() {
   const submitShareThought = async () => {
     const sessionId = watchingData?.currentSession?.id;
     if (!sessionId || !thoughtText.trim()) return;
+    const validationError = validateWatchingTextInput(thoughtText.trim());
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     try {
       await watchingMutation.mutateAsync({
         action: "share_thought",
@@ -3187,6 +3271,7 @@ export default function WatchingContent() {
               key={room.key}
               room={room}
               currentUserId={currentUser?.id ?? null}
+              isJoiningRoom={joiningRoomKey === room.key}
               onWatchNow={(selectedRoom) => {
                 setWatchModalTarget({
                   tmdbId: selectedRoom.tmdbId,
@@ -3194,16 +3279,21 @@ export default function WatchingContent() {
                   title: selectedRoom.title,
                 });
               }}
-              onJoinRoom={(selectedRoom) => {
-                void submitStartWatching({
-                  tmdbId: selectedRoom.tmdbId,
-                  mediaType: selectedRoom.mediaType,
-                  title: selectedRoom.title,
-                  posterPath: selectedRoom.posterPath,
-                  backdropPath: selectedRoom.backdropPath,
-                  seasonNumber: selectedRoom.seasonNumber ?? null,
-                  episodeNumber: selectedRoom.episodeNumber ?? null,
-                });
+              onJoinRoom={async (selectedRoom) => {
+                setJoiningRoomKey(selectedRoom.key);
+                try {
+                  await submitStartWatching({
+                    tmdbId: selectedRoom.tmdbId,
+                    mediaType: selectedRoom.mediaType,
+                    title: selectedRoom.title,
+                    posterPath: selectedRoom.posterPath,
+                    backdropPath: selectedRoom.backdropPath,
+                    seasonNumber: selectedRoom.seasonNumber ?? null,
+                    episodeNumber: selectedRoom.episodeNumber ?? null,
+                  });
+                } finally {
+                  setJoiningRoomKey((current) => (current === selectedRoom.key ? null : current));
+                }
               }}
               onSelect={(selectedRoom) =>
                 setActiveCardContext({

@@ -36,8 +36,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { moderateContent } from "@/lib/moderation";
 
 const EMOJI_REACTIONS = ["like", "🔥", "😂", "😮", "😭"] as const;
+const validateWatchingTextInput = (value: string) => {
+  const moderation = moderateContent(value, {
+    minLength: 1,
+    maxLength: 1000,
+    allowProfanity: false,
+    sanitizeHtml: false,
+  });
+  return moderation.allowed ? null : moderation.error || "Content does not meet guidelines.";
+};
 
 const timeAgo = (iso: string) => {
   const ms = Date.now() - new Date(iso).getTime();
@@ -138,6 +148,11 @@ function ThoughtCard({
 
   const handleReply = async () => {
     if (!replyInput.trim()) return;
+    const validationError = validateWatchingTextInput(replyInput.trim());
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     const optimisticId = `temp-${Date.now()}`;
     const optimisticContent = replyInput.trim();
     setOptimisticReplies((prev) => [
@@ -172,6 +187,11 @@ function ThoughtCard({
   const handleThoughtEdit = async () => {
     const content = editText.trim();
     if (!content) return;
+    const validationError = validateWatchingTextInput(content);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     try {
       await updateThoughtMutation.mutateAsync({ thoughtId: thought.thoughtId, content });
       setIsEditing(false);
@@ -185,6 +205,11 @@ function ThoughtCard({
     if (!replyEditState) return;
     const content = replyEditState.content.trim();
     if (!content) return;
+    const validationError = validateWatchingTextInput(content);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     try {
       await updateReplyMutation.mutateAsync({
         thoughtId: thought.thoughtId,
@@ -513,7 +538,7 @@ function ThoughtCard({
             </Button>
           ) : null}
           {isReplying ? (
-            <div className="flex items-center gap-2 border-t border-border/50 pt-2">
+            <div className="flex items-center gap-2">
               <Input
                 value={replyInput}
                 onChange={(e) => setReplyInput(e.target.value)}

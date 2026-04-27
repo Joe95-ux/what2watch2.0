@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import type { WatchingDashboardResponse, WatchingSessionDTO, WatchingTitlePresenceResponse } from "@/lib/watching-types";
 import { triggerWatchingDashboardUpdated, triggerWatchingTitleUpdated } from "@/lib/pusher/server";
 import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
+import { moderateContent } from "@/lib/moderation";
 
 const WATCHING_AUTO_TIMEOUT_MS = 1000 * 60 * 60 * 4; // 4 hours
 
@@ -801,11 +802,21 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
         return NextResponse.json({ error: "Thought content is required" }, { status: 400 });
       }
 
+      const moderation = moderateContent(body.content, {
+        minLength: 1,
+        maxLength: 1000,
+        allowProfanity: false,
+        sanitizeHtml: true,
+      });
+      if (!moderation.allowed) {
+        return NextResponse.json({ error: moderation.error || "Thought does not meet content guidelines." }, { status: 400 });
+      }
+
       await db.watchingThought.create({
         data: {
           sessionId: session.id,
           userId: currentUser.id,
-          content: body.content.trim(),
+          content: moderation.sanitized || body.content.trim(),
           isSpoiler: Boolean(body.spoiler),
         },
       });
@@ -840,11 +851,21 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
       });
 
       if (body.thought?.trim()) {
+        const moderation = moderateContent(body.thought, {
+          minLength: 1,
+          maxLength: 1000,
+          allowProfanity: false,
+          sanitizeHtml: true,
+        });
+        if (!moderation.allowed) {
+          return NextResponse.json({ error: moderation.error || "Thought does not meet content guidelines." }, { status: 400 });
+        }
+
         await db.watchingThought.create({
           data: {
             sessionId: updated.id,
             userId: currentUser.id,
-            content: body.thought.trim(),
+            content: moderation.sanitized || body.thought.trim(),
             isSpoiler: Boolean(body.spoiler),
           },
         });
