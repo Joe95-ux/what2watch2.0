@@ -59,6 +59,8 @@ export type WatchingDashboardResponse = {
     posterPath: string | null;
     releaseYear: number | null;
     watchingCount: number;
+    watchedCount: number;
+    totalCount: number;
   }>;
 };
 

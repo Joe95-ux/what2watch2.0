@@ -38,6 +38,10 @@ type WatchingActionBody =
       spoiler?: boolean;
     }
   | {
+      action: "resume";
+      sessionId: string;
+    }
+  | {
       action: "share_thought";
       sessionId: string;
       content: string;

@@ -57,6 +57,7 @@ function ThoughtCard({
   blurred?: boolean;
 }) {
   const [showReplies, setShowReplies] = useState(false);
+  const [isReplying, setIsReplying] = useState(false);
   const [expandReplies, setExpandReplies] = useState(false);
   const [isSpoilerRevealed, setIsSpoilerRevealed] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -158,6 +159,7 @@ function ThoughtCard({
         parentReplyId: replyParentId,
       });
       setShowReplies(true);
+      setIsReplying(false);
       setReplyParentId(null);
       setOptimisticReplies((prev) => prev.filter((reply) => reply.id !== optimisticId));
     } catch (error) {
@@ -337,8 +339,12 @@ function ThoughtCard({
                 size="sm"
                 className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
                 onClick={() => {
-                  setShowReplies((v) => !v);
+                  setShowReplies(true);
+                  setIsReplying((v) => !v);
                   setReplyParentId(null);
+                  if (isReplying) {
+                    setReplyInput("");
+                  }
                 }}
               >
                 <Reply className="h-3.5 w-3.5" /> Reply ({localReplyCount})
@@ -381,69 +387,102 @@ function ThoughtCard({
             const isOptimistic = String(reply.id).startsWith("temp-");
             const nestedReplies = repliesByParent.get(reply.id) ?? [];
             return (
-              <div key={reply.id} className={`space-y-1 text-xs text-muted-foreground ${isOptimistic ? "opacity-80" : ""}`}>
-                <div>
-                  <span className="font-medium text-foreground/90">{replyUser}</span>
-                  <span className="mx-1">·</span>
+              <div key={reply.id} className={`flex items-start gap-[10px] ${isOptimistic ? "opacity-80" : ""}`}>
+                <Avatar className="mt-0.5 h-6 w-6 shrink-0">
+                  <AvatarImage src={reply.user.avatarUrl ?? undefined} alt={replyUser} />
+                  <AvatarFallback>{replyUser[0]}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+                    <span className="truncate text-[13px] font-medium text-foreground">{replyUser}</span>
+                    <span>·</span>
+                    <span>{timeAgo(reply.createdAt)}</span>
+                    {!!currentUser?.id && currentUser.id === reply.user.id ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="ml-1 h-6 w-6 cursor-pointer rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-36">
+                          <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => setReplyEditState({ id: reply.id, content: reply.content })}
+                          >
+                            <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="cursor-pointer text-destructive focus:text-destructive"
+                            onClick={() => setDeleteTarget({ type: "reply", id: reply.id })}
+                          >
+                            <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : null}
+                  </div>
                   {replyEditState?.id === reply.id ? (
-                    <span className="inline-flex items-center gap-2">
+                    <div className="space-y-2">
                       <Input
                         value={replyEditState.content}
                         onChange={(e) => setReplyEditState({ id: reply.id, content: e.target.value })}
-                        className="h-7 border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
+                        className="h-8 border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-7 cursor-pointer rounded-[20px] px-2 text-[11px]"
-                        onClick={handleReplyEdit}
-                        disabled={updateReplyMutation.isPending || !replyEditState.content.trim()}
-                      >
-                        Save
-                      </Button>
-                    </span>
-                  ) : (
-                    <span>{reply.content}</span>
-                  )}
-                  {!!currentUser?.id && currentUser.id === reply.user.id ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-7 cursor-pointer rounded-[20px] px-2 text-[11px]"
+                          onClick={handleReplyEdit}
+                          disabled={updateReplyMutation.isPending || !replyEditState.content.trim()}
+                        >
+                          Save
+                        </Button>
                         <Button
                           type="button"
                           variant="ghost"
-                          size="icon"
-                          className="ml-1 h-6 w-6 cursor-pointer rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                          size="sm"
+                          className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-2 text-[11px] text-muted-foreground hover:bg-muted"
+                          onClick={() => setReplyEditState(null)}
                         >
-                          <MoreHorizontal className="h-3.5 w-3.5" />
+                          Cancel
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-36">
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => setReplyEditState({ id: reply.id, content: reply.content })}
-                        >
-                          <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer text-destructive focus:text-destructive"
-                          onClick={() => setDeleteTarget({ type: "reply", id: reply.id })}
-                        >
-                          <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setReplyParentId(reply.id);
-                    setReplyInput(`@${replyUser} `);
-                  }}
-                  className="inline-flex cursor-pointer items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-                >
-                  <Reply className="h-3 w-3" /> Reply
-                </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[13px] text-foreground">{reply.content}</p>
+                  )}
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+                      onClick={() => setShowReactionPicker((v) => !v)}
+                      disabled={addMutation.isPending || removeMutation.isPending || shouldBlurSpoiler}
+                    >
+                      <Smile className="h-3.5 w-3.5" /> {localReactionCount}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+                      onClick={() => {
+                        setShowReplies(true);
+                        setIsReplying(true);
+                        setReplyParentId(reply.id);
+                        setReplyInput(`@${replyUser} `);
+                      }}
+                    >
+                      <Reply className="h-3.5 w-3.5" /> Reply ({nestedReplies.length})
+                    </Button>
+                  </div>
                 {nestedReplies.length ? (
                   <div className="space-y-1 border-l border-border/50 pl-3">
                     {nestedReplies.slice(0, 2).map((nested) => {
@@ -459,6 +498,7 @@ function ThoughtCard({
                   </div>
                 ) : null}
               </div>
+              </div>
             );
           })}
           {hasMoreReplies ? (
@@ -472,22 +512,37 @@ function ThoughtCard({
               {expandReplies ? "Show less" : `Show more (${topLevelReplies.length - 10})`}
             </Button>
           ) : null}
-          <div className="flex items-center gap-2">
-            <Input
-              value={replyInput}
-              onChange={(e) => setReplyInput(e.target.value)}
-              placeholder="Write a reply..."
+          {isReplying ? (
+            <div className="flex items-center gap-2 border-t border-border/50 pt-2">
+              <Input
+                value={replyInput}
+                onChange={(e) => setReplyInput(e.target.value)}
+                placeholder="Write a reply..."
                 className="h-8 border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
-            />
+              />
               <Button
                 size="sm"
                 className="h-8 cursor-pointer rounded-[20px] px-3 text-xs"
                 onClick={handleReply}
                 disabled={addReplyMutation.isPending || !replyInput.trim()}
               >
-              <Reply className="h-3.5 w-3.5" /> Reply
-            </Button>
-          </div>
+                <Reply className="h-3.5 w-3.5" /> Reply
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-8 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs text-muted-foreground hover:bg-muted"
+                onClick={() => {
+                  setIsReplying(false);
+                  setReplyParentId(null);
+                  setReplyInput("");
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : null}
           </div>
         ) : null}
           </div>

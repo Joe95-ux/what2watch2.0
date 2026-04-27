@@ -418,7 +418,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
 
     let [currentSessionRaw, watchingNowRaw, justFinishedRaw] = await Promise.all([
       db.watchingSession.findFirst({
-        where: { userId: currentUser.id, status: "WATCHING_NOW" },
+        where: { userId: currentUser.id, status: { in: ["WATCHING_NOW", "STOPPED"] } },
         include: {
           user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
           thoughts: {
@@ -431,12 +431,17 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
       }),
       db.watchingSession.findMany({
         where: {
-          status: "WATCHING_NOW",
           userId: { in: networkIds },
           OR: [
-            { visibility: "PUBLIC" },
-            { visibility: "FOLLOWERS_ONLY", userId: { in: followingIds } },
-            { userId: currentUser.id },
+            {
+              status: "WATCHING_NOW",
+              OR: [
+                { visibility: "PUBLIC" },
+                { visibility: "FOLLOWERS_ONLY", userId: { in: followingIds } },
+                { userId: currentUser.id },
+              ],
+            },
+            { status: "STOPPED", userId: currentUser.id },
           ],
         },
         include: {
@@ -606,7 +611,21 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
         )
       : [];
 
-    const trendingMap = new Map<string, { tmdbId: number; mediaType: "movie" | "tv"; title: string; posterPath: string | null; releaseYear: number | null; watchingCount: number }>();
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const trendingMap = new Map<
+      string,
+      {
+        tmdbId: number;
+        mediaType: "movie" | "tv";
+        title: string;
+        posterPath: string | null;
+        releaseYear: number | null;
+        watchingCount: number;
+        watchedCount: number;
+        totalCount: number;
+      }
+    >();
     for (const session of watchingNow) {
       const key = `${session.mediaType}:${session.tmdbId}`;
       const prev = trendingMap.get(key);
@@ -618,13 +637,37 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
           posterPath: session.posterPath,
           releaseYear: session.releaseYear,
           watchingCount: 1,
+          watchedCount: 0,
+          totalCount: 1,
         });
       } else {
         prev.watchingCount += 1;
+        prev.totalCount += 1;
+      }
+    }
+    for (const session of justFinished) {
+      const endedAt = session.endedAt ? new Date(session.endedAt) : null;
+      if (!endedAt || endedAt < startOfToday) continue;
+      const key = `${session.mediaType}:${session.tmdbId}`;
+      const prev = trendingMap.get(key);
+      if (!prev) {
+        trendingMap.set(key, {
+          tmdbId: session.tmdbId,
+          mediaType: session.mediaType,
+          title: session.title,
+          posterPath: session.posterPath,
+          releaseYear: session.releaseYear,
+          watchingCount: 0,
+          watchedCount: 1,
+          totalCount: 1,
+        });
+      } else {
+        prev.watchedCount += 1;
+        prev.totalCount += 1;
       }
     }
     const trendingTonight = Array.from(trendingMap.values())
-      .sort((a, b) => b.watchingCount - a.watchingCount || a.title.localeCompare(b.title))
+      .sort((a, b) => b.totalCount - a.totalCount || b.watchingCount - a.watchingCount || a.title.localeCompare(b.title))
       .slice(0, 5);
 
     return NextResponse.json({
@@ -668,6 +711,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
           sessionId: string;
           thought?: string;
           spoiler?: boolean;
+        }
+      | {
+          action: "resume";
+          sessionId: string;
         }
       | {
           action: "share_thought";
@@ -820,6 +867,34 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
         triggerWatchingDashboardUpdated({ action: body.action, userId: currentUser.id }),
         triggerWatchingTitleUpdated(updated.mediaType as "movie" | "tv", updated.tmdbId, {
           action: body.action,
+          userId: currentUser.id,
+        }),
+      ]);
+      return NextResponse.json({ session: toSessionDTO(updated) });
+    }
+
+    if (body.action === "resume") {
+      const owned = await db.watchingSession.findFirst({
+        where: { id: body.sessionId, userId: currentUser.id, status: "STOPPED" },
+        select: { id: true },
+      });
+      if (!owned) return NextResponse.json({ error: "Paused session not found" }, { status: 404 });
+
+      const updated = await db.watchingSession.update({
+        where: { id: body.sessionId },
+        data: { status: "WATCHING_NOW", endedAt: null },
+        include: {
+          user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+          thoughts: {
+            include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
+            orderBy: { createdAt: "desc" },
+          },
+        },
+      });
+      await Promise.all([
+        triggerWatchingDashboardUpdated({ action: "resume", userId: currentUser.id }),
+        triggerWatchingTitleUpdated(updated.mediaType as "movie" | "tv", updated.tmdbId, {
+          action: "resume",
           userId: currentUser.id,
         }),
       ]);

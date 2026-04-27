@@ -140,6 +140,7 @@ type WatchingNowRoomCard = {
     sessionId: string;
     startedAt: string;
     mediaType: "movie" | "tv";
+    status: WatchingSessionDTO["status"];
     progressPercent: number | null;
     runtimeMinutes: number | null;
   } | null;
@@ -169,6 +170,7 @@ type JustFinishedRoomCard = {
     sessionId: string;
     startedAt: string;
     mediaType: "movie" | "tv";
+    status: WatchingSessionDTO["status"];
     progressPercent: number | null;
     runtimeMinutes: number | null;
   } | null;
@@ -364,12 +366,12 @@ function JustFinishedComment({
     }
     return map;
   }, [replies]);
-  const primaryReplies = parentThoughtId
-    ? (repliesByParent.get(comment.id) ?? []).slice(0, 2)
-    : (repliesByParent.get("root") ?? []).slice(0, 2);
-  const totalReplies = parentThoughtId
-    ? (replies ?? []).filter((reply) => reply.parentReplyId === comment.id).length
-    : Math.max(comment.replyCount, replies?.length ?? 0);
+  // Top-level replies to a thought are stored with parentReplyId = null ("root").
+  // This component always renders a thought thread, so read root replies here.
+  const primaryReplies = (repliesByParent.get("root") ?? []).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+  const totalReplies = Math.max(comment.replyCount, replies?.length ?? 0);
   const isLive = comment.sessionStatus === "WATCHING_NOW";
 
   const submitThoughtEdit = async () => {
@@ -545,6 +547,9 @@ function JustFinishedComment({
               onClick={() => {
                 setIsReplying((v) => !v);
                 setReplyParentId(null);
+                if (isReplying) {
+                  setReplyText("");
+                }
               }}
               className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
             >
@@ -581,7 +586,7 @@ function JustFinishedComment({
             </div>
           ) : null}
           {isReplying ? (
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex items-center gap-2 border-t border-border/50 pt-2">
               <Input
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
@@ -597,6 +602,19 @@ function JustFinishedComment({
                 className="h-8 cursor-pointer rounded-[20px] px-3 text-xs"
               >
                 {addReply.isPending ? "Sending..." : "Send"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setIsReplying(false);
+                  setReplyParentId(null);
+                  setReplyText("");
+                }}
+                className="h-8 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs text-muted-foreground hover:bg-muted"
+              >
+                Cancel
               </Button>
             </div>
           ) : null}
@@ -678,19 +696,32 @@ function JustFinishedComment({
                   ) : (
                     <p className="text-[13px] text-foreground">{reply.content}</p>
                   )}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setIsReplying(true);
-                      setReplyText(`@${replyUser} `);
-                      setReplyParentId(reply.id);
-                    }}
-                    className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
-                  >
-                    <Reply className="h-3.5 w-3.5" /> Reply
-                  </Button>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowReactionPicker((v) => !v)}
+                      className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+                    >
+                      <Smile className="h-3.5 w-3.5" />
+                      {localReactionCount}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsReplying(true);
+                        setReplyText(`@${replyUser} `);
+                        setReplyParentId(reply.id);
+                      }}
+                      className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+                    >
+                      <Reply className="h-3.5 w-3.5" />
+                      Reply ({nestedReplies.length})
+                    </Button>
+                  </div>
                   {nestedReplies.length ? (
                     <div className="space-y-1.5 pt-1">
                       {nestedReplies.map((nested) => {
@@ -712,8 +743,8 @@ function JustFinishedComment({
               </div>
             );
           })}
-          {totalReplies > 2 ? (
-            <p className="text-[11px] text-muted-foreground">+{totalReplies - 2} more replies</p>
+          {totalReplies > primaryReplies.length ? (
+            <p className="text-[11px] text-muted-foreground">+{totalReplies - primaryReplies.length} more replies</p>
           ) : null}
         </div>
       ) : null}
@@ -1232,16 +1263,16 @@ function WatchingNowGroupCard({
     }
   };
 
-  const handlePlaybackPause = async () => {
+  const handlePlaybackToggle = async () => {
     if (!room.currentUserSession) return;
     try {
       await watchingMutation.mutateAsync({
-        action: "stop",
+        action: room.currentUserSession.status === "WATCHING_NOW" ? "stop" : "resume",
         sessionId: room.currentUserSession.sessionId,
       });
-      toast.success("Session paused.");
+      toast.success(room.currentUserSession.status === "WATCHING_NOW" ? "Session paused." : "Session resumed.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to pause session");
+      toast.error(error instanceof Error ? error.message : "Failed to update session");
     }
   };
 
@@ -1324,12 +1355,16 @@ function WatchingNowGroupCard({
                   className="h-8 w-8 cursor-pointer rounded-full text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                   onClick={(e) => {
                     e.stopPropagation();
-                    void handlePlaybackPause();
+                    void handlePlaybackToggle();
                   }}
                   disabled={playbackBusy}
-                  aria-label="Pause session"
+                  aria-label={room.currentUserSession.status === "WATCHING_NOW" ? "Pause session" : "Resume session"}
                 >
-                  <Pause className="h-4 w-4" />
+                  {room.currentUserSession.status === "WATCHING_NOW" ? (
+                    <Pause className="h-4 w-4" />
+                  ) : (
+                    <PlayCircle className="h-4 w-4" />
+                  )}
                 </Button>
                 <Button
                   type="button"
@@ -1551,16 +1586,16 @@ function JustFinishedGroupCard({
     }
   };
 
-  const handlePlaybackPause = async () => {
+  const handlePlaybackToggle = async () => {
     if (!room.currentUserSession) return;
     try {
       await watchingMutation.mutateAsync({
-        action: "stop",
+        action: room.currentUserSession.status === "WATCHING_NOW" ? "stop" : "resume",
         sessionId: room.currentUserSession.sessionId,
       });
-      toast.success("Session paused.");
+      toast.success(room.currentUserSession.status === "WATCHING_NOW" ? "Session paused." : "Session resumed.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to pause session");
+      toast.error(error instanceof Error ? error.message : "Failed to update session");
     }
   };
 
@@ -1643,12 +1678,16 @@ function JustFinishedGroupCard({
                   className="h-8 w-8 cursor-pointer rounded-full text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                   onClick={(e) => {
                     e.stopPropagation();
-                    void handlePlaybackPause();
+                    void handlePlaybackToggle();
                   }}
                   disabled={playbackBusy}
-                  aria-label="Pause session"
+                  aria-label={room.currentUserSession.status === "WATCHING_NOW" ? "Pause session" : "Resume session"}
                 >
-                  <Pause className="h-4 w-4" />
+                  {room.currentUserSession.status === "WATCHING_NOW" ? (
+                    <Pause className="h-4 w-4" />
+                  ) : (
+                    <PlayCircle className="h-4 w-4" />
+                  )}
                 </Button>
                 <Button
                   type="button"
@@ -1808,6 +1847,8 @@ function RightRail({
     posterPath: string | null;
     releaseYear: number | null;
     watchingCount: number;
+    watchedCount: number;
+    totalCount: number;
   }>;
   currentUserId: string | null | undefined;
   thoughtText: string;
@@ -1827,7 +1868,8 @@ function RightRail({
 }) {
   const trendingLabel = useMemo(() => {
     const part = watchMomentLabel.split(" ").pop()?.toLowerCase() ?? "today";
-    return `Trending ${part}`;
+    const isTonight = part === "evening" || part === "night";
+    return isTonight ? "Trending tonight" : "Trending today";
   }, [watchMomentLabel]);
   const currentProgress = useMemo(() => {
     if (!currentSession) return 0;
@@ -2153,10 +2195,16 @@ function RightRail({
                   {item.releaseYear ?? "Year unknown"} · {item.mediaType === "movie" ? "Movie" : "TV"}
                 </p>
               </div>
-              <p className="inline-flex min-w-[2.25rem] shrink-0 items-center justify-end gap-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                {item.watchingCount}
-              </p>
+              <span
+                className={cn(
+                  "inline-flex min-w-[4.5rem] shrink-0 items-center justify-end rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                  item.watchingCount > 0
+                    ? "border-emerald-500/35 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                    : "border-slate-500/25 bg-slate-500/15 text-slate-700 dark:text-slate-300"
+                )}
+              >
+                {item.watchingCount > 0 ? `${item.watchingCount} watching` : `${item.watchedCount} watched`}
+              </span>
               <Button
                 type="button"
                 variant="ghost"
@@ -2175,7 +2223,7 @@ function RightRail({
               </Button>
             </div>
           ))}
-          {!trendingTonight.length ? <p className="py-[8px] text-[12px] text-muted-foreground">No sessions yet.</p> : null}
+          {!trendingTonight.length ? <p className="py-[8px] text-[12px] text-muted-foreground">No trending titles yet.</p> : null}
         </div>
       </section>
 
@@ -2391,6 +2439,7 @@ export default function WatchingContent() {
                   sessionId: session.id,
                   startedAt: session.startedAt,
                   mediaType: session.mediaType,
+                  status: session.status === "STOPPED" ? "STOPPED" : "WATCHING_NOW",
                   progressPercent: session.progressPercent ?? null,
                   runtimeMinutes: session.runtimeMinutes ?? null,
                 }
@@ -2417,6 +2466,7 @@ export default function WatchingContent() {
             sessionId: session.id,
             startedAt: session.startedAt,
             mediaType: session.mediaType,
+            status: session.status === "STOPPED" ? "STOPPED" : "WATCHING_NOW",
             progressPercent: session.progressPercent ?? null,
             runtimeMinutes: session.runtimeMinutes ?? null,
           };
@@ -2498,6 +2548,7 @@ export default function WatchingContent() {
           sessionId: currentSession.id,
           startedAt: currentSession.startedAt,
           mediaType: currentSession.mediaType,
+          status: currentSession.status === "STOPPED" ? "STOPPED" : "WATCHING_NOW",
           progressPercent: currentSession.progressPercent ?? null,
           runtimeMinutes: currentSession.runtimeMinutes ?? null,
         };
@@ -2929,11 +2980,15 @@ export default function WatchingContent() {
                   autoComplete="off"
                 />
               </div>
-              <div className="max-h-[55vh] overflow-y-auto border-t border-border/60 p-2 scrollbar-thin">
+              <div className="h-[55vh] min-h-[280px] overflow-y-auto border-t border-border/60 p-2 scrollbar-thin">
                 {!debouncedWatchSearch.trim() ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">Start typing to search.</div>
+                  <div className="flex h-full items-center justify-center p-4 text-center text-sm text-muted-foreground">
+                    Start typing to search.
+                  </div>
                 ) : isWatchSearchLoading ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">Searching...</div>
+                  <div className="flex h-full items-center justify-center p-4 text-center text-sm text-muted-foreground">
+                    Searching...
+                  </div>
                 ) : watchSearchResults?.results && watchSearchResults.results.length > 0 ? (
                   watchSearchResults.results.map((item) => {
                     const isMovie = "title" in item;
@@ -2960,7 +3015,9 @@ export default function WatchingContent() {
                           setSelectedSeasonNumber("");
                           setSelectedEpisodeNumber("");
                           setWatchSearchQuery(title);
-                          setSearchModalOpen(false);
+                          if (mediaType === "movie") {
+                            setSearchModalOpen(false);
+                          }
                         }}
                       >
                         {poster ? (
@@ -2983,12 +3040,15 @@ export default function WatchingContent() {
                     );
                   })
                 ) : (
-                  <div className="p-4 text-center text-sm text-muted-foreground">No results found.</div>
+                  <div className="flex h-full items-center justify-center p-4 text-center text-sm text-muted-foreground">
+                    No results found.
+                  </div>
                 )}
               </div>
               {selectedPick?.mediaType === "tv" ? (
                 <div className="border-t border-border/60 px-4 py-3">
-                  <p className="mb-2 text-[12px] text-muted-foreground">Now watching (TV episode)</p>
+                  <p className="mb-1 text-[12px] text-muted-foreground">Now watching (TV episode)</p>
+                  <p className="mb-2 text-[11px] text-muted-foreground">Rooms are episode-specific: one episode per room.</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="flex h-9 items-center rounded-[20px] border border-border/60 bg-transparent px-3">
                       <Button
@@ -3070,6 +3130,22 @@ export default function WatchingContent() {
                         <Plus className="h-3 w-3" />
                       </Button>
                     </div>
+                  </div>
+                  <div className="mt-3 flex justify-end">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setSearchModalOpen(false)}
+                      disabled={
+                        !Number.isInteger(Number.parseInt(selectedSeasonNumber, 10)) ||
+                        Number.parseInt(selectedSeasonNumber, 10) <= 0 ||
+                        !Number.isInteger(Number.parseInt(selectedEpisodeNumber, 10)) ||
+                        Number.parseInt(selectedEpisodeNumber, 10) <= 0
+                      }
+                      className="h-8 cursor-pointer rounded-[20px] px-3 text-xs"
+                    >
+                      Use episode
+                    </Button>
                   </div>
                 </div>
               ) : null}
