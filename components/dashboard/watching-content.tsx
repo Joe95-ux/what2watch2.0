@@ -942,11 +942,6 @@ function FeedCard({
                   just finished
                 </Badge>
               )}
-              {isSelected ? (
-                <Badge variant="secondary" className="rounded-full bg-primary/15 text-[10px] text-primary">
-                  Focused
-                </Badge>
-              ) : null}
             </div>
             <p className="text-xs text-muted-foreground">{item.startedOrFinished}</p>
           </div>
@@ -1324,7 +1319,7 @@ function WatchingNowGroupCard({
       <div className="border-t border-border/80">
         <div className="grid grid-cols-4 divide-x divide-border/60">
         <div className="inline-flex h-10 items-center justify-center gap-1.5 rounded-none text-xs text-muted-foreground">
-          <ThumbsUp className={cn("h-3.5 w-3.5", localLiked ? "fill-yellow-400 text-yellow-400" : "")} /> {localReactions}
+          <Smile className={cn("h-3.5 w-3.5", localLiked ? "text-yellow-400" : "")} /> {localReactions}
         </div>
         <Button
           variant="ghost"
@@ -1478,7 +1473,7 @@ function JustFinishedGroupCard({
             </p>
           </div>
         </div>
-        <Badge className="shrink-0 rounded-full border border-emerald-500/25 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 shadow-none dark:text-emerald-300">
+        <Badge className="shrink-0 rounded-full border border-slate-500/25 bg-slate-500/15 px-2.5 py-0.5 text-[11px] font-medium text-slate-700 shadow-none dark:text-slate-300">
           {room.finishedCount} finished tonight
         </Badge>
       </div>
@@ -1493,7 +1488,7 @@ function JustFinishedGroupCard({
               </Avatar>
             ))}
           </div>
-          <p className="truncate text-[13px] text-emerald-600 dark:text-emerald-400">
+          <p className="truncate text-[13px] text-slate-600 dark:text-slate-400">
             {(() => {
               const names = room.participants.map((p) => p.name).slice(0, 3);
               if (!names.length) return "Everyone finished within the last hour.";
@@ -1536,7 +1531,7 @@ function JustFinishedGroupCard({
       <div className="border-t border-border/60">
         <div className="grid grid-cols-4 divide-x divide-border/60">
           <div className="inline-flex h-10 items-center justify-center gap-1.5 rounded-none text-xs text-muted-foreground">
-            <ThumbsUp className={cn("h-3.5 w-3.5", localLiked ? "fill-yellow-400 text-yellow-400" : "")} /> {localReactions}
+            <Smile className={cn("h-3.5 w-3.5", localLiked ? "text-yellow-400" : "")} /> {localReactions}
           </div>
           <Button
             variant="ghost"
@@ -1918,7 +1913,7 @@ function RightRail({
           {trendingTonight.map((item, i) => (
             <div
               key={`${item.mediaType}-${item.tmdbId}`}
-              className="flex w-full items-center gap-[14px] py-[8px] text-left hover:bg-muted/30"
+              className="flex w-full items-center gap-2 sm:gap-[14px] py-[8px] text-left hover:bg-muted/30"
             >
               <span className="w-7 text-center font-serif text-[18px] font-semibold leading-none text-muted-foreground">{i + 1}</span>
               <Link href={titlePageHref(item.mediaType, item.tmdbId, item.title)} className="shrink-0">
@@ -1932,10 +1927,10 @@ function RightRail({
                   </div>
                 )}
               </Link>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 pr-1">
                 <Link
                   href={titlePageHref(item.mediaType, item.tmdbId, item.title)}
-                  className="truncate text-[13px] font-medium hover:underline"
+                  className="block truncate text-[13px] font-medium hover:underline"
                 >
                   {item.title}
                 </Link>
@@ -1943,7 +1938,7 @@ function RightRail({
                   {item.releaseYear ?? "Year unknown"} · {item.mediaType === "movie" ? "Movie" : "TV"}
                 </p>
               </div>
-              <p className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400">
+              <p className="inline-flex min-w-[2.25rem] shrink-0 items-center justify-end gap-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 {item.watchingCount}
               </p>

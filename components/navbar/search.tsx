@@ -429,7 +429,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
             className={cn(
               "fixed left-0 right-0 z-[60] flex flex-col min-h-0",
               hasHeroSection
-                ? "bg-zinc-950 text-zinc-50 border-b border-white/10"
+                ? "bg-[rgb(1,10,15)] text-zinc-50 border-b border-white/10"
                 : "bg-background border-b shadow-lg",
               filtersOpen ? "top-0 bottom-0 h-[100dvh] sm:h-screen" : "top-0",
               "animate-in slide-in-from-top-2 duration-300"
@@ -567,7 +567,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
               <div
                 className={cn(
                   "h-auto overflow-hidden border-t",
-                  hasHeroSection && "border-white/10 bg-zinc-950"
+                  hasHeroSection && "border-white/10 bg-[rgb(1,10,15)]"
                 )}
               >
                 <div className="p-2 max-h-[80vh] sm:max-h-[60vh] overflow-y-auto scrollbar-thin">
@@ -772,7 +772,7 @@ export default function Search({ hasHeroSection = false, centered = false }: Sea
           className={cn(
             "absolute top-full left-0 right-0 mt-1 rounded-md shadow-lg z-[60] h-auto overflow-hidden border",
             hasHeroSection
-              ? "bg-zinc-950 border-white/10 text-zinc-50 shadow-xl shadow-black/40"
+              ? "bg-[rgb(1,10,15)] border-white/10 text-zinc-50 shadow-xl shadow-black/40"
               : "bg-background border-border"
           )}
         >

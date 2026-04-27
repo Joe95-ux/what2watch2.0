@@ -194,9 +194,8 @@ export function UnifiedNotificationCenter() {
           <Bell className="h-5 w-5" />
           {totalUnreadCount > 0 && (
             <Badge
-              variant="destructive"
               className={cn(
-                "absolute -top-1 flex h-5 min-h-5 min-w-5 items-center justify-center px-1.5 py-0 text-[11px] font-semibold leading-none tabular-nums shadow-sm",
+                "absolute -top-1 flex h-5 min-h-5 min-w-5 items-center justify-center bg-sky-500 px-1.5 py-0 text-[11px] font-semibold leading-none text-white tabular-nums shadow-sm",
                 isOverflowUnreadBadge ? "-right-3" : "-right-1",
                 isSingleDigitUnreadBadge ? "rounded-full" : "rounded-[20px]"
               )}
@@ -286,11 +285,11 @@ export function UnifiedNotificationCenter() {
                     <div
                       key={notification.id}
                       className={cn(
-                        "p-4 hover:bg-muted/50 transition-colors",
-                        !notification.isRead && "border-l-[3px] border-l-[#1447E6] bg-blue-50 dark:[background:var(--unread-notification-bg)]"
+                        "p-4 hover:bg-muted/50 transition-colors"
                       )}
                     >
                       <div className="flex gap-3">
+                        {!notification.isRead ? <span className="h-10 w-1.5 shrink-0 self-center rounded-full bg-emerald-500" /> : null}
                         <div className="relative h-12 w-20 flex-shrink-0 rounded overflow-hidden bg-muted">
                           {notification.videoThumbnail ? (
                             <Image
@@ -395,11 +394,11 @@ export function UnifiedNotificationCenter() {
                       key={notification.id}
                       onClick={() => handleGeneralNotificationClick(notification)}
                       className={cn(
-                        "p-4 hover:bg-muted/50 transition-colors cursor-pointer",
-                        !notification.isRead && "border-l-[3px] border-l-[#1447E6] bg-blue-50 dark:[background:var(--unread-notification-bg)]"
+                      "p-4 hover:bg-muted/50 transition-colors cursor-pointer"
                       )}
                     >
                       <div className="flex gap-3">
+                      {!notification.isRead ? <span className="h-10 w-1.5 shrink-0 self-center rounded-full bg-emerald-500" /> : null}
                         <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                           {getGeneralNotificationIcon(notification.type)}
                         </div>
@@ -495,11 +494,11 @@ export function UnifiedNotificationCenter() {
                     >
                       <div
                         className={cn(
-                          "p-4 hover:bg-muted/50 transition-colors",
-                          !notification.isRead && "border-l-[3px] border-l-[#1447E6] bg-blue-50 dark:[background:var(--unread-notification-bg)]"
+                          "p-4 hover:bg-muted/50 transition-colors"
                         )}
                       >
                         <div className="flex gap-3">
+                          {!notification.isRead ? <span className="h-10 w-1.5 shrink-0 self-center rounded-full bg-emerald-500" /> : null}
                           <Avatar className="h-10 w-10 flex-shrink-0">
                             <AvatarImage 
                               src={
