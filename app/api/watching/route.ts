@@ -622,6 +622,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
         title: string;
         posterPath: string | null;
         releaseYear: number | null;
+        watchingUserIds: Set<string>;
+        watchedUserIds: Set<string>;
         watchingCount: number;
         watchedCount: number;
         totalCount: number;
@@ -637,13 +639,16 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
           title: session.title,
           posterPath: session.posterPath,
           releaseYear: session.releaseYear,
+          watchingUserIds: new Set([session.userId]),
+          watchedUserIds: new Set(),
           watchingCount: 1,
           watchedCount: 0,
           totalCount: 1,
         });
       } else {
-        prev.watchingCount += 1;
-        prev.totalCount += 1;
+        prev.watchingUserIds.add(session.userId);
+        prev.watchingCount = prev.watchingUserIds.size;
+        prev.totalCount = prev.watchingUserIds.size + prev.watchedUserIds.size;
       }
     }
     for (const session of justFinished) {
@@ -658,16 +663,29 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
           title: session.title,
           posterPath: session.posterPath,
           releaseYear: session.releaseYear,
+          watchingUserIds: new Set(),
+          watchedUserIds: new Set([session.userId]),
           watchingCount: 0,
           watchedCount: 1,
           totalCount: 1,
         });
       } else {
-        prev.watchedCount += 1;
-        prev.totalCount += 1;
+        prev.watchedUserIds.add(session.userId);
+        prev.watchedCount = prev.watchedUserIds.size;
+        prev.totalCount = prev.watchingUserIds.size + prev.watchedUserIds.size;
       }
     }
     const trendingTonight = Array.from(trendingMap.values())
+      .map((entry) => ({
+        tmdbId: entry.tmdbId,
+        mediaType: entry.mediaType,
+        title: entry.title,
+        posterPath: entry.posterPath,
+        releaseYear: entry.releaseYear,
+        watchingCount: entry.watchingUserIds.size,
+        watchedCount: entry.watchedUserIds.size,
+        totalCount: entry.watchingUserIds.size + entry.watchedUserIds.size,
+      }))
       .sort((a, b) => b.totalCount - a.totalCount || b.watchingCount - a.watchingCount || a.title.localeCompare(b.title))
       .slice(0, 5);
 
