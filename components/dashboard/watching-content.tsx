@@ -145,6 +145,7 @@ type WatchingNowRoomCard = {
     progressPercent: number | null;
     runtimeMinutes: number | null;
   } | null;
+  currentUserFinishedAt: string | null;
 };
 
 type JustFinishedRoomCard = {
@@ -1242,6 +1243,7 @@ function WatchingNowGroupCard({
     return remaining > 0 ? `${first} and ${remaining} others` : first;
   }, [room.participants]);
   const isCurrentUserInRoom = !!currentUserId && room.participants.some((participant) => participant.userId === currentUserId);
+  const hasCurrentUserFinished = !isCurrentUserInRoom && !!room.currentUserFinishedAt;
   const canControlPlayback = Boolean(room.currentUserSession);
   const playbackBusy = watchingMutation.isPending;
   const elapsedMinutes = room.currentUserSession
@@ -1431,6 +1433,11 @@ function WatchingNowGroupCard({
               ))}
             </div>
             <p className="truncate text-[13px] text-muted-foreground">{participantLabel}</p>
+            {hasCurrentUserFinished ? (
+              <p className="mt-1 inline-flex items-center rounded-full border border-slate-500/25 bg-slate-500/15 px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                You finished {timeAgo(room.currentUserFinishedAt ?? new Date().toISOString())}
+              </p>
+            ) : null}
           </div>
           <Button
             type="button"
@@ -2478,6 +2485,7 @@ export default function WatchingContent() {
           : "";
       const key = `${session.mediaType}:${session.tmdbId}${seasonEpisodeKey}`;
       const existing = groups.get(key);
+      const isActiveWatcher = session.status === "WATCHING_NOW";
       const participantName = session.user.displayName || session.user.username || "Unknown";
       const thoughtsForSession = session.thoughts.map((thought) => ({
         id: thought.id,
@@ -2505,8 +2513,10 @@ export default function WatchingContent() {
           backdropPath: session.backdropPath,
           releaseYear: session.releaseYear ?? null,
           creatorOrDirector: session.creatorOrDirector ?? null,
-          watchingCount: 1,
-          participants: [{ userId: session.user.id, name: participantName, avatar: session.user.avatarUrl ?? null }],
+          watchingCount: isActiveWatcher ? 1 : 0,
+          participants: isActiveWatcher
+            ? [{ userId: session.user.id, name: participantName, avatar: session.user.avatarUrl ?? null }]
+            : [],
           featuredThought: thoughtsForSession[0] ?? null,
           thoughts: thoughtsForSession,
           thoughtCount: thoughtsForSession.length,
@@ -2523,10 +2533,19 @@ export default function WatchingContent() {
                   runtimeMinutes: session.runtimeMinutes ?? null,
                 }
               : null,
+          currentUserFinishedAt:
+            currentUser?.id &&
+            session.user.id === currentUser.id &&
+            session.status === "JUST_FINISHED" &&
+            session.endedAt
+              ? session.endedAt
+              : null,
         });
       } else {
-        existing.watchingCount += 1;
-        if (!existing.participants.some((p) => p.userId === session.user.id)) {
+        if (isActiveWatcher) {
+          existing.watchingCount += 1;
+        }
+        if (isActiveWatcher && !existing.participants.some((p) => p.userId === session.user.id)) {
           existing.participants.push({
             userId: session.user.id,
             name: participantName,
@@ -2541,19 +2560,47 @@ export default function WatchingContent() {
         existing.thoughtCount = existing.thoughts.length;
         existing.reactionCount = existing.thoughts.reduce((sum, thought) => sum + (thought.reactionCount ?? 0), 0);
         if (!existing.currentUserSession && currentUser?.id && session.user.id === currentUser.id) {
-          existing.currentUserSession = {
-            sessionId: session.id,
-            startedAt: session.startedAt,
-            mediaType: session.mediaType,
-            status: session.status === "STOPPED" ? "STOPPED" : "WATCHING_NOW",
-            progressPercent: session.progressPercent ?? null,
-            runtimeMinutes: session.runtimeMinutes ?? null,
-          };
+          if (session.status === "WATCHING_NOW" || session.status === "STOPPED") {
+            existing.currentUserSession = {
+              sessionId: session.id,
+              startedAt: session.startedAt,
+              mediaType: session.mediaType,
+              status: session.status === "STOPPED" ? "STOPPED" : "WATCHING_NOW",
+              progressPercent: session.progressPercent ?? null,
+              runtimeMinutes: session.runtimeMinutes ?? null,
+            };
+          }
+          if (session.status === "JUST_FINISHED" && session.endedAt) {
+            existing.currentUserFinishedAt = session.endedAt;
+          }
         }
       }
     }
+    if (currentUser?.id) {
+      const myRecentFinished = (watchingData?.justFinished ?? [])
+        .filter((session) => session.userId === currentUser.id && session.status === "JUST_FINISHED")
+        .sort(
+          (a, b) =>
+            new Date(b.endedAt ?? b.updatedAt).getTime() -
+            new Date(a.endedAt ?? a.updatedAt).getTime()
+        );
+      for (const session of myRecentFinished) {
+        const seasonEpisodeKey =
+          session.mediaType === "tv" && session.seasonNumber && session.episodeNumber
+            ? `:s${session.seasonNumber}:e${session.episodeNumber}`
+            : "";
+        const key = `${session.mediaType}:${session.tmdbId}${seasonEpisodeKey}`;
+        const room = groups.get(key);
+        if (!room) continue;
+        room.currentUserFinishedAt = session.endedAt ?? session.updatedAt;
+      }
+    }
     return Array.from(groups.values()).sort((a, b) => b.watchingCount - a.watchingCount);
-  }, [watchingData?.watchingNow, currentUser?.id]);
+  }, [watchingData?.watchingNow, watchingData?.justFinished, currentUser?.id]);
+  const activeWatchingPeopleCount = useMemo(
+    () => (watchingData?.watchingNow ?? []).filter((session) => session.status === "WATCHING_NOW").length,
+    [watchingData?.watchingNow]
+  );
   const justFinished = useMemo(
     () => (watchingData?.justFinished ?? []).map(toFeedCard),
     [watchingData?.justFinished]
@@ -3252,7 +3299,7 @@ export default function WatchingContent() {
               <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
                 WATCHING NOW
-                <span className="text-emerald-500">· {watchingData?.watchingNow?.length ?? 0} PEOPLE</span>
+                <span className="text-emerald-500">· {activeWatchingPeopleCount} PEOPLE</span>
               </p>
             </div>
             <Button

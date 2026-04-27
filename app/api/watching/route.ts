@@ -419,7 +419,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
 
     let [currentSessionRaw, watchingNowRaw, justFinishedRaw] = await Promise.all([
       db.watchingSession.findFirst({
-        where: { userId: currentUser.id, status: { in: ["WATCHING_NOW", "STOPPED"] } },
+        where: { userId: currentUser.id, status: "WATCHING_NOW" },
         include: {
           user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
           thoughts: {
@@ -630,6 +630,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
       }
     >();
     for (const session of watchingNow) {
+      if (session.status !== "WATCHING_NOW") continue;
       const key = `${session.mediaType}:${session.tmdbId}`;
       const prev = trendingMap.get(key);
       if (!prev) {
