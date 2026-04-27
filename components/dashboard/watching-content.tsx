@@ -39,6 +39,7 @@ import {
   useWatchingThoughtReplies,
 } from "@/hooks/use-watching";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useSearch } from "@/hooks/use-search";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { WatchingSessionDTO } from "@/lib/watching-types";
@@ -2046,6 +2047,7 @@ function RightRail({
 }
 
 export default function WatchingContent() {
+  const isMobile = useIsMobile();
   const { data: currentUser, isLoading } = useCurrentUser();
   const { data: watchingData, isLoading: isWatchingLoading } = useWatchingDashboard(true);
   const watchingMutation = useWatchingMutation();
@@ -2578,11 +2580,13 @@ export default function WatchingContent() {
               }
             }}
           >
-            <div className="flex items-center gap-2">
-              <Avatar className="hidden h-9 w-9 shrink-0 sm:flex">
+            <div className={cn("flex gap-2", isMobile ? "flex-col" : "flex-row items-center")}>
+              {!isMobile ? (
+              <Avatar className="hidden h-9 w-9 shrink-0 md:flex">
                 <AvatarImage src={currentUser?.avatarUrl ?? undefined} />
                 <AvatarFallback>{(currentUser?.username || currentUser?.displayName || "U")[0]}</AvatarFallback>
               </Avatar>
+              ) : null}
               <div className="relative min-w-0 flex-1">
                 <Input
                   value={composeInputValue}
@@ -2591,7 +2595,12 @@ export default function WatchingContent() {
                     if (!isWatchingActive) setSearchModalOpen(true);
                   }}
                   placeholder={`What are you watching right now, ${currentUser?.displayName || currentUser?.username || "there"}?`}
-                  className="h-10 w-full cursor-pointer border border-border bg-transparent px-4 pr-10 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
+                  className={cn(
+                    "h-10 w-full cursor-pointer bg-transparent text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent",
+                    isMobile
+                      ? "border border-border px-4 pr-10"
+                      : "border-0 px-0 pr-10"
+                  )}
                   autoComplete="off"
                 />
                 {isWatchingActive ? (
@@ -2616,6 +2625,7 @@ export default function WatchingContent() {
                 type="button"
                 className={cn(
                   "h-9 shrink-0 cursor-pointer rounded-[20px] border px-4 text-[14px] whitespace-nowrap",
+                  isMobile ? "w-full" : "w-auto",
                   isWatchingActive
                     ? "border-emerald-500/35 bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
                     : "border-primary/30 bg-primary/15 text-primary hover:bg-primary/20 dark:border-primary/35 dark:bg-primary/20 dark:text-primary-foreground"
