@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import type { WatchingDashboardResponse, WatchingSessionDTO, WatchingTitlePresenceResponse } from "@/lib/watching-types";
 import { triggerWatchingDashboardUpdated, triggerWatchingTitleUpdated } from "@/lib/pusher/server";
-import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
+import { getMovieDetails, getTVDetails, getTVSeasonDetails } from "@/lib/tmdb";
 import { moderateContent } from "@/lib/moderation";
 
 const WATCHING_AUTO_TIMEOUT_MS = 1000 * 60 * 60 * 4; // 4 hours
@@ -149,17 +149,36 @@ type SessionTitleMetadata = {
 };
 
 async function buildSessionMetadataMap(
-  sessions: Array<{ tmdbId: number; mediaType: "movie" | "tv" }>
+  sessions: Array<{
+    tmdbId: number;
+    mediaType: "movie" | "tv";
+    seasonNumber?: number | null;
+    episodeNumber?: number | null;
+  }>
 ): Promise<Map<string, SessionTitleMetadata>> {
   const uniqueKeys = new Set<string>();
   for (const session of sessions) {
-    uniqueKeys.add(`${session.mediaType}:${session.tmdbId}`);
+    const key =
+      session.mediaType === "tv" &&
+      Number.isInteger(session.seasonNumber) &&
+      Number.isInteger(session.episodeNumber)
+        ? `${session.mediaType}:${session.tmdbId}:s${session.seasonNumber}:e${session.episodeNumber}`
+        : `${session.mediaType}:${session.tmdbId}`;
+    uniqueKeys.add(key);
   }
 
   const map = new Map<string, SessionTitleMetadata>();
+  const tvDetailsCache = new Map<
+    number,
+    Awaited<ReturnType<typeof getTVDetails>>
+  >();
+  const tvSeasonCache = new Map<
+    string,
+    Awaited<ReturnType<typeof getTVSeasonDetails>>
+  >();
   await Promise.all(
     Array.from(uniqueKeys).map(async (key) => {
-      const [mediaType, idRaw] = key.split(":");
+      const [mediaType, idRaw, seasonRaw, episodeRaw] = key.split(":");
       const tmdbId = Number(idRaw);
       try {
         if (mediaType === "movie") {
@@ -181,7 +200,11 @@ async function buildSessionMetadataMap(
         }
 
         if (mediaType === "tv") {
-          const details = await getTVDetails(tmdbId);
+          let details = tvDetailsCache.get(tmdbId);
+          if (!details) {
+            details = await getTVDetails(tmdbId);
+            tvDetailsCache.set(tmdbId, details);
+          }
           const releaseYear = details.first_air_date ? Number(details.first_air_date.slice(0, 4)) : null;
           const creators = (details as { created_by?: Array<{ name?: string }> }).created_by ?? [];
           const creator = creators[0]?.name ?? null;
@@ -191,10 +214,27 @@ async function buildSessionMetadataMap(
           const runtimeMinutes = episodeRunTime.length
             ? Math.max(1, Math.round(episodeRunTime.reduce((sum, value) => sum + value, 0) / episodeRunTime.length))
             : null;
+          const seasonNumber = seasonRaw?.startsWith("s") ? Number(seasonRaw.slice(1)) : NaN;
+          const episodeNumber = episodeRaw?.startsWith("e") ? Number(episodeRaw.slice(1)) : NaN;
+          let resolvedRuntime = runtimeMinutes;
+          if (Number.isInteger(seasonNumber) && seasonNumber > 0 && Number.isInteger(episodeNumber) && episodeNumber > 0) {
+            const seasonKey = `${tmdbId}:${seasonNumber}`;
+            let seasonDetails = tvSeasonCache.get(seasonKey);
+            if (!seasonDetails) {
+              seasonDetails = await getTVSeasonDetails(tmdbId, seasonNumber);
+              tvSeasonCache.set(seasonKey, seasonDetails);
+            }
+            const episode = seasonDetails.episodes.find((item) => item.episode_number === episodeNumber);
+            const episodeRuntime =
+              typeof episode?.runtime === "number" && Number.isFinite(episode.runtime) && episode.runtime > 0
+                ? Math.round(episode.runtime)
+                : null;
+            resolvedRuntime = episodeRuntime ?? runtimeMinutes;
+          }
           map.set(key, {
             releaseYear: Number.isFinite(releaseYear) ? releaseYear : null,
             creatorOrDirector: creator,
-            runtimeMinutes,
+            runtimeMinutes: resolvedRuntime,
           });
         }
       } catch (error) {
@@ -237,8 +277,14 @@ function toSessionDTO(
   replyCountMap?: Map<string, number>,
   myReactionsMap?: Map<string, string[]>
 ): WatchingSessionDTO {
-  const metaKey = `${session.mediaType}:${session.tmdbId}`;
-  const metadata = metadataByTitle?.get(metaKey);
+  const metaKeyWithEpisode =
+    session.mediaType === "tv" &&
+    typeof session.seasonNumber === "number" &&
+    typeof session.episodeNumber === "number"
+      ? `${session.mediaType}:${session.tmdbId}:s${session.seasonNumber}:e${session.episodeNumber}`
+      : `${session.mediaType}:${session.tmdbId}`;
+  const fallbackMetaKey = `${session.mediaType}:${session.tmdbId}`;
+  const metadata = metadataByTitle?.get(metaKeyWithEpisode) ?? metadataByTitle?.get(fallbackMetaKey);
   return {
     id: session.id,
     userId: session.userId,
@@ -489,13 +535,20 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
       allSessionsRaw.map((session) => ({
         tmdbId: session.tmdbId,
         mediaType: session.mediaType as "movie" | "tv",
+        seasonNumber: session.seasonNumber ?? null,
+        episodeNumber: session.episodeNumber ?? null,
       }))
     );
 
     const autoFinishNow = new Date();
     const autoFinishSessionIds = watchingNowRaw
       .filter((session) => {
-        const key = `${session.mediaType}:${session.tmdbId}`;
+        const key =
+          session.mediaType === "tv" &&
+          Number.isInteger(session.seasonNumber) &&
+          Number.isInteger(session.episodeNumber)
+            ? `${session.mediaType}:${session.tmdbId}:s${session.seasonNumber}:e${session.episodeNumber}`
+            : `${session.mediaType}:${session.tmdbId}`;
         const runtimeMinutes = metadataByTitle.get(key)?.runtimeMinutes;
         if (!runtimeMinutes || runtimeMinutes <= 0) return false;
         const elapsedMs = autoFinishNow.getTime() - new Date(session.startedAt).getTime();

@@ -3284,6 +3284,7 @@ export default function WatchingContent() {
                         if (started) setSearchModalOpen(false);
                       }}
                       disabled={
+                        watchingMutation.isPending ||
                         !Number.isInteger(Number.parseInt(selectedSeasonNumber, 10)) ||
                         Number.parseInt(selectedSeasonNumber, 10) <= 0 ||
                         !Number.isInteger(Number.parseInt(selectedEpisodeNumber, 10)) ||
@@ -3291,7 +3292,7 @@ export default function WatchingContent() {
                       }
                       className="h-8 cursor-pointer rounded-[20px] px-3 text-xs"
                     >
-                      Use episode
+                      {watchingMutation.isPending ? "Starting..." : "Use episode"}
                     </Button>
                   </div>
                 </div>
