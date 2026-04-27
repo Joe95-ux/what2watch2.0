@@ -495,7 +495,6 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
     const autoFinishNow = new Date();
     const autoFinishSessionIds = watchingNowRaw
       .filter((session) => {
-        if (session.mediaType !== "movie") return false;
         const key = `${session.mediaType}:${session.tmdbId}`;
         const runtimeMinutes = metadataByTitle.get(key)?.runtimeMinutes;
         if (!runtimeMinutes || runtimeMinutes <= 0) return false;
