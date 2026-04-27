@@ -264,11 +264,13 @@ function JustFinishedComment({
   showBorder,
   parentThoughtId,
   currentUserId,
+  onReactionDelta,
 }: {
   comment: WatchingFeedCard["comments"][number];
   showBorder: boolean;
   parentThoughtId?: string | null;
   currentUserId?: string | null;
+  onReactionDelta?: (delta: number) => void;
 }) {
   const [isSpoilerRevealed, setIsSpoilerRevealed] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
@@ -318,10 +320,12 @@ function JustFinishedComment({
   const handleReactionToggle = async (reactionType: string) => {
     const previousReactions = [...localMyReactions];
     const hasReaction = previousReactions.includes(reactionType);
+    const delta = hasReaction ? -1 : 1;
     setLocalMyReactions((prev) =>
       hasReaction ? prev.filter((reaction) => reaction !== reactionType) : [...prev, reactionType]
     );
-    setLocalReactionCount((count) => Math.max(0, hasReaction ? count - 1 : count + 1));
+    setLocalReactionCount((count) => Math.max(0, count + delta));
+    onReactionDelta?.(delta);
     try {
       if (hasReaction) {
         await removeMutation.mutateAsync({ thoughtId: comment.id, reactionType });
@@ -330,7 +334,8 @@ function JustFinishedComment({
       }
     } catch (error) {
       setLocalMyReactions(previousReactions);
-      setLocalReactionCount((count) => Math.max(0, hasReaction ? count + 1 : count - 1));
+      setLocalReactionCount((count) => Math.max(0, count - delta));
+      onReactionDelta?.(-delta);
       toast.error(error instanceof Error ? error.message : "Failed to update reaction");
     }
   };
@@ -1100,6 +1105,9 @@ function FeedCard({
                 showBorder={showBorder}
                 parentThoughtId={item.primaryThoughtId}
                 currentUserId={currentUserId}
+                onReactionDelta={(delta) => {
+                  setLocalReactions((count) => Math.max(0, count + delta));
+                }}
               />
             );
           })}
@@ -1134,10 +1142,13 @@ function WatchingNowGroupCard({
   currentUserId?: string | null;
 }) {
   const [showThoughts, setShowThoughts] = useState(false);
-  const localReactions = room.reactionCount ?? 0;
+  const [localReactions, setLocalReactions] = useState(room.reactionCount ?? 0);
   const localLiked = Boolean(room.featuredThought?.myReactions?.includes("like"));
   const { toggle: toggleWatchlist, isLoading: isWatchlistMutating, isInWatchlist } = useToggleWatchlist();
   const inWatchlist = isInWatchlist(room.tmdbId, room.mediaType);
+  useEffect(() => {
+    setLocalReactions(room.reactionCount ?? 0);
+  }, [room.reactionCount]);
 
   const participantLabel = useMemo(() => {
     if (!room.participants.length) return "No participants yet";
@@ -1314,6 +1325,9 @@ function WatchingNowGroupCard({
               showBorder={index < room.thoughts.length - 1}
               parentThoughtId={thought.id}
               currentUserId={currentUserId}
+              onReactionDelta={(delta) => {
+                setLocalReactions((count) => Math.max(0, count + delta));
+              }}
             />
           ))}
         </div>
@@ -1375,10 +1389,13 @@ function JustFinishedGroupCard({
   const [showThoughts, setShowThoughts] = useState(true);
   const topAvatars = room.participants.slice(0, 6);
   const featuredThought = room.thoughts[0] ?? null;
-  const localReactions = room.reactionCount ?? 0;
+  const [localReactions, setLocalReactions] = useState(room.reactionCount ?? 0);
   const localLiked = Boolean(featuredThought?.myReactions?.includes("like"));
   const { toggle: toggleWatchlist, isLoading: isWatchlistMutating, isInWatchlist } = useToggleWatchlist();
   const inWatchlist = isInWatchlist(room.tmdbId, room.mediaType);
+  useEffect(() => {
+    setLocalReactions(room.reactionCount ?? 0);
+  }, [room.reactionCount]);
 
   const handleWatchlistToggle = async () => {
     try {
@@ -1530,6 +1547,9 @@ function JustFinishedGroupCard({
               showBorder={index < room.thoughts.length - 1}
               parentThoughtId={thought.id}
               currentUserId={currentUserId}
+              onReactionDelta={(delta) => {
+                setLocalReactions((count) => Math.max(0, count + delta));
+              }}
             />
           ))}
         </div>
