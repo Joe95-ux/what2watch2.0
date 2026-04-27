@@ -102,7 +102,7 @@ function getForumNotificationLink(notification: ForumNotification): string {
   return "/forum";
 }
 
-export function UnifiedNotificationCenter() {
+export function UnifiedNotificationCenter({ hasHeroSection = false }: { hasHeroSection?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<NotificationTab>("youtube");
@@ -190,8 +190,15 @@ export function UnifiedNotificationCenter() {
   return (
     <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative cursor-pointer">
-          <Bell className="h-5 w-5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "relative cursor-pointer transition-colors",
+            hasHeroSection && "text-white hover:bg-[rgb(12,30,42)] hover:text-white"
+          )}
+        >
+          <Bell className="size-5" />
           {totalUnreadCount > 0 && (
             <Badge
               className={cn(

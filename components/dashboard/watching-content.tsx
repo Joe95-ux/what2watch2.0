@@ -11,7 +11,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ListPlus,
-  Link2,
   MessageSquare,
   Minus,
   Pause,
@@ -40,10 +39,12 @@ import {
 } from "@/hooks/use-watching";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useJustWatchCountries, useWatchProviders } from "@/hooks/use-content-details";
 import { useSearch } from "@/hooks/use-search";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { WatchingSessionDTO } from "@/lib/watching-types";
 import { getPosterUrl, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
+import WatchBreakdownSection from "@/components/content-detail/watch-breakdown-section";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -135,6 +136,13 @@ type WatchingNowRoomCard = {
   thoughtCount: number;
   reactionCount: number;
   primaryThoughtId: string | null;
+  currentUserSession: {
+    sessionId: string;
+    startedAt: string;
+    mediaType: "movie" | "tv";
+    progressPercent: number | null;
+    runtimeMinutes: number | null;
+  } | null;
 };
 
 type JustFinishedRoomCard = {
@@ -157,6 +165,13 @@ type JustFinishedRoomCard = {
   }>;
   thoughts: WatchingFeedCard["comments"];
   reactionCount: number;
+  currentUserSession: {
+    sessionId: string;
+    startedAt: string;
+    mediaType: "movie" | "tv";
+    progressPercent: number | null;
+    runtimeMinutes: number | null;
+  } | null;
 };
 
 const COMMENT_EMOJI_REACTIONS = ["like", "🔥", "😂", "😮", "😭"] as const;
@@ -306,7 +321,7 @@ function JustFinishedComment({
       await addReply.mutateAsync({
         thoughtId: thoughtIdForThread,
         content: text,
-        parentReplyId: parentThoughtId ? comment.id : replyParentId,
+        parentReplyId: replyParentId,
       });
       setReplyText("");
       setIsReplying(false);
@@ -570,6 +585,7 @@ function JustFinishedComment({
               <Input
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
                 placeholder="Write a reply..."
                 className="h-8 border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
               />
@@ -1135,16 +1151,19 @@ function WatchingNowGroupCard({
   onJoinRoom,
   onSelect,
   currentUserId,
+  onWatchNow,
 }: {
   room: WatchingNowRoomCard;
   onJoinRoom: (room: WatchingNowRoomCard) => void;
   onSelect?: (room: WatchingNowRoomCard) => void;
   currentUserId?: string | null;
+  onWatchNow?: (room: { tmdbId: number; mediaType: "movie" | "tv"; title: string }) => void;
 }) {
   const [showThoughts, setShowThoughts] = useState(false);
   const [localReactions, setLocalReactions] = useState(room.reactionCount ?? 0);
   const localLiked = Boolean(room.featuredThought?.myReactions?.includes("like"));
   const { toggle: toggleWatchlist, isLoading: isWatchlistMutating, isInWatchlist } = useToggleWatchlist();
+  const watchingMutation = useWatchingMutation();
   const inWatchlist = isInWatchlist(room.tmdbId, room.mediaType);
   useEffect(() => {
     setLocalReactions(room.reactionCount ?? 0);
@@ -1159,6 +1178,14 @@ function WatchingNowGroupCard({
     return remaining > 0 ? `${first} and ${remaining} others` : first;
   }, [room.participants]);
   const isCurrentUserInRoom = !!currentUserId && room.participants.some((participant) => participant.userId === currentUserId);
+  const canControlPlayback = Boolean(room.currentUserSession);
+  const playbackBusy = watchingMutation.isPending;
+  const elapsedMinutes = room.currentUserSession
+    ? Math.max(1, Math.round((Date.now() - new Date(room.currentUserSession.startedAt).getTime()) / 60000))
+    : 0;
+  const movieRuntime = room.currentUserSession?.mediaType === "movie" ? room.currentUserSession.runtimeMinutes : null;
+  const isMovieFinishLocked =
+    canControlPlayback && room.currentUserSession?.mediaType === "movie" && movieRuntime != null && elapsedMinutes < movieRuntime;
 
   const handleWatchlistToggle = async () => {
     try {
@@ -1202,6 +1229,37 @@ function WatchingNowGroupCard({
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update watchlist");
+    }
+  };
+
+  const handlePlaybackPause = async () => {
+    if (!room.currentUserSession) return;
+    try {
+      await watchingMutation.mutateAsync({
+        action: "stop",
+        sessionId: room.currentUserSession.sessionId,
+      });
+      toast.success("Session paused.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to pause session");
+    }
+  };
+
+  const handlePlaybackFinish = async () => {
+    if (!room.currentUserSession) return;
+    if (isMovieFinishLocked && movieRuntime != null) {
+      const remaining = Math.max(1, movieRuntime - elapsedMinutes);
+      toast.message(`You can mark finished in about ${remaining} min.`);
+      return;
+    }
+    try {
+      await watchingMutation.mutateAsync({
+        action: "finish",
+        sessionId: room.currentUserSession.sessionId,
+      });
+      toast.success("Marked as finished.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to finish session");
     }
   };
 
@@ -1257,6 +1315,38 @@ function WatchingNowGroupCard({
             <p className="line-clamp-1 text-xs text-muted-foreground">
               {room.releaseYear ?? "Year unknown"} · {room.creatorOrDirector ?? "Creator unknown"}
             </p>
+            {canControlPlayback ? (
+              <div className="mt-2 flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 cursor-pointer rounded-full text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handlePlaybackPause();
+                  }}
+                  disabled={playbackBusy}
+                  aria-label="Pause session"
+                >
+                  <Pause className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 cursor-pointer rounded-full text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-500"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handlePlaybackFinish();
+                  }}
+                  disabled={playbackBusy || isMovieFinishLocked}
+                  aria-label="Stop and mark finished"
+                >
+                  <Square className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ) : null}
           </div>
         </div>
         <p className="shrink-0 text-[12px] font-medium text-emerald-500">• {room.watchingCount} watching</p>
@@ -1363,14 +1453,22 @@ function WatchingNowGroupCard({
         >
           <Bookmark className={cn("h-3.5 w-3.5", inWatchlist ? "text-yellow-400 fill-yellow-400" : "")} /> Watchlist
         </Button>
-        <Link
-          href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
-          onClick={(e) => e.stopPropagation()}
-          className="inline-flex h-10 items-center justify-center gap-1.5 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            onWatchNow?.({
+              tmdbId: room.tmdbId,
+              mediaType: room.mediaType,
+              title: room.title,
+            });
+          }}
+          className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         >
-          <Link2 className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Open film page</span>
-        </Link>
+          <PlayCircle className="h-3.5 w-3.5" />
+          <span>Watch Now</span>
+        </Button>
         </div>
       </div>
     </Card>
@@ -1381,10 +1479,12 @@ function JustFinishedGroupCard({
   room,
   onSelect,
   currentUserId,
+  onWatchNow,
 }: {
   room: JustFinishedRoomCard;
   onSelect?: (room: JustFinishedRoomCard) => void;
   currentUserId?: string | null;
+  onWatchNow?: (room: { tmdbId: number; mediaType: "movie" | "tv"; title: string }) => void;
 }) {
   const [showThoughts, setShowThoughts] = useState(true);
   const topAvatars = room.participants.slice(0, 6);
@@ -1392,10 +1492,19 @@ function JustFinishedGroupCard({
   const [localReactions, setLocalReactions] = useState(room.reactionCount ?? 0);
   const localLiked = Boolean(featuredThought?.myReactions?.includes("like"));
   const { toggle: toggleWatchlist, isLoading: isWatchlistMutating, isInWatchlist } = useToggleWatchlist();
+  const watchingMutation = useWatchingMutation();
   const inWatchlist = isInWatchlist(room.tmdbId, room.mediaType);
   useEffect(() => {
     setLocalReactions(room.reactionCount ?? 0);
   }, [room.reactionCount]);
+  const canControlPlayback = Boolean(room.currentUserSession);
+  const playbackBusy = watchingMutation.isPending;
+  const elapsedMinutes = room.currentUserSession
+    ? Math.max(1, Math.round((Date.now() - new Date(room.currentUserSession.startedAt).getTime()) / 60000))
+    : 0;
+  const movieRuntime = room.currentUserSession?.mediaType === "movie" ? room.currentUserSession.runtimeMinutes : null;
+  const isMovieFinishLocked =
+    canControlPlayback && room.currentUserSession?.mediaType === "movie" && movieRuntime != null && elapsedMinutes < movieRuntime;
 
   const handleWatchlistToggle = async () => {
     try {
@@ -1439,6 +1548,37 @@ function JustFinishedGroupCard({
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update watchlist");
+    }
+  };
+
+  const handlePlaybackPause = async () => {
+    if (!room.currentUserSession) return;
+    try {
+      await watchingMutation.mutateAsync({
+        action: "stop",
+        sessionId: room.currentUserSession.sessionId,
+      });
+      toast.success("Session paused.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to pause session");
+    }
+  };
+
+  const handlePlaybackFinish = async () => {
+    if (!room.currentUserSession) return;
+    if (isMovieFinishLocked && movieRuntime != null) {
+      const remaining = Math.max(1, movieRuntime - elapsedMinutes);
+      toast.message(`You can mark finished in about ${remaining} min.`);
+      return;
+    }
+    try {
+      await watchingMutation.mutateAsync({
+        action: "finish",
+        sessionId: room.currentUserSession.sessionId,
+      });
+      toast.success("Marked as finished.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to finish session");
     }
   };
 
@@ -1494,6 +1634,38 @@ function JustFinishedGroupCard({
             <p className="line-clamp-1 text-xs text-muted-foreground">
               {room.releaseYear ?? "Year unknown"} · {room.creatorOrDirector ?? "Creator unknown"}
             </p>
+            {canControlPlayback ? (
+              <div className="mt-2 flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 cursor-pointer rounded-full text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handlePlaybackPause();
+                  }}
+                  disabled={playbackBusy}
+                  aria-label="Pause session"
+                >
+                  <Pause className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 cursor-pointer rounded-full text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-500"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handlePlaybackFinish();
+                  }}
+                  disabled={playbackBusy || isMovieFinishLocked}
+                  aria-label="Stop and mark finished"
+                >
+                  <Square className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ) : null}
           </div>
         </div>
         <Badge className="shrink-0 rounded-full border border-slate-500/25 bg-slate-500/15 px-2.5 py-0.5 text-[11px] font-medium text-slate-700 shadow-none dark:text-slate-300">
@@ -1584,14 +1756,22 @@ function JustFinishedGroupCard({
           >
             <Bookmark className={cn("h-3.5 w-3.5", inWatchlist ? "text-yellow-400 fill-yellow-400" : "")} /> Watchlist
           </Button>
-          <Link
-            href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex h-10 items-center justify-center gap-1.5 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onWatchNow?.({
+                tmdbId: room.tmdbId,
+                mediaType: room.mediaType,
+                title: room.title,
+              });
+            }}
+            className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
           >
-            <Link2 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Open film page</span>
-          </Link>
+            <PlayCircle className="h-3.5 w-3.5" />
+            <span>Watch Now</span>
+          </Button>
         </div>
       </div>
     </Card>
@@ -1614,6 +1794,7 @@ function RightRail({
   onUseTrendingItem,
   onChangeTitle,
   isSubmitting,
+  watchMomentLabel,
 }: {
   currentSession: WatchingSessionDTO | null;
   alsoWatchingCurrent: WatchingSessionDTO[];
@@ -1642,7 +1823,12 @@ function RightRail({
     posterPath: string | null;
   }) => void;
   isSubmitting: boolean;
+  watchMomentLabel: string;
 }) {
+  const trendingLabel = useMemo(() => {
+    const part = watchMomentLabel.split(" ").pop()?.toLowerCase() ?? "today";
+    return `Trending ${part}`;
+  }, [watchMomentLabel]);
   const currentProgress = useMemo(() => {
     if (!currentSession) return 0;
     const capForActiveSession = (value: number) =>
@@ -1937,7 +2123,7 @@ function RightRail({
       </section>
 
       <section className="border-b border-border/70 px-[16px] py-6">
-        <p className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Trending tonight</p>
+        <p className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">{trendingLabel}</p>
         <div className="divide-y divide-border/60">
           {trendingTonight.map((item, i) => (
             <div
@@ -2113,6 +2299,18 @@ export default function WatchingContent() {
     const part = h < 12 ? "morning" : h < 17 ? "afternoon" : h < 21 ? "evening" : "night";
     return `${weekday} ${part}`;
   });
+  const [watchModalTarget, setWatchModalTarget] = useState<{
+    tmdbId: number;
+    mediaType: "movie" | "tv";
+    title: string;
+  } | null>(null);
+  const [watchCountry, setWatchCountry] = useState("US");
+  const { data: justwatchCountries = [] } = useJustWatchCountries();
+  const { data: watchAvailability, isLoading: isLoadingWatchAvailability } = useWatchProviders(
+    watchModalTarget?.mediaType ?? "movie",
+    watchModalTarget?.tmdbId ?? null,
+    watchCountry
+  );
 
   useEffect(() => {
     const t = window.setInterval(() => setUiNowTick(Date.now()), 1000);
@@ -2187,6 +2385,16 @@ export default function WatchingContent() {
           thoughtCount: thoughtsForSession.length,
           reactionCount: thoughtsForSession.reduce((sum, thought) => sum + (thought.reactionCount ?? 0), 0),
           primaryThoughtId: session.thoughts[0]?.id ?? null,
+          currentUserSession:
+            currentUser?.id && session.user.id === currentUser.id
+              ? {
+                  sessionId: session.id,
+                  startedAt: session.startedAt,
+                  mediaType: session.mediaType,
+                  progressPercent: session.progressPercent ?? null,
+                  runtimeMinutes: session.runtimeMinutes ?? null,
+                }
+              : null,
         });
       } else {
         existing.watchingCount += 1;
@@ -2204,10 +2412,19 @@ export default function WatchingContent() {
         existing.featuredThought = existing.thoughts[0] ?? null;
         existing.thoughtCount = existing.thoughts.length;
         existing.reactionCount = existing.thoughts.reduce((sum, thought) => sum + (thought.reactionCount ?? 0), 0);
+        if (!existing.currentUserSession && currentUser?.id && session.user.id === currentUser.id) {
+          existing.currentUserSession = {
+            sessionId: session.id,
+            startedAt: session.startedAt,
+            mediaType: session.mediaType,
+            progressPercent: session.progressPercent ?? null,
+            runtimeMinutes: session.runtimeMinutes ?? null,
+          };
+        }
       }
     }
     return Array.from(groups.values()).sort((a, b) => b.watchingCount - a.watchingCount);
-  }, [watchingData?.watchingNow]);
+  }, [watchingData?.watchingNow, currentUser?.id]);
   const justFinished = useMemo(
     () => (watchingData?.justFinished ?? []).map(toFeedCard),
     [watchingData?.justFinished]
@@ -2253,6 +2470,7 @@ export default function WatchingContent() {
           participants: [{ userId: session.user.id, name: participantName, avatar: session.user.avatarUrl ?? null }],
           thoughts: thoughtsForSession,
           reactionCount: thoughtsForSession.reduce((sum, thought) => sum + (thought.reactionCount ?? 0), 0),
+          currentUserSession: null,
         });
       } else {
         existing.finishedCount += 1;
@@ -2267,6 +2485,24 @@ export default function WatchingContent() {
         existing.reactionCount = existing.thoughts.reduce((sum, thought) => sum + (thought.reactionCount ?? 0), 0);
       }
     }
+    const currentSession = watchingData?.currentSession;
+    if (currentSession && currentUser?.id && currentSession.userId === currentUser.id) {
+      const currentSeasonEpisodeKey =
+        currentSession.mediaType === "tv" && currentSession.seasonNumber && currentSession.episodeNumber
+          ? `:s${currentSession.seasonNumber}:e${currentSession.episodeNumber}`
+          : "";
+      const currentKey = `${currentSession.mediaType}:${currentSession.tmdbId}${currentSeasonEpisodeKey}`;
+      const targetRoom = groups.get(currentKey);
+      if (targetRoom) {
+        targetRoom.currentUserSession = {
+          sessionId: currentSession.id,
+          startedAt: currentSession.startedAt,
+          mediaType: currentSession.mediaType,
+          progressPercent: currentSession.progressPercent ?? null,
+          runtimeMinutes: currentSession.runtimeMinutes ?? null,
+        };
+      }
+    }
     const rooms = Array.from(groups.values()).map((room) => ({
       ...room,
       thoughts: [...room.thoughts].sort(
@@ -2276,7 +2512,7 @@ export default function WatchingContent() {
       ),
     }));
     return rooms.sort((a, b) => b.finishedCount - a.finishedCount);
-  }, [watchingData?.justFinished]);
+  }, [watchingData?.justFinished, watchingData?.currentSession, currentUser?.id]);
   const WATCHING_NOW_PAGE_SIZE = 10;
   const JUST_FINISHED_PAGE_SIZE = 10;
   const watchingNowTotalPages = Math.max(1, Math.ceil(watchingNowRooms.length / WATCHING_NOW_PAGE_SIZE));
@@ -2875,6 +3111,13 @@ export default function WatchingContent() {
               key={room.key}
               room={room}
               currentUserId={currentUser?.id ?? null}
+              onWatchNow={(selectedRoom) => {
+                setWatchModalTarget({
+                  tmdbId: selectedRoom.tmdbId,
+                  mediaType: selectedRoom.mediaType,
+                  title: selectedRoom.title,
+                });
+              }}
               onJoinRoom={(selectedRoom) => {
                 void submitStartWatching({
                   tmdbId: selectedRoom.tmdbId,
@@ -2956,6 +3199,13 @@ export default function WatchingContent() {
               key={room.key}
               room={room}
               currentUserId={currentUser?.id ?? null}
+              onWatchNow={(selectedRoom) => {
+                setWatchModalTarget({
+                  tmdbId: selectedRoom.tmdbId,
+                  mediaType: selectedRoom.mediaType,
+                  title: selectedRoom.title,
+                });
+              }}
               onSelect={(selectedRoom) =>
                 setActiveCardContext({
                   tmdbId: selectedRoom.tmdbId,
@@ -3039,10 +3289,42 @@ export default function WatchingContent() {
                 toast.message("Loaded trending title — tap I'm watching... when ready.");
               }}
               isSubmitting={watchingMutation.isPending}
+              watchMomentLabel={watchMomentLabel}
             />
           </aside>
         ) : null}
       </div>
+      <Dialog
+        open={Boolean(watchModalTarget)}
+        onOpenChange={(open) => {
+          if (!open) setWatchModalTarget(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-none lg:max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-muted-foreground">
+              Where to Watch{" "}
+              <span className="text-foreground font-semibold">{watchModalTarget?.title ?? ""}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto scrollbar-thin px-1 py-4 min-h-0">
+            {watchAvailability ? (
+              <WatchBreakdownSection
+                availability={watchAvailability}
+                isLoading={false}
+                watchCountry={watchCountry}
+                onWatchCountryChange={setWatchCountry}
+                justwatchCountries={justwatchCountries}
+                compact
+              />
+            ) : (
+              <div className="flex min-h-[180px] items-center justify-center text-sm text-muted-foreground">
+                {isLoadingWatchAvailability ? "Loading watch availability..." : "No watch availability found yet."}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

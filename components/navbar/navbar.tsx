@@ -180,16 +180,16 @@ export default function Navbar() {
                     className={cn(
                       "hidden md:inline-flex cursor-pointer",
                       useDarkNavbar &&
-                        "[&_button]:!text-white [&_button]:hover:!bg-black/20 [&_button]:hover:!text-white [&_button_svg]:!text-white [&_button]:hover:[&_svg]:!text-white"
+                        "[&_button]:!text-white [&_button]:hover:!bg-[rgb(12,30,42)] [&_button]:hover:!text-white [&_button_svg]:!text-white [&_button]:hover:[&_svg]:!text-white"
                     )}
                   >
-                    <UnifiedNotificationCenter />
+                    <UnifiedNotificationCenter hasHeroSection={useDarkNavbar} />
                   </div>
                   <div
                     className={cn(
                       "hidden md:inline-flex cursor-pointer",
                       useDarkNavbar &&
-                        "[&_button]:!text-white [&_button]:hover:!bg-black/20 [&_button]:hover:!text-white [&_button_svg]:!text-white [&_button]:hover:[&_svg]:!text-white"
+                        "[&_button]:!text-white [&_button]:hover:!bg-[rgb(12,30,42)] [&_button]:hover:!text-white [&_button_svg]:!text-white [&_button]:hover:[&_svg]:!text-white"
                     )}
                   >
                     <FeedbackDropdown hasHeroSection={useDarkNavbar} />

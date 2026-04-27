@@ -170,12 +170,11 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   <button className="flex-1 cursor-pointer">
                     <div className="flex flex-col items-center gap-2">
                         <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3 relative hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300">
-                          <Bell className="h-5 w-5 text-foreground" />
+                          <Bell className="size-5 text-foreground" />
                           {totalUnreadCount > 0 && (
                             <Badge
-                              variant="destructive"
                               className={cn(
-                                "absolute -top-1 flex h-5 min-h-5 min-w-5 items-center justify-center px-1.5 py-0 text-[10px] font-semibold leading-none tabular-nums shadow-sm",
+                                "absolute -top-1 flex h-5 min-h-5 min-w-5 items-center justify-center bg-[#e1002d] px-1.5 py-0 text-[10px] font-semibold leading-none text-white tabular-nums shadow-sm",
                                 isOverflowUnreadBadge ? "-right-3" : "-right-1",
                                 isSingleDigitUnreadBadge ? "rounded-full" : "rounded-[20px]"
                               )}
@@ -198,7 +197,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   <button className="flex-1 cursor-pointer">
                     <div className="flex flex-col items-center gap-2">
                       <div className="rounded-full bg-muted/85 dark:bg-muted/50 p-3 hover:bg-muted dark:hover:bg-muted/70 transition-all duration-300">
-                        <Megaphone className="h-5 w-5 text-foreground" />
+                        <Megaphone className="size-5 text-foreground" />
                       </div>
                       <span className="text-xs font-medium">Feedback</span>
                     </div>

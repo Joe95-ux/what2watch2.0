@@ -128,10 +128,10 @@ export function FeedbackDropdown({ hasHeroSection }: { hasHeroSection?: boolean 
               className={cn(
                 "cursor-pointer",
                 hasHeroSection &&
-                  "!text-white hover:!bg-black/20 hover:!text-white [&_svg]:!text-white"
+                  "!text-white hover:!bg-[rgb(12,30,42)] hover:!text-white [&_svg]:!text-white"
               )}
             >
-              <Megaphone className="h-5 w-5" />
+              <Megaphone className="size-5" />
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
