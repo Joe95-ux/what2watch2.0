@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   ArrowUpRight,
   Bookmark,
+  Check,
   ChevronLeft,
   ChevronRight,
   ListPlus,
@@ -3111,7 +3112,7 @@ export default function WatchingContent() {
                   autoComplete="off"
                 />
               </div>
-              <div className="h-[55vh] min-h-[280px] overflow-y-auto border-t border-border/60 p-2 scrollbar-thin">
+              <div className="min-h-[280px] max-h-[55vh] overflow-y-auto border-t border-border/60 p-2 scrollbar-thin">
                 {!debouncedWatchSearch.trim() ? (
                   <div className="flex h-full items-center justify-center p-4 text-center text-sm text-muted-foreground">
                     Start typing to search.
@@ -3134,7 +3135,12 @@ export default function WatchingContent() {
                       <button
                         key={`${item.id}-${mediaType}`}
                         type="button"
-                        className="flex w-full cursor-pointer items-center gap-3 rounded-md p-2 text-left hover:bg-muted"
+                        className={cn(
+                          "flex w-full cursor-pointer items-center gap-3 rounded-md p-2 text-left hover:bg-muted",
+                          selectedPick?.tmdbId === item.id && selectedPick?.mediaType === mediaType
+                            ? "bg-emerald-500/10 ring-1 ring-emerald-500/40"
+                            : ""
+                        )}
                         onClick={() => {
                           setSelectedPick({
                             tmdbId: item.id,
@@ -3167,6 +3173,11 @@ export default function WatchingContent() {
                             {yearLabel ? ` · ${yearLabel}` : ""}
                           </p>
                         </div>
+                        {selectedPick?.tmdbId === item.id && selectedPick?.mediaType === mediaType ? (
+                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                            <Check className="h-3.5 w-3.5" />
+                          </span>
+                        ) : null}
                       </button>
                     );
                   })
@@ -3202,7 +3213,7 @@ export default function WatchingContent() {
                         value={selectedSeasonNumber}
                         onChange={(e) => setSelectedSeasonNumber(e.target.value.replace(/[^\d]/g, ""))}
                         placeholder="01"
-                        className="h-full border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        className="h-full border-0 bg-transparent px-0 text-center text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                         inputMode="numeric"
                       />
                       <Button
@@ -3242,7 +3253,7 @@ export default function WatchingContent() {
                         value={selectedEpisodeNumber}
                         onChange={(e) => setSelectedEpisodeNumber(e.target.value.replace(/[^\d]/g, ""))}
                         placeholder="01"
-                        className="h-full border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        className="h-full border-0 bg-transparent px-0 text-center text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                         inputMode="numeric"
                       />
                       <Button
