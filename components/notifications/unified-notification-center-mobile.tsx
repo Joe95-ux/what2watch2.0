@@ -261,7 +261,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                     )}
                   >
                     <div className="flex gap-3">
-                      {!notification.isRead ? <span className="h-10 w-1.5 shrink-0 self-center rounded-full bg-emerald-500" /> : null}
+                      {!notification.isRead ? <span className="mt-4 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" /> : null}
                       <div className="relative h-12 w-20 flex-shrink-0 rounded overflow-hidden bg-muted">
                         {notification.videoThumbnail ? (
                           <Image
@@ -371,7 +371,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                     )}
                   >
                     <div className="flex gap-3">
-                      {!notification.isRead ? <span className="h-10 w-1.5 shrink-0 self-center rounded-full bg-emerald-500" /> : null}
+                      {!notification.isRead ? <span className="mt-4 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" /> : null}
                       <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                         {getGeneralNotificationIcon(notification.type)}
                       </div>
@@ -471,7 +471,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                       )}
                     >
                       <div className="flex gap-3">
-                        {!notification.isRead ? <span className="h-10 w-1.5 shrink-0 self-center rounded-full bg-emerald-500" /> : null}
+                        {!notification.isRead ? <span className="mt-4 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" /> : null}
                         <Avatar className="h-10 w-10 flex-shrink-0">
                           <AvatarImage 
                             src={

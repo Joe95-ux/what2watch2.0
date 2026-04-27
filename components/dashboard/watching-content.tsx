@@ -11,6 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ListPlus,
+  Link2,
+  MessageSquare,
   Minus,
   Pause,
   PlayCircle,
@@ -1330,7 +1332,9 @@ function WatchingNowGroupCard({
           }}
           className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         >
-          <Reply className="h-3.5 w-3.5" /> {room.thoughtCount} comments
+          <MessageSquare className="h-3.5 w-3.5" />
+          <span>{room.thoughtCount}</span>
+          <span className="hidden sm:inline">comments</span>
         </Button>
         <Button
           variant="ghost"
@@ -1349,7 +1353,8 @@ function WatchingNowGroupCard({
           onClick={(e) => e.stopPropagation()}
           className="inline-flex h-10 items-center justify-center gap-1.5 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         >
-          <ArrowUpRight className="h-3.5 w-3.5" /> Open film page
+          <Link2 className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Open film page</span>
         </Link>
         </div>
       </div>
@@ -1542,7 +1547,9 @@ function JustFinishedGroupCard({
             }}
             className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
           >
-            <Reply className="h-3.5 w-3.5" /> {room.thoughts.length} comments
+            <MessageSquare className="h-3.5 w-3.5" />
+            <span>{room.thoughts.length}</span>
+            <span className="hidden sm:inline">comments</span>
           </Button>
           <Button
             variant="ghost"
@@ -1561,7 +1568,8 @@ function JustFinishedGroupCard({
             onClick={(e) => e.stopPropagation()}
             className="inline-flex h-10 items-center justify-center gap-1.5 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
           >
-            <ArrowUpRight className="h-3.5 w-3.5" /> Open film page
+            <Link2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Open film page</span>
           </Link>
         </div>
       </div>
@@ -2570,12 +2578,12 @@ export default function WatchingContent() {
               }
             }}
           >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Avatar className="h-9 w-9 shrink-0">
+            <div className="flex items-center gap-2">
+              <Avatar className="hidden h-9 w-9 shrink-0 sm:flex">
                 <AvatarImage src={currentUser?.avatarUrl ?? undefined} />
                 <AvatarFallback>{(currentUser?.username || currentUser?.displayName || "U")[0]}</AvatarFallback>
               </Avatar>
-              <div className="min-w-0 flex-1">
+              <div className="relative min-w-0 flex-1">
                 <Input
                   value={composeInputValue}
                   readOnly
@@ -2583,27 +2591,27 @@ export default function WatchingContent() {
                     if (!isWatchingActive) setSearchModalOpen(true);
                   }}
                   placeholder={`What are you watching right now, ${currentUser?.displayName || currentUser?.username || "there"}?`}
-                  className="h-10 w-full cursor-pointer border-0 bg-transparent px-0 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
+                  className="h-10 w-full cursor-pointer border border-border bg-transparent px-4 pr-10 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent"
                   autoComplete="off"
                 />
+                {isWatchingActive ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 cursor-pointer rounded-full text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void clearActiveWatching();
+                    }}
+                    disabled={watchingMutation.isPending}
+                    aria-label="Clear active watching session"
+                    title="Clear active watching session"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                ) : null}
               </div>
-              {isWatchingActive ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 shrink-0 cursor-pointer rounded-[20px] border border-border/60 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void clearActiveWatching();
-                  }}
-                  disabled={watchingMutation.isPending}
-                  aria-label="Clear active watching session"
-                  title="Clear active watching session"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              ) : null}
               <Button
                 type="button"
                 className={cn(
