@@ -1603,6 +1603,10 @@ function JustFinishedGroupCard({
     : 0;
   const runtimeMinutes = room.currentUserSession?.runtimeMinutes ?? null;
   const isFinishLocked = canControlPlayback && runtimeMinutes != null && runtimeMinutes > 0 && elapsedMinutes < runtimeMinutes;
+  const finishedMomentLabel = useMemo(() => {
+    const hour = new Date().getHours();
+    return hour >= 18 || hour < 5 ? "tonight" : "today";
+  }, []);
 
   const handleWatchlistToggle = async () => {
     try {
@@ -1771,7 +1775,7 @@ function JustFinishedGroupCard({
           </div>
         </div>
         <Badge className="shrink-0 rounded-full border border-slate-500/25 bg-slate-500/15 px-2.5 py-0.5 text-[11px] font-medium text-slate-700 shadow-none dark:text-slate-300">
-          {room.finishedCount} finished tonight
+          {room.finishedCount} finished {finishedMomentLabel}
         </Badge>
       </div>
 
@@ -1788,10 +1792,10 @@ function JustFinishedGroupCard({
           <p className="truncate text-[13px] text-slate-600 dark:text-slate-400">
             {(() => {
               const names = room.participants.map((p) => p.name).slice(0, 3);
-              if (!names.length) return "Everyone finished within the last hour.";
-              if (names.length === 1) return `${names[0]} finished within the last hour.`;
-              if (names.length === 2) return `${names[0]} and ${names[1]} both finished within the last hour.`;
-              return `${names[0]}, ${names[1]} and ${names[2]} all finished within the last hour.`;
+              if (!names.length) return `Everyone finished ${finishedMomentLabel}.`;
+              if (names.length === 1) return `${names[0]} finished ${finishedMomentLabel}.`;
+              if (names.length === 2) return `${names[0]} and ${names[1]} both finished ${finishedMomentLabel}.`;
+              return `${names[0]}, ${names[1]} and ${names[2]} all finished ${finishedMomentLabel}.`;
             })()}
           </p>
         </div>
@@ -2650,8 +2654,8 @@ export default function WatchingContent() {
           currentUserSession: null,
         });
       } else {
-        existing.finishedCount += 1;
         if (!existing.participants.some((p) => p.userId === session.user.id)) {
+          existing.finishedCount += 1;
           existing.participants.push({
             userId: session.user.id,
             name: participantName,
@@ -2864,6 +2868,35 @@ export default function WatchingContent() {
   useEffect(() => {
     if (!selectedPick || selectedPick.mediaType !== "tv") return;
     if (selectedSeasonNumber || selectedEpisodeNumber) return;
+    const myUserId = currentUser?.id ?? null;
+    const mySessionsForTitle = [
+      ...(watchingData?.watchingNow ?? []),
+      ...(watchingData?.justFinished ?? []),
+    ].filter(
+      (session) =>
+        session.userId === myUserId &&
+        session.mediaType === "tv" &&
+        session.tmdbId === selectedPick.tmdbId &&
+        session.seasonNumber != null &&
+        session.episodeNumber != null
+    );
+    if (mySessionsForTitle.length) {
+      const latest = [...mySessionsForTitle].sort(
+        (a, b) =>
+          new Date(b.endedAt ?? b.updatedAt).getTime() -
+          new Date(a.endedAt ?? a.updatedAt).getTime()
+      )[0];
+      if (latest?.seasonNumber && latest.episodeNumber) {
+        if (latest.status === "JUST_FINISHED" || latest.status === "STOPPED") {
+          setSelectedSeasonNumber(String(latest.seasonNumber));
+          setSelectedEpisodeNumber(String(latest.episodeNumber + 1));
+          return;
+        }
+        setSelectedSeasonNumber(String(latest.seasonNumber));
+        setSelectedEpisodeNumber(String(latest.episodeNumber));
+        return;
+      }
+    }
     if (
       activeSession &&
       activeSession.mediaType === "tv" &&
@@ -2878,6 +2911,9 @@ export default function WatchingContent() {
   }, [
     selectedPick,
     activeSession,
+    watchingData?.watchingNow,
+    watchingData?.justFinished,
+    currentUser?.id,
     selectedSeasonNumber,
     selectedEpisodeNumber,
   ]);
