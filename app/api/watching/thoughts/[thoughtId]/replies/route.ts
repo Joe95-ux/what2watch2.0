@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { moderateContent } from "@/lib/moderation";
 import {
+  triggerWatchingDashboardUpdated,
   triggerUserNotificationsChanged,
   triggerWatchingTitleUpdated,
 } from "@/lib/pusher/server";
@@ -117,11 +118,18 @@ export async function POST(
         },
       },
     });
-    await triggerWatchingTitleUpdated(thought.session.mediaType as "movie" | "tv", thought.session.tmdbId, {
-      action: "thought_replied",
-      thoughtId,
-      actorId: authResult.userId,
-    });
+    await Promise.all([
+      triggerWatchingDashboardUpdated({
+        action: "thought_replied",
+        thoughtId,
+        actorId: authResult.userId,
+      }),
+      triggerWatchingTitleUpdated(thought.session.mediaType as "movie" | "tv", thought.session.tmdbId, {
+        action: "thought_replied",
+        thoughtId,
+        actorId: authResult.userId,
+      }),
+    ]);
 
     if (thought.userId !== authResult.userId) {
       const actor = await db.user.findUnique({

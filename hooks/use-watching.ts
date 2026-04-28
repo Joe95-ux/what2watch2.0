@@ -242,6 +242,7 @@ export function useWatchingDashboard(enabled = true) {
     const channel = pusher.subscribe(channelName);
     const handleUpdate = () => {
       queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["watching-replies-to-you"] });
     };
 
     channel.bind(PUSHER_EVENTS.WATCHING_DASHBOARD_UPDATED, handleUpdate);
