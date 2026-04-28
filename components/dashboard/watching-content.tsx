@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useQueries } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -2008,104 +2008,45 @@ function RightRail({
     if (!title) return "THIS TITLE";
     return title.length > 24 ? `${title.slice(0, 24)}...` : title;
   }, [alsoWatchingTitle, currentSession?.title]);
-  const myThoughtTargets = useMemo(() => {
-    const allSessions = [
-      ...(currentSession ? [currentSession] : []),
-      ...watchingNow,
-      ...justFinished,
-    ];
-    const unique = new Map<
-      string,
-      {
-        thoughtId: string;
-        tmdbId: number;
-        mediaType: "movie" | "tv";
-        title: string;
-        seasonNumber: number | null;
-        episodeNumber: number | null;
+  const repliesToYouPageSize = 10;
+  const repliesToYouQueryPage = showAllRepliesToYou ? repliesToYouPage : 1;
+  const {
+    data: repliesToYouData,
+    isLoading: repliesToYouLoading,
+  } = useQuery({
+    queryKey: ["watching-replies-to-you", repliesToYouQueryPage, repliesToYouPageSize],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: String(repliesToYouQueryPage),
+        limit: String(repliesToYouPageSize),
+      });
+      const res = await fetch(`/api/watching/replies-to-you?${params.toString()}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to fetch replies to you");
       }
-    >();
-    for (const session of allSessions) {
-      for (const thought of session.thoughts) {
-        if (thought.user.id !== currentUserId) continue;
-        if (!unique.has(thought.id)) {
-          unique.set(thought.id, {
-            thoughtId: thought.id,
-            tmdbId: session.tmdbId,
-            mediaType: session.mediaType,
-            title: session.title,
-            seasonNumber: session.seasonNumber ?? null,
-            episodeNumber: session.episodeNumber ?? null,
-          });
-        }
-      }
-    }
-    return Array.from(unique.values());
-  }, [currentSession, watchingNow, justFinished, currentUserId]);
-  const repliesQueries = useQueries({
-    queries: myThoughtTargets.map((target) => ({
-      queryKey: ["watching-thought-replies", target.thoughtId],
-      queryFn: async () => {
-        const res = await fetch(`/api/watching/thoughts/${target.thoughtId}/replies`);
-        if (!res.ok) throw new Error("Failed to fetch replies");
-        const data = (await res.json()) as {
-          replies: Array<{
-            id: string;
-            userId: string;
-            content: string;
-            createdAt: string;
-            user: { displayName: string | null; username: string | null; avatarUrl: string | null };
-          }>;
-        };
-        return data.replies;
-      },
-      staleTime: 20_000,
-    })),
+      return (await res.json()) as {
+        replies: Array<{
+          id: string;
+          thoughtId: string;
+          tmdbId: number;
+          mediaType: "movie" | "tv";
+          title: string;
+          seasonNumber: number | null;
+          episodeNumber: number | null;
+          userName: string;
+          userAvatar: string | null;
+          text: string;
+          createdAt: string;
+        }>;
+        total: number;
+      };
+    },
+    staleTime: 20_000,
   });
-  const repliesToYou = useMemo(() => {
-    const all: Array<{
-      id: string;
-      thoughtId: string;
-      tmdbId: number;
-      mediaType: "movie" | "tv";
-      title: string;
-      seasonNumber: number | null;
-      episodeNumber: number | null;
-      userName: string;
-      userAvatar: string | null;
-      text: string;
-      createdAt: string;
-    }> = [];
-    for (const [index, query] of repliesQueries.entries()) {
-      if (!query.data) continue;
-      const target = myThoughtTargets[index];
-      if (!target) continue;
-      for (const reply of query.data) {
-        if (reply.userId === currentUserId) continue;
-        all.push({
-          id: reply.id,
-          thoughtId: target.thoughtId,
-          tmdbId: target.tmdbId,
-          mediaType: target.mediaType,
-          title: target.title,
-          seasonNumber: target.seasonNumber,
-          episodeNumber: target.episodeNumber,
-          userName: reply.user.displayName || reply.user.username || "Someone",
-          userAvatar: reply.user.avatarUrl,
-          text: reply.content,
-          createdAt: reply.createdAt,
-        });
-      }
-    }
-    all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return all;
-  }, [repliesQueries, myThoughtTargets, currentUserId]);
-  const repliesToYouPageSize = showAllRepliesToYou ? 20 : 5;
-  const repliesToYouTotalPages = Math.max(1, Math.ceil(repliesToYou.length / repliesToYouPageSize));
-  const visibleRepliesToYou = useMemo(() => {
-    const start = (repliesToYouPage - 1) * repliesToYouPageSize;
-    return repliesToYou.slice(start, start + repliesToYouPageSize);
-  }, [repliesToYou, repliesToYouPage, repliesToYouPageSize]);
+  const repliesToYou = repliesToYouData?.replies ?? [];
+  const repliesToYouTotalPages = Math.max(1, Math.ceil((repliesToYouData?.total ?? 0) / repliesToYouPageSize));
+  const visibleRepliesToYou = repliesToYou;
 
   useEffect(() => {
     setAlsoWatchingPage(1);
@@ -2125,7 +2066,7 @@ function RightRail({
 
   return (
     <aside className="w-full">
-      <section className={cn("border-b border-border/70 px-[16px] py-6", isMobile ? "pb-6" : "")}>
+      <section className={cn("border-b border-border/70 px-[16px]", isMobile ? "pb-6" : "py-6")}>
         <div className="mb-2 flex items-center justify-between">
           <p className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">You&apos;re watching</p>
           <Button
@@ -2406,6 +2347,9 @@ function RightRail({
           </div>
         </div>
         <div className="divide-y divide-border/60">
+          {repliesToYouLoading ? (
+            <p className="py-[8px] text-[12px] text-muted-foreground">Loading replies...</p>
+          ) : null}
           {visibleRepliesToYou.map((reply) => (
             <div key={reply.id} className="py-[8px]">
               <div className="mb-1 flex items-center gap-[10px]">
@@ -2443,7 +2387,9 @@ function RightRail({
               </div>
             </div>
           ))}
-          {!repliesToYou.length ? <p className="py-[8px] text-[12px] text-muted-foreground">No replies yet.</p> : null}
+          {!repliesToYouLoading && !repliesToYou.length ? (
+            <p className="py-[8px] text-[12px] text-muted-foreground">No replies yet.</p>
+          ) : null}
         </div>
         {showAllRepliesToYou && repliesToYouTotalPages > 1 ? (
           <div className="mt-2 text-right text-[11px] text-muted-foreground">
