@@ -708,10 +708,6 @@ export default function WatchingDiscussionsSection({
     }
   };
 
-  if (isLoading) {
-    return <div className="py-6 text-sm text-muted-foreground">Loading discussions...</div>;
-  }
-
   useEffect(() => {
     if (!focusThoughtId) return;
     const inSpoilers = (data?.spoilerThoughts ?? []).some((thought) => thought.thoughtId === focusThoughtId);
@@ -732,6 +728,10 @@ export default function WatchingDiscussionsSection({
     const exists = episodeFilters.some((option) => option.key === episodeFilter);
     if (!exists) setEpisodeFilter("all");
   }, [episodeFilters, episodeFilter, titleContext.mediaType]);
+
+  if (isLoading) {
+    return <div className="py-6 text-sm text-muted-foreground">Loading discussions...</div>;
+  }
 
   return (
     <section className="space-y-6 py-6">
