@@ -59,12 +59,21 @@ const timeAgo = (iso: string) => {
   return `${days}d ago`;
 };
 
+const formatEpisodeTag = (seasonNumber: number | null, episodeNumber: number | null) => {
+  if (!seasonNumber || !episodeNumber) return "General";
+  return `S${String(seasonNumber).padStart(2, "0")}E${String(episodeNumber).padStart(2, "0")}`;
+};
+
 function ThoughtCard({
   thought,
   blurred = false,
+  highlighted = false,
+  showEpisodeContext = false,
 }: {
   thought: WatchingTitlePresenceResponse["recentThoughts"][number] | WatchingTitlePresenceResponse["spoilerThoughts"][number];
   blurred?: boolean;
+  highlighted?: boolean;
+  showEpisodeContext?: boolean;
 }) {
   const [showReplies, setShowReplies] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
@@ -84,7 +93,7 @@ function ThoughtCard({
   const [optimisticReplies, setOptimisticReplies] = useState<
     Array<{
       id: string;
-      user: { id: string; displayName: string | null; username: string | null };
+      user: { id: string; displayName: string | null; username: string | null; avatarUrl: string | null };
       content: string;
       parentReplyId: string | null;
       createdAt: string;
@@ -160,7 +169,12 @@ function ThoughtCard({
       {
         id: optimisticId,
         content: optimisticContent,
-        user: { id: currentUser?.id ?? "optimistic-user", displayName: "You", username: "you" },
+        user: {
+          id: currentUser?.id ?? "optimistic-user",
+          displayName: "You",
+          username: "you",
+          avatarUrl: currentUser?.avatarUrl ?? null,
+        },
         parentReplyId: replyParentId,
         createdAt: new Date().toISOString(),
       },
@@ -240,7 +254,12 @@ function ThoughtCard({
   };
 
   return (
-    <div className="px-[2px] py-[2px]">
+    <div
+      id={`thought-${thought.thoughtId}`}
+      className={`px-[2px] py-[2px] ${
+        highlighted ? "rounded-[12px] ring-2 ring-emerald-500/60 bg-emerald-500/10 animate-pulse" : ""
+      }`}
+    >
       <div className="flex items-start gap-[10px]">
         <Avatar className="mt-0.5 h-7 w-7 shrink-0">
           <AvatarImage src={thought.user.avatarUrl ?? undefined} alt={name} />
@@ -251,6 +270,14 @@ function ThoughtCard({
             <span className="truncate text-[13px] font-medium text-foreground">{name}</span>
             <span>·</span>
             <span>{timeAgo(thought.createdAt)}</span>
+            {showEpisodeContext ? (
+              <>
+                <span>·</span>
+                <span className="inline-flex items-center rounded-full border border-border/60 bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground/90">
+                  {formatEpisodeTag(thought.seasonNumber, thought.episodeNumber)}
+                </span>
+              </>
+            ) : null}
             <span>·</span>
             {isLive ? (
               <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
@@ -599,10 +626,12 @@ function ThoughtCard({
 export default function WatchingDiscussionsSection({
   data,
   isLoading,
+  focusThoughtId,
   titleContext,
 }: {
   data: WatchingTitlePresenceResponse | undefined;
   isLoading: boolean;
+  focusThoughtId?: string | null;
   titleContext: {
     tmdbId: number;
     mediaType: "movie" | "tv";
@@ -612,7 +641,56 @@ export default function WatchingDiscussionsSection({
   };
 }) {
   const [showSpoilers, setShowSpoilers] = useState(false);
+  const [episodeFilter, setEpisodeFilter] = useState<string>("all");
+  const [highlightedThoughtId, setHighlightedThoughtId] = useState<string | null>(null);
   const watchingMutation = useWatchingMutation();
+
+  const episodeFilters = useMemo(() => {
+    if (titleContext.mediaType !== "tv") return [];
+    const combined = [...(data?.recentThoughts ?? []), ...(data?.spoilerThoughts ?? [])];
+    const unique = new Map<string, { seasonNumber: number | null; episodeNumber: number | null }>();
+    for (const thought of combined) {
+      const key = `${thought.seasonNumber ?? "null"}-${thought.episodeNumber ?? "null"}`;
+      if (!unique.has(key)) {
+        unique.set(key, {
+          seasonNumber: thought.seasonNumber ?? null,
+          episodeNumber: thought.episodeNumber ?? null,
+        });
+      }
+    }
+    return Array.from(unique.entries())
+      .map(([key, value]) => ({ key, ...value }))
+      .sort((a, b) => {
+        const seasonA = a.seasonNumber ?? Number.MAX_SAFE_INTEGER;
+        const seasonB = b.seasonNumber ?? Number.MAX_SAFE_INTEGER;
+        if (seasonA !== seasonB) return seasonA - seasonB;
+        const episodeA = a.episodeNumber ?? Number.MAX_SAFE_INTEGER;
+        const episodeB = b.episodeNumber ?? Number.MAX_SAFE_INTEGER;
+        return episodeA - episodeB;
+      });
+  }, [data?.recentThoughts, data?.spoilerThoughts, titleContext.mediaType]);
+
+  const filteredRecentThoughts = useMemo(() => {
+    const source = data?.recentThoughts ?? [];
+    if (titleContext.mediaType !== "tv" || episodeFilter === "all") return source;
+    const [seasonRaw, episodeRaw] = episodeFilter.split("-");
+    return source.filter(
+      (thought) =>
+        String(thought.seasonNumber ?? "null") === seasonRaw &&
+        String(thought.episodeNumber ?? "null") === episodeRaw
+    );
+  }, [data?.recentThoughts, episodeFilter, titleContext.mediaType]);
+
+  const filteredSpoilerThoughts = useMemo(() => {
+    const source = data?.spoilerThoughts ?? [];
+    if (titleContext.mediaType !== "tv" || episodeFilter === "all") return source;
+    const [seasonRaw, episodeRaw] = episodeFilter.split("-");
+    return source.filter(
+      (thought) =>
+        String(thought.seasonNumber ?? "null") === seasonRaw &&
+        String(thought.episodeNumber ?? "null") === episodeRaw
+    );
+  }, [data?.spoilerThoughts, episodeFilter, titleContext.mediaType]);
 
   const handleWatchingToo = async () => {
     try {
@@ -633,6 +711,27 @@ export default function WatchingDiscussionsSection({
   if (isLoading) {
     return <div className="py-6 text-sm text-muted-foreground">Loading discussions...</div>;
   }
+
+  useEffect(() => {
+    if (!focusThoughtId) return;
+    const inSpoilers = (data?.spoilerThoughts ?? []).some((thought) => thought.thoughtId === focusThoughtId);
+    if (inSpoilers) setShowSpoilers(true);
+    const timeout = window.setTimeout(() => {
+      const target = document.getElementById(`thought-${focusThoughtId}`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedThoughtId(focusThoughtId);
+      window.setTimeout(() => setHighlightedThoughtId((current) => (current === focusThoughtId ? null : current)), 2400);
+    }, 150);
+    return () => window.clearTimeout(timeout);
+  }, [focusThoughtId, data?.recentThoughts, data?.spoilerThoughts]);
+
+  useEffect(() => {
+    if (titleContext.mediaType !== "tv") return;
+    if (episodeFilter === "all") return;
+    const exists = episodeFilters.some((option) => option.key === episodeFilter);
+    if (!exists) setEpisodeFilter("all");
+  }, [episodeFilters, episodeFilter, titleContext.mediaType]);
 
   return (
     <section className="space-y-6 py-6">
@@ -680,20 +779,58 @@ export default function WatchingDiscussionsSection({
       ) : null}
 
       <div>
+        {titleContext.mediaType === "tv" ? (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={`h-7 cursor-pointer rounded-[20px] border px-3 text-xs font-medium ${
+                episodeFilter === "all"
+                  ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                  : "border-border/60 text-muted-foreground hover:bg-muted"
+              }`}
+              onClick={() => setEpisodeFilter("all")}
+            >
+              All episodes
+            </Button>
+            {episodeFilters.map((option) => (
+              <Button
+                key={option.key}
+                type="button"
+                variant="ghost"
+                size="sm"
+                className={`h-7 cursor-pointer rounded-[20px] border px-3 text-xs font-medium ${
+                  episodeFilter === option.key
+                    ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                    : "border-border/60 text-muted-foreground hover:bg-muted"
+                }`}
+                onClick={() => setEpisodeFilter(option.key)}
+              >
+                {formatEpisodeTag(option.seasonNumber, option.episodeNumber)}
+              </Button>
+            ))}
+          </div>
+        ) : null}
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Recent thoughts - no spoilers
         </h3>
         <div className="mt-3 space-y-3">
-          {(data?.recentThoughts ?? []).map((thought) => (
-            <ThoughtCard key={thought.thoughtId} thought={thought} />
+          {filteredRecentThoughts.map((thought) => (
+            <ThoughtCard
+              key={thought.thoughtId}
+              thought={thought}
+              highlighted={highlightedThoughtId === thought.thoughtId}
+              showEpisodeContext={titleContext.mediaType === "tv"}
+            />
           ))}
-          {!(data?.recentThoughts?.length ?? 0) ? (
+          {!filteredRecentThoughts.length ? (
             <p className="text-sm text-muted-foreground">No recent spoiler-free thoughts yet.</p>
           ) : null}
         </div>
       </div>
 
-      {(data?.spoilerThoughts?.length ?? 0) > 0 ? (
+      {filteredSpoilerThoughts.length > 0 ? (
         <div className="rounded-lg border border-border/60 bg-muted/20 p-3 dark:border-border/50 dark:bg-muted/10">
           <button
             type="button"
@@ -703,8 +840,14 @@ export default function WatchingDiscussionsSection({
             Spoiler discussions - Tap to reveal
           </button>
           <div className="mt-3 space-y-3">
-            {(data?.spoilerThoughts ?? []).map((thought) => (
-              <ThoughtCard key={thought.thoughtId} thought={thought} blurred={!showSpoilers} />
+            {filteredSpoilerThoughts.map((thought) => (
+              <ThoughtCard
+                key={thought.thoughtId}
+                thought={thought}
+                blurred={!showSpoilers}
+                highlighted={highlightedThoughtId === thought.thoughtId}
+                showEpisodeContext={titleContext.mediaType === "tv"}
+              />
             ))}
           </div>
         </div>

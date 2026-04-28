@@ -1999,12 +1999,29 @@ function RightRail({
       ...watchingNow,
       ...justFinished,
     ];
-    const unique = new Map<string, { thoughtId: string }>();
+    const unique = new Map<
+      string,
+      {
+        thoughtId: string;
+        tmdbId: number;
+        mediaType: "movie" | "tv";
+        title: string;
+        seasonNumber: number | null;
+        episodeNumber: number | null;
+      }
+    >();
     for (const session of allSessions) {
       for (const thought of session.thoughts) {
         if (thought.user.id !== currentUserId) continue;
         if (!unique.has(thought.id)) {
-          unique.set(thought.id, { thoughtId: thought.id });
+          unique.set(thought.id, {
+            thoughtId: thought.id,
+            tmdbId: session.tmdbId,
+            mediaType: session.mediaType,
+            title: session.title,
+            seasonNumber: session.seasonNumber ?? null,
+            episodeNumber: session.episodeNumber ?? null,
+          });
         }
       }
     }
@@ -2033,17 +2050,31 @@ function RightRail({
   const repliesToYou = useMemo(() => {
     const all: Array<{
       id: string;
+      thoughtId: string;
+      tmdbId: number;
+      mediaType: "movie" | "tv";
+      title: string;
+      seasonNumber: number | null;
+      episodeNumber: number | null;
       userName: string;
       userAvatar: string | null;
       text: string;
       createdAt: string;
     }> = [];
-    for (const query of repliesQueries) {
+    for (const [index, query] of repliesQueries.entries()) {
       if (!query.data) continue;
+      const target = myThoughtTargets[index];
+      if (!target) continue;
       for (const reply of query.data) {
         if (reply.userId === currentUserId) continue;
         all.push({
           id: reply.id,
+          thoughtId: target.thoughtId,
+          tmdbId: target.tmdbId,
+          mediaType: target.mediaType,
+          title: target.title,
+          seasonNumber: target.seasonNumber,
+          episodeNumber: target.episodeNumber,
           userName: reply.user.displayName || reply.user.username || "Someone",
           userAvatar: reply.user.avatarUrl,
           text: reply.content,
@@ -2053,7 +2084,7 @@ function RightRail({
     }
     all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return all;
-  }, [repliesQueries, currentUserId]);
+  }, [repliesQueries, myThoughtTargets, currentUserId]);
   const repliesToYouPageSize = showAllRepliesToYou ? 20 : 5;
   const repliesToYouTotalPages = Math.max(1, Math.ceil(repliesToYou.length / repliesToYouPageSize));
   const visibleRepliesToYou = useMemo(() => {
@@ -2376,6 +2407,21 @@ function RightRail({
                 </div>
               </div>
               <p className="pl-[38px] pr-1 text-[13px] text-foreground/90">{reply.text}</p>
+              <div className="pl-[38px] pt-1">
+                <Link
+                  href={`${titlePageHref(reply.mediaType, reply.tmdbId, reply.title)}?tab=discussions&focusThought=${reply.thoughtId}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 transition hover:bg-emerald-500/15 dark:text-emerald-300"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Jump to discussion
+                  <span className="text-emerald-700/80 dark:text-emerald-300/80">
+                    · {reply.title}
+                    {reply.mediaType === "tv" && reply.seasonNumber && reply.episodeNumber
+                      ? ` S${String(reply.seasonNumber).padStart(2, "0")}E${String(reply.episodeNumber).padStart(2, "0")}`
+                      : ""}
+                  </span>
+                </Link>
+              </div>
             </div>
           ))}
           {!repliesToYou.length ? <p className="py-[8px] text-[12px] text-muted-foreground">No replies yet.</p> : null}

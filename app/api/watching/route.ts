@@ -5,6 +5,11 @@ import type { WatchingDashboardResponse, WatchingSessionDTO, WatchingTitlePresen
 import { triggerWatchingDashboardUpdated, triggerWatchingTitleUpdated } from "@/lib/pusher/server";
 import { getMovieDetails, getTVDetails, getTVSeasonDetails } from "@/lib/tmdb";
 import { moderateContent } from "@/lib/moderation";
+import {
+  syncEpisodeViewingFromSession,
+  syncEpisodeViewingFromSessions,
+  type WatchedUpsertSession,
+} from "@/lib/watching-finish-sync";
 
 const WATCHING_AUTO_TIMEOUT_MS = 1000 * 60 * 60 * 4; // 4 hours
 
@@ -57,15 +62,6 @@ function isRequireAdminFailure(result: RequireAdminResult): result is Extract<Re
 function isRequireUserFailure(result: RequireUserResult): result is Extract<RequireUserResult, { ok: false }> {
   return result.ok === false;
 }
-
-type WatchedUpsertSession = {
-  userId: string;
-  tmdbId: number;
-  mediaType: string;
-  title: string;
-  posterPath: string | null;
-  backdropPath: string | null;
-};
 
 async function upsertWatchedTitle(
   session: WatchedUpsertSession,
@@ -126,6 +122,8 @@ async function autoTimeoutWatchingSessions(userIds: string[]): Promise<void> {
       title: true,
       posterPath: true,
       backdropPath: true,
+      seasonNumber: true,
+      episodeNumber: true,
     },
   });
   await db.watchingSession.updateMany({
@@ -140,6 +138,7 @@ async function autoTimeoutWatchingSessions(userIds: string[]): Promise<void> {
     },
   });
   await upsertWatchedTitles(staleSessions, "watching_timeout_finish", timeoutAt);
+  await syncEpisodeViewingFromSessions(staleSessions, timeoutAt);
 }
 
 type SessionTitleMetadata = {
@@ -364,7 +363,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
         },
         include: {
           user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
-          session: { select: { id: true, status: true } },
+          session: { select: { id: true, status: true, seasonNumber: true, episodeNumber: true } },
         },
         orderBy: { createdAt: "desc" },
         take: 60,
@@ -423,6 +422,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
           .map((thought) => ({
             thoughtId: thought.id,
             sessionId: thought.session.id,
+            seasonNumber: thought.session.seasonNumber ?? null,
+            episodeNumber: thought.session.episodeNumber ?? null,
             content: thought.content,
             createdAt: thought.createdAt.toISOString(),
             isSpoiler: false as const,
@@ -438,6 +439,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
           .map((thought) => ({
             thoughtId: thought.id,
             sessionId: thought.session.id,
+            seasonNumber: thought.session.seasonNumber ?? null,
+            episodeNumber: thought.session.episodeNumber ?? null,
             content: thought.content,
             createdAt: thought.createdAt.toISOString(),
             isSpoiler: true as const,
@@ -575,8 +578,23 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
           title: session.title,
           posterPath: session.posterPath ?? null,
           backdropPath: session.backdropPath ?? null,
+          seasonNumber: session.seasonNumber ?? null,
+          episodeNumber: session.episodeNumber ?? null,
         })),
         "watching_auto_finish",
+        autoFinishNow
+      );
+      await syncEpisodeViewingFromSessions(
+        watchingNowRaw.filter((session) => autoFinishSessionIds.includes(session.id)).map((session) => ({
+          userId: session.userId,
+          tmdbId: session.tmdbId,
+          mediaType: session.mediaType,
+          title: session.title,
+          posterPath: session.posterPath ?? null,
+          backdropPath: session.backdropPath ?? null,
+          seasonNumber: session.seasonNumber ?? null,
+          episodeNumber: session.episodeNumber ?? null,
+        })),
         autoFinishNow
       );
 
@@ -942,18 +960,19 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
         });
       }
       if (nextStatus === "JUST_FINISHED") {
-        await upsertWatchedTitle(
-          {
-            userId: updated.userId,
-            tmdbId: updated.tmdbId,
-            mediaType: updated.mediaType,
-            title: updated.title,
-            posterPath: updated.posterPath ?? null,
-            backdropPath: updated.backdropPath ?? null,
-          },
-          "watching_finish",
-          updated.endedAt ?? new Date()
-        );
+        const finishedAt = updated.endedAt ?? new Date();
+        const finishedSession: WatchedUpsertSession = {
+          userId: updated.userId,
+          tmdbId: updated.tmdbId,
+          mediaType: updated.mediaType,
+          title: updated.title,
+          posterPath: updated.posterPath ?? null,
+          backdropPath: updated.backdropPath ?? null,
+          seasonNumber: updated.seasonNumber ?? null,
+          episodeNumber: updated.episodeNumber ?? null,
+        };
+        await upsertWatchedTitle(finishedSession, "watching_finish", finishedAt);
+        await syncEpisodeViewingFromSession(finishedSession, finishedAt);
       }
       await Promise.all([
         triggerWatchingDashboardUpdated({ action: body.action, userId: currentUser.id }),

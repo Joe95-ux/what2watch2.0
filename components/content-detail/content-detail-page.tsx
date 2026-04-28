@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { TMDBMovie, TMDBSeries, TMDBVideo } from "@/lib/tmdb";
 import {
   useMovieDetails,
@@ -65,6 +66,7 @@ interface DetailsWithCredits {
 }
 
 export default function ContentDetailPage({ item, type }: ContentDetailPageProps) {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("overview");
   const [isScrolled, setIsScrolled] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
@@ -142,6 +144,13 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "discussions") {
+      setActiveTab("discussions");
+    }
+  }, [searchParams]);
 
   // Auto-select first season for TV
   useEffect(() => {
@@ -421,6 +430,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           <WatchingDiscussionsSection
             data={watchingTitleData}
             isLoading={isWatchingTitleLoading}
+            focusThoughtId={searchParams.get("focusThought")}
             titleContext={{
               tmdbId: item.id,
               mediaType: type,

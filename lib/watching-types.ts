@@ -84,6 +84,8 @@ export type WatchingTitlePresenceResponse = {
   recentThoughts: Array<{
     thoughtId: string;
     sessionId: string;
+    seasonNumber: number | null;
+    episodeNumber: number | null;
     content: string;
     createdAt: string;
     isSpoiler: false;
@@ -101,6 +103,8 @@ export type WatchingTitlePresenceResponse = {
   spoilerThoughts: Array<{
     thoughtId: string;
     sessionId: string;
+    seasonNumber: number | null;
+    episodeNumber: number | null;
     content: string;
     createdAt: string;
     isSpoiler: true;

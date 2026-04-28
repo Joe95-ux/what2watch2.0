@@ -429,9 +429,14 @@ export function useWatchingMutation() {
         queryClient.setQueryData(["watching-dashboard"], context.previous);
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, action) => {
       queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["watching-title"] });
+      if (action.action === "finish") {
+        queryClient.invalidateQueries({ queryKey: ["seen-episodes"] });
+        queryClient.invalidateQueries({ queryKey: ["seen-seasons"] });
+        queryClient.invalidateQueries({ queryKey: ["is-watched"] });
+      }
     },
   });
 }
