@@ -1970,6 +1970,7 @@ function RightRail({
   isSubmitting: boolean;
   watchMomentLabel: string;
 }) {
+  const isMobile = useIsMobile();
   const trendingLabel = useMemo(() => {
     const part = watchMomentLabel.split(" ").pop()?.toLowerCase() ?? "today";
     const isTonight = part === "evening" || part === "night";
@@ -2124,7 +2125,7 @@ function RightRail({
 
   return (
     <aside className="w-full">
-      <section className="border-b border-border/70 px-[16px] py-6">
+      <section className={cn("border-b border-border/70 px-[16px] py-6", isMobile ? "pb-6" : "")}>
         <div className="mb-2 flex items-center justify-between">
           <p className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">You&apos;re watching</p>
           <Button
@@ -3678,9 +3679,9 @@ export default function WatchingContent() {
           setIsRightOpen(open);
         }}
       >
-        <SheetContent side="right" className="w-[92vw] max-w-sm overflow-y-auto p-0 lg:hidden">
+        <SheetContent side="right" className="w-screen max-w-none overflow-y-auto p-0 lg:hidden">
           <SheetHeader className="border-b border-border/60 px-4 py-3">
-            <SheetTitle className="text-sm">Watching sidebar</SheetTitle>
+            <SheetTitle className="text-sm">Live Watch Hub</SheetTitle>
           </SheetHeader>
           <RightRail
             currentSession={watchingData?.currentSession ?? null}
