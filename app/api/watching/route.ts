@@ -255,6 +255,8 @@ function toSessionDTO(
     title: string;
     posterPath: string | null;
     backdropPath: string | null;
+    seasonNumber: number | null;
+    episodeNumber: number | null;
     status: "WATCHING_NOW" | "JUST_FINISHED" | "STOPPED";
     visibility: "PUBLIC" | "FOLLOWERS_ONLY" | "PRIVATE";
     progressPercent: number | null;
