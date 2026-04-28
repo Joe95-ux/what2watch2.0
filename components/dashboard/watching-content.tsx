@@ -3127,7 +3127,7 @@ export default function WatchingContent() {
           <Button
             type="button"
             size="icon"
-            className="fixed bottom-4 right-4 z-40 h-10 w-10 cursor-pointer rounded-full shadow-md lg:hidden"
+            className="fixed bottom-4 right-4 z-50 h-10 w-10 cursor-pointer rounded-full shadow-md lg:hidden"
             onClick={() => setIsRightOpen(true)}
             aria-label="Open sidebar"
             title="Open sidebar"
@@ -3671,7 +3671,13 @@ export default function WatchingContent() {
           </aside>
         ) : null}
       </div>
-      <Sheet open={isRightOpen} onOpenChange={setIsRightOpen}>
+      <Sheet
+        open={isMobile ? isRightOpen : false}
+        onOpenChange={(open) => {
+          if (!isMobile) return;
+          setIsRightOpen(open);
+        }}
+      >
         <SheetContent side="right" className="w-[92vw] max-w-sm overflow-y-auto p-0 lg:hidden">
           <SheetHeader className="border-b border-border/60 px-4 py-3">
             <SheetTitle className="text-sm">Watching sidebar</SheetTitle>
