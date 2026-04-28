@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Minus,
   Pause,
+  PanelRight,
   PlayCircle,
   Plus,
   MoreHorizontal,
@@ -54,6 +55,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -1225,6 +1227,7 @@ function WatchingNowGroupCard({
   isJoiningRoom?: boolean;
 }) {
   const [showThoughts, setShowThoughts] = useState(false);
+  const isMobile = useIsMobile();
   const [showFinishOverrideDialog, setShowFinishOverrideDialog] = useState(false);
   const [localReactions, setLocalReactions] = useState(room.reactionCount ?? 0);
   const localLiked = Boolean(room.featuredThought?.myReactions?.includes("like"));
@@ -1342,7 +1345,7 @@ function WatchingNowGroupCard({
         }
       }}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-muted/35 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
+      <div className="flex flex-col gap-2 border-b border-border/60 bg-muted/35 px-[14px] py-[13px] sm:flex-row sm:items-start sm:justify-between dark:border-border/50 dark:bg-muted/20">
         <div className="flex min-w-0 items-start gap-3">
           <Link
             href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
@@ -1419,7 +1422,7 @@ function WatchingNowGroupCard({
             ) : null}
           </div>
         </div>
-        <p className="shrink-0 text-[12px] font-medium text-emerald-500">• {room.watchingCount} watching</p>
+        <p className="shrink-0 self-start text-[12px] font-medium text-emerald-500 sm:self-auto">• {room.watchingCount} watching</p>
       </div>
 
       <div className="border-b border-border/60 bg-muted/30 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
@@ -1525,8 +1528,11 @@ function WatchingNowGroupCard({
           }}
           disabled={isWatchlistMutating}
           className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+          aria-label={inWatchlist ? "In watchlist" : "Add to watchlist"}
+          title={inWatchlist ? "In watchlist" : "Add to watchlist"}
         >
-          <Bookmark className={cn("h-3.5 w-3.5", inWatchlist ? "text-yellow-400 fill-yellow-400" : "")} /> Watchlist
+          <Bookmark className={cn("h-3.5 w-3.5", inWatchlist ? "text-yellow-400 fill-yellow-400" : "")} />
+          {!isMobile ? <span>Watchlist</span> : null}
         </Button>
         <Button
           variant="ghost"
@@ -1540,9 +1546,11 @@ function WatchingNowGroupCard({
             });
           }}
           className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+          aria-label="Watch now"
+          title="Watch now"
         >
           <PlayCircle className="h-3.5 w-3.5" />
-          <span>Watch Now</span>
+          {!isMobile ? <span>Watch Now</span> : null}
         </Button>
         </div>
       </div>
@@ -1585,6 +1593,7 @@ function JustFinishedGroupCard({
   onWatchNow?: (room: { tmdbId: number; mediaType: "movie" | "tv"; title: string }) => void;
 }) {
   const [showThoughts, setShowThoughts] = useState(true);
+  const isMobile = useIsMobile();
   const [showFinishOverrideDialog, setShowFinishOverrideDialog] = useState(false);
   const topAvatars = room.participants.slice(0, 6);
   const featuredThought = room.thoughts[0] ?? null;
@@ -1697,7 +1706,7 @@ function JustFinishedGroupCard({
         }
       }}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-muted/35 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
+      <div className="flex flex-col gap-2 border-b border-border/60 bg-muted/35 px-[14px] py-[13px] sm:flex-row sm:items-start sm:justify-between dark:border-border/50 dark:bg-muted/20">
         <div className="flex min-w-0 items-start gap-3">
           <Link
             href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
@@ -1774,7 +1783,7 @@ function JustFinishedGroupCard({
             ) : null}
           </div>
         </div>
-        <Badge className="shrink-0 rounded-full border border-slate-500/25 bg-slate-500/15 px-2.5 py-0.5 text-[11px] font-medium text-slate-700 shadow-none dark:text-slate-300">
+        <Badge className="shrink-0 self-start rounded-full border border-slate-500/25 bg-slate-500/15 px-2.5 py-0.5 text-[11px] font-medium text-slate-700 shadow-none sm:self-auto dark:text-slate-300">
           {room.finishedCount} finished {finishedMomentLabel}
         </Badge>
       </div>
@@ -1859,8 +1868,11 @@ function JustFinishedGroupCard({
             }}
             disabled={isWatchlistMutating}
             className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+          aria-label={inWatchlist ? "In watchlist" : "Add to watchlist"}
+          title={inWatchlist ? "In watchlist" : "Add to watchlist"}
           >
-            <Bookmark className={cn("h-3.5 w-3.5", inWatchlist ? "text-yellow-400 fill-yellow-400" : "")} /> Watchlist
+          <Bookmark className={cn("h-3.5 w-3.5", inWatchlist ? "text-yellow-400 fill-yellow-400" : "")} />
+          {!isMobile ? <span>Watchlist</span> : null}
           </Button>
           <Button
             variant="ghost"
@@ -1874,9 +1886,11 @@ function JustFinishedGroupCard({
               });
             }}
             className="h-10 cursor-pointer justify-center gap-1.5 rounded-none text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+            aria-label="Watch now"
+            title="Watch now"
           >
             <PlayCircle className="h-3.5 w-3.5" />
-            <span>Watch Now</span>
+            {!isMobile ? <span>Watch Now</span> : null}
           </Button>
         </div>
       </div>
@@ -2411,15 +2425,19 @@ function RightRail({
                 <Link
                   href={`${titlePageHref(reply.mediaType, reply.tmdbId, reply.title)}?tab=discussions&focusThought=${reply.thoughtId}`}
                   className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 transition hover:bg-emerald-500/15 dark:text-emerald-300"
+                  title={`Jump to discussion · ${reply.title}${
+                    reply.mediaType === "tv" && reply.seasonNumber && reply.episodeNumber
+                      ? ` S${String(reply.seasonNumber).padStart(2, "0")}E${String(reply.episodeNumber).padStart(2, "0")}`
+                      : ""
+                  }`}
+                  aria-label={`Jump to discussion for ${reply.title}${
+                    reply.mediaType === "tv" && reply.seasonNumber && reply.episodeNumber
+                      ? ` S${String(reply.seasonNumber).padStart(2, "0")}E${String(reply.episodeNumber).padStart(2, "0")}`
+                      : ""
+                  }`}
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Jump to discussion
-                  <span className="text-emerald-700/80 dark:text-emerald-300/80">
-                    · {reply.title}
-                    {reply.mediaType === "tv" && reply.seasonNumber && reply.episodeNumber
-                      ? ` S${String(reply.seasonNumber).padStart(2, "0")}E${String(reply.episodeNumber).padStart(2, "0")}`
-                      : ""}
-                  </span>
                 </Link>
               </div>
             </div>
@@ -2528,6 +2546,7 @@ export default function WatchingContent() {
   );
   const watchingNowRooms = useMemo<WatchingNowRoomCard[]>(() => {
     const sessions = watchingData?.watchingNow ?? [];
+    const justFinishedSessions = watchingData?.justFinished ?? [];
     const groups = new Map<string, WatchingNowRoomCard>();
     for (const session of sessions) {
       const seasonEpisodeKey =
@@ -2625,6 +2644,42 @@ export default function WatchingContent() {
             existing.currentUserFinishedAt = session.endedAt;
           }
         }
+      }
+    }
+    for (const session of justFinishedSessions) {
+      const seasonEpisodeKey =
+        session.mediaType === "tv" && session.seasonNumber && session.episodeNumber
+          ? `:s${session.seasonNumber}:e${session.episodeNumber}`
+          : "";
+      const key = `${session.mediaType}:${session.tmdbId}${seasonEpisodeKey}`;
+      const room = groups.get(key);
+      if (!room) continue;
+      const thoughtsForSession = session.thoughts.map((thought) => ({
+        id: thought.id,
+        userId: thought.user.id,
+        content: thought.content,
+        isSpoiler: thought.isSpoiler,
+        createdAt: thought.createdAt,
+        user: thought.user.displayName || thought.user.username || "Unknown",
+        avatar: thought.user.avatarUrl ?? null,
+        reactionCount: thought.reactionCount ?? 0,
+        replyCount: thought.replyCount ?? 0,
+        myReactions: thought.myReactions ?? [],
+        sessionStatus: "JUST_FINISHED" as const,
+      }));
+      if (thoughtsForSession.length) {
+        const existingThoughtIds = new Set(room.thoughts.map((thought) => thought.id));
+        const toAdd = thoughtsForSession.filter((thought) => !existingThoughtIds.has(thought.id));
+        if (toAdd.length) {
+          room.thoughts.push(...toAdd);
+          room.thoughts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          room.featuredThought = room.thoughts[0] ?? null;
+          room.thoughtCount = room.thoughts.length;
+          room.reactionCount = room.thoughts.reduce((sum, thought) => sum + (thought.reactionCount ?? 0), 0);
+        }
+      }
+      if (currentUser?.id && session.userId === currentUser.id && session.endedAt) {
+        room.currentUserFinishedAt = session.endedAt;
       }
     }
     if (currentUser?.id) {
@@ -3069,6 +3124,16 @@ export default function WatchingContent() {
         )}
       >
         <main className="relative min-w-0 space-y-4 px-4 py-6 sm:px-6 lg:px-8">
+          <Button
+            type="button"
+            size="icon"
+            className="fixed bottom-4 right-4 z-40 h-10 w-10 cursor-pointer rounded-full shadow-md lg:hidden"
+            onClick={() => setIsRightOpen(true)}
+            aria-label="Open sidebar"
+            title="Open sidebar"
+          >
+            <PanelRight className="h-4 w-4" />
+          </Button>
           {!isRightOpen ? (
             <button
               type="button"
@@ -3606,6 +3671,49 @@ export default function WatchingContent() {
           </aside>
         ) : null}
       </div>
+      <Sheet open={isRightOpen} onOpenChange={setIsRightOpen}>
+        <SheetContent side="right" className="w-[92vw] max-w-sm overflow-y-auto p-0 lg:hidden">
+          <SheetHeader className="border-b border-border/60 px-4 py-3">
+            <SheetTitle className="text-sm">Watching sidebar</SheetTitle>
+          </SheetHeader>
+          <RightRail
+            currentSession={watchingData?.currentSession ?? null}
+            alsoWatchingCurrent={contextualAlsoWatching}
+            alsoWatchingTitle={effectiveAlsoWatchingContext?.title ?? null}
+            watchingNow={watchingData?.watchingNow ?? []}
+            justFinished={watchingData?.justFinished ?? []}
+            trendingTonight={watchingData?.trendingTonight ?? []}
+            currentUserId={currentUser?.id}
+            thoughtText={thoughtText}
+            onThoughtTextChange={setThoughtText}
+            spoilerMode={spoilerMode}
+            onSpoilerModeChange={setSpoilerMode}
+            onShareThought={submitShareThought}
+            onChangeTitle={() => {
+              setIsRightOpen(false);
+              setSearchModalOpen(true);
+              toast.message("Use the top search box to change your current title.");
+            }}
+            onUseTrendingItem={(item) => {
+              setSelectedPick({
+                tmdbId: item.tmdbId,
+                mediaType: item.mediaType,
+                title: item.title,
+                posterPath: item.posterPath,
+                backdropPath: null,
+              });
+              setSelectedSeasonNumber("");
+              setSelectedEpisodeNumber("");
+              setWatchSearchQuery(item.title);
+              setSearchModalOpen(false);
+              setIsRightOpen(false);
+              toast.message("Loaded trending title — tap I'm watching... when ready.");
+            }}
+            isSubmitting={watchingMutation.isPending}
+            watchMomentLabel={watchMomentLabel}
+          />
+        </SheetContent>
+      </Sheet>
       <Dialog
         open={Boolean(watchModalTarget)}
         onOpenChange={(open) => {
