@@ -41,7 +41,7 @@ import {
 } from "@/hooks/use-watching";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useJustWatchCountries, useWatchProviders } from "@/hooks/use-content-details";
+import { useJustWatchCountries, useTVSeasonDetails, useTVSeasons, useWatchProviders } from "@/hooks/use-content-details";
 import { useSearch } from "@/hooks/use-search";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { WatchingSessionDTO } from "@/lib/watching-types";
@@ -2513,6 +2513,46 @@ export default function WatchingContent() {
   } | null>(null);
   const [watchCountry, setWatchCountry] = useState("US");
   const { data: justwatchCountries = [] } = useJustWatchCountries();
+  const selectedTvTmdbId = selectedPick?.mediaType === "tv" ? selectedPick.tmdbId : null;
+  const parsedSeasonInput = Number.parseInt(selectedSeasonNumber, 10);
+  const parsedEpisodeInput = Number.parseInt(selectedEpisodeNumber, 10);
+  const selectedSeasonForDetails =
+    selectedTvTmdbId && Number.isInteger(parsedSeasonInput) && parsedSeasonInput > 0 ? parsedSeasonInput : null;
+  const { data: tvPickerSeasons } = useTVSeasons(selectedTvTmdbId);
+  const { data: tvPickerSeasonDetails } = useTVSeasonDetails(selectedTvTmdbId, selectedSeasonForDetails);
+  const tvRegularSeasons = useMemo(
+    () => (tvPickerSeasons?.seasons ?? []).filter((season) => season.season_number > 0),
+    [tvPickerSeasons?.seasons]
+  );
+  const episodeCountBySeason = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const season of tvRegularSeasons) {
+      if (Number.isInteger(season.episode_count) && season.episode_count > 0) {
+        map.set(season.season_number, season.episode_count);
+      }
+    }
+    if (
+      selectedSeasonForDetails != null &&
+      tvPickerSeasonDetails?.episodes?.length &&
+      tvPickerSeasonDetails.episodes.length > 0
+    ) {
+      map.set(selectedSeasonForDetails, tvPickerSeasonDetails.episodes.length);
+    }
+    return map;
+  }, [tvRegularSeasons, selectedSeasonForDetails, tvPickerSeasonDetails?.episodes]);
+  const maxSeasonNumber = useMemo(
+    () => (tvRegularSeasons.length ? Math.max(...tvRegularSeasons.map((season) => season.season_number)) : null),
+    [tvRegularSeasons]
+  );
+  const selectedSeasonEpisodeCount =
+    selectedSeasonForDetails != null ? (episodeCountBySeason.get(selectedSeasonForDetails) ?? null) : null;
+  const hasValidSelectedEpisodeRange =
+    selectedPick?.mediaType !== "tv" ||
+    selectedSeasonForDetails == null ||
+    selectedSeasonEpisodeCount == null ||
+    (Number.isInteger(parsedEpisodeInput) &&
+      parsedEpisodeInput > 0 &&
+      parsedEpisodeInput <= selectedSeasonEpisodeCount);
   const { data: watchAvailability, isLoading: isLoadingWatchAvailability } = useWatchProviders(
     watchModalTarget?.mediaType ?? "movie",
     watchModalTarget?.tmdbId ?? null,
@@ -2993,8 +3033,25 @@ export default function WatchingContent() {
       )[0];
       if (latest?.seasonNumber && latest.episodeNumber) {
         if (latest.status === "JUST_FINISHED" || latest.status === "STOPPED") {
-          setSelectedSeasonNumber(String(latest.seasonNumber));
-          setSelectedEpisodeNumber(String(latest.episodeNumber + 1));
+          const currentSeason = latest.seasonNumber;
+          const currentEpisode = latest.episodeNumber;
+          const episodesInSeason = episodeCountBySeason.get(currentSeason) ?? null;
+          const sortedSeasonNumbers = tvRegularSeasons
+            .map((season) => season.season_number)
+            .sort((a, b) => a - b);
+          const nextSeasonCandidate = sortedSeasonNumbers.find((seasonNumber) => seasonNumber > currentSeason) ?? null;
+          if (episodesInSeason != null && currentEpisode >= episodesInSeason) {
+            if (nextSeasonCandidate != null) {
+              setSelectedSeasonNumber(String(nextSeasonCandidate));
+              setSelectedEpisodeNumber("1");
+            } else {
+              setSelectedSeasonNumber(String(currentSeason));
+              setSelectedEpisodeNumber(String(episodesInSeason));
+            }
+          } else {
+            setSelectedSeasonNumber(String(currentSeason));
+            setSelectedEpisodeNumber(String(currentEpisode + 1));
+          }
           return;
         }
         setSelectedSeasonNumber(String(latest.seasonNumber));
@@ -3021,6 +3078,8 @@ export default function WatchingContent() {
     currentUser?.id,
     selectedSeasonNumber,
     selectedEpisodeNumber,
+    episodeCountBySeason,
+    tvRegularSeasons,
   ]);
 
   const submitShareThought = async () => {
@@ -3235,7 +3294,8 @@ export default function WatchingContent() {
                     (!Number.isInteger(Number.parseInt(selectedSeasonNumber, 10)) ||
                       Number.parseInt(selectedSeasonNumber, 10) <= 0 ||
                       !Number.isInteger(Number.parseInt(selectedEpisodeNumber, 10)) ||
-                      Number.parseInt(selectedEpisodeNumber, 10) <= 0))
+                      Number.parseInt(selectedEpisodeNumber, 10) <= 0 ||
+                      !hasValidSelectedEpisodeRange))
                 }
               >
                 {isWatchingActive ? "Watching now" : "I'm watching..."}
@@ -3377,7 +3437,11 @@ export default function WatchingContent() {
                         onClick={() =>
                           setSelectedSeasonNumber((prev) => {
                             const current = Math.max(1, Number.parseInt(prev || "1", 10) || 1);
-                            return String(current + 1);
+                            const next = current + 1;
+                            if (maxSeasonNumber != null) {
+                              return String(Math.min(maxSeasonNumber, next));
+                            }
+                            return String(next);
                           })
                         }
                         aria-label="Increase season"
@@ -3417,7 +3481,21 @@ export default function WatchingContent() {
                         onClick={() =>
                           setSelectedEpisodeNumber((prev) => {
                             const current = Math.max(1, Number.parseInt(prev || "1", 10) || 1);
-                            return String(current + 1);
+                            const next = current + 1;
+                            const currentSeason = Math.max(1, Number.parseInt(selectedSeasonNumber || "1", 10) || 1);
+                            const episodesInSeason = episodeCountBySeason.get(currentSeason) ?? null;
+                            if (episodesInSeason != null && next > episodesInSeason) {
+                              const sortedSeasonNumbers = tvRegularSeasons
+                                .map((season) => season.season_number)
+                                .sort((a, b) => a - b);
+                              const nextSeason = sortedSeasonNumbers.find((seasonNumber) => seasonNumber > currentSeason);
+                              if (nextSeason != null) {
+                                setSelectedSeasonNumber(String(nextSeason));
+                                return "1";
+                              }
+                              return String(episodesInSeason);
+                            }
+                            return String(next);
                           })
                         }
                         aria-label="Increase episode"
@@ -3439,7 +3517,8 @@ export default function WatchingContent() {
                         !Number.isInteger(Number.parseInt(selectedSeasonNumber, 10)) ||
                         Number.parseInt(selectedSeasonNumber, 10) <= 0 ||
                         !Number.isInteger(Number.parseInt(selectedEpisodeNumber, 10)) ||
-                        Number.parseInt(selectedEpisodeNumber, 10) <= 0
+                        Number.parseInt(selectedEpisodeNumber, 10) <= 0 ||
+                        !hasValidSelectedEpisodeRange
                       }
                       className="h-8 cursor-pointer rounded-[20px] px-3 text-xs"
                     >
