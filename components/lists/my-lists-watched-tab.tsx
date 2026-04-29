@@ -84,39 +84,25 @@ export default function MyListsWatchedTab() {
     return view === "timeline" ? "timeline" : "grid";
   });
 
-  // Update URL when filter changes
-  useEffect(() => {
-    const currentFilter = searchParams.get("filter");
-    const expectedFilter = filterType === "all" ? null : filterType;
-    
-    if (currentFilter !== expectedFilter) {
-      const params = new URLSearchParams(searchParams.toString());
-      if (filterType === "all") {
-        params.delete("filter");
-      } else {
-        params.set("filter", filterType);
-      }
-      const newUrl = params.toString() ? `/lists?${params.toString()}` : "/lists";
-      router.push(newUrl);
+  const applyWatchedQueryState = (next: { filter?: FilterType; view?: ViewMode }) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const effectiveFilter = next.filter ?? filterType;
+    const effectiveView = next.view ?? viewMode;
+    if (effectiveFilter === "all") {
+      params.delete("filter");
+    } else {
+      params.set("filter", effectiveFilter);
     }
-  }, [filterType, router, searchParams]);
-
-  // Update URL when view mode changes
-  useEffect(() => {
-    const currentView = searchParams.get("view");
-    const expectedView = viewMode === "grid" ? null : "timeline";
-
-    if (currentView !== expectedView) {
-      const params = new URLSearchParams(searchParams.toString());
-      if (viewMode === "grid") {
-        params.delete("view");
-      } else {
-        params.set("view", "timeline");
-      }
-      const newUrl = params.toString() ? `/lists?${params.toString()}` : "/lists";
-      router.push(newUrl);
+    if (effectiveView === "grid") {
+      params.delete("view");
+    } else {
+      params.set("view", "timeline");
     }
-  }, [viewMode, router, searchParams]);
+    const current = searchParams.toString();
+    const nextQuery = params.toString();
+    if (current === nextQuery) return;
+    router.push(nextQuery ? `/lists?${nextQuery}` : "/lists");
+  };
 
   // Sync with URL changes (browser back/forward)
   useEffect(() => {
@@ -225,8 +211,10 @@ export default function MyListsWatchedTab() {
     <div className="space-y-6 pb-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={filterType} onValueChange={(v) => {
-          setFilterType(v as FilterType);
+          const nextFilter = v as FilterType;
+          setFilterType(nextFilter);
           setCurrentPage(1);
+          applyWatchedQueryState({ filter: nextFilter });
         }} className="w-auto">
           <TabsList className="h-auto gap-2 rounded-none bg-transparent p-0">
             <TabsTrigger
@@ -255,7 +243,10 @@ export default function MyListsWatchedTab() {
             type="button"
             size="sm"
             variant="ghost"
-            onClick={() => setViewMode("grid")}
+            onClick={() => {
+              setViewMode("grid");
+              applyWatchedQueryState({ view: "grid" });
+            }}
             className={viewMode === "grid" ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground" : "h-7 cursor-pointer px-2.5 text-xs"}
           >
             Cards
@@ -264,7 +255,10 @@ export default function MyListsWatchedTab() {
             type="button"
             size="sm"
             variant="ghost"
-            onClick={() => setViewMode("timeline")}
+            onClick={() => {
+              setViewMode("timeline");
+              applyWatchedQueryState({ view: "timeline" });
+            }}
             className={viewMode === "timeline" ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground" : "h-7 cursor-pointer px-2.5 text-xs"}
           >
             Timeline

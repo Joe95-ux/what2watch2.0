@@ -108,7 +108,6 @@ async function upsertWatchedTitles(
 async function autoTimeoutWatchingSessions(userIds: string[]): Promise<void> {
   if (!userIds.length) return;
   const threshold = new Date(Date.now() - WATCHING_AUTO_TIMEOUT_MS);
-  const timeoutAt = new Date();
   const staleSessions = await db.watchingSession.findMany({
     where: {
       userId: { in: userIds },
@@ -116,6 +115,7 @@ async function autoTimeoutWatchingSessions(userIds: string[]): Promise<void> {
       updatedAt: { lt: threshold },
     },
     select: {
+      id: true,
       userId: true,
       tmdbId: true,
       mediaType: true,
@@ -124,21 +124,30 @@ async function autoTimeoutWatchingSessions(userIds: string[]): Promise<void> {
       backdropPath: true,
       seasonNumber: true,
       episodeNumber: true,
+      updatedAt: true,
     },
   });
-  await db.watchingSession.updateMany({
-    where: {
-      userId: { in: userIds },
-      status: "WATCHING_NOW",
-      updatedAt: { lt: threshold },
-    },
-    data: {
-      status: "JUST_FINISHED",
-      endedAt: timeoutAt,
-    },
-  });
-  await upsertWatchedTitles(staleSessions, "watching_timeout_finish", timeoutAt);
-  await syncEpisodeViewingFromSessions(staleSessions, timeoutAt);
+  await Promise.all(
+    staleSessions.map((session) =>
+      db.watchingSession.updateMany({
+        where: {
+          id: session.id,
+          status: "WATCHING_NOW",
+        },
+        data: {
+          status: "JUST_FINISHED",
+          endedAt: session.updatedAt,
+        },
+      })
+    )
+  );
+  await Promise.all(
+    staleSessions.map(async (session) => {
+      const seenAt = session.updatedAt;
+      await upsertWatchedTitle(session, "watching_timeout_finish", seenAt);
+      await syncEpisodeViewingFromSession(session, seenAt);
+    })
+  );
 }
 
 type SessionTitleMetadata = {

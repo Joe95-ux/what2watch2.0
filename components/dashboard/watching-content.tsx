@@ -2207,6 +2207,7 @@ function RightRail({
             {visibleAlsoWatching.map((session) => {
               const minsIn = Math.max(1, Math.round((Date.now() - new Date(session.startedAt).getTime()) / 60000));
               const inLabel = minsIn <= 1 ? "just started" : `${minsIn} min in`;
+              const hasSpoilerThought = session.thoughts.some((thought) => thought.isSpoiler);
               return (
                 <div key={session.id} className="flex items-center justify-between gap-2 py-[8px]">
                   <div className="flex min-w-0 items-center gap-[10px]">
@@ -2219,7 +2220,7 @@ function RightRail({
                         {session.user.displayName || session.user.username || "Someone"}
                       </p>
                       <p className="truncate text-[12px] text-muted-foreground">
-                        -{inLabel} . spoiler free
+                        -{inLabel} . {hasSpoilerThought ? "spoiler" : "spoiler free"}
                       </p>
                     </div>
                   </div>

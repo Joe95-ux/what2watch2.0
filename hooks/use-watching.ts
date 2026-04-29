@@ -256,6 +256,8 @@ export function useWatchingDashboard(enabled = true) {
     queryKey: ["watching-dashboard"],
     queryFn: fetchWatchingDashboard,
     staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000,
+    refetchIntervalInBackground: true,
     enabled,
   });
 }
