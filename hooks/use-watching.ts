@@ -32,7 +32,7 @@ type WatchingActionBody =
       progressPercent: number;
     }
   | {
-      action: "finish" | "stop";
+      action: "finish" | "stop" | "leave";
       sessionId: string;
       thought?: string;
       spoiler?: boolean;

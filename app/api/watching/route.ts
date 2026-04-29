@@ -502,7 +502,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
                 { userId: currentUser.id },
               ],
             },
-            { status: "STOPPED", userId: currentUser.id },
+            { status: "STOPPED", userId: currentUser.id, endedAt: null },
           ],
         },
         include: {
@@ -809,7 +809,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
           progressPercent: number;
         }
       | {
-          action: "finish" | "stop";
+          action: "finish" | "stop" | "leave";
           sessionId: string;
           thought?: string;
           spoiler?: boolean;
@@ -931,7 +931,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
       return NextResponse.json({ success: true });
     }
 
-    if (body.action === "finish" || body.action === "stop") {
+    if (body.action === "finish" || body.action === "stop" || body.action === "leave") {
       const owned = await db.watchingSession.findFirst({
         where: { id: body.sessionId, userId: currentUser.id },
         select: { id: true },
@@ -941,7 +941,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
       const nextStatus = body.action === "finish" ? "JUST_FINISHED" : "STOPPED";
       const updated = await db.watchingSession.update({
         where: { id: body.sessionId },
-        data: { status: nextStatus, endedAt: new Date() },
+        data: {
+          status: nextStatus,
+          endedAt: body.action === "stop" ? null : new Date(),
+        },
         include: {
           user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
           thoughts: {
@@ -998,7 +1001,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
 
     if (body.action === "resume") {
       const owned = await db.watchingSession.findFirst({
-        where: { id: body.sessionId, userId: currentUser.id, status: "STOPPED" },
+        where: { id: body.sessionId, userId: currentUser.id, status: "STOPPED", endedAt: null },
         select: { id: true },
       });
       if (!owned) return NextResponse.json({ error: "Paused session not found" }, { status: 404 });

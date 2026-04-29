@@ -1332,6 +1332,19 @@ function WatchingNowGroupCard({
     }
   };
 
+  const handlePlaybackLeave = async () => {
+    if (!room.currentUserSession) return;
+    try {
+      await watchingMutation.mutateAsync({
+        action: "leave",
+        sessionId: room.currentUserSession.sessionId,
+      });
+      toast.success("Session stopped.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to stop session");
+    }
+  };
+
   return (
     <Card
       className="gap-0 overflow-hidden rounded-[15px] border border-border/60 bg-muted/25 p-0 transition hover:ring-1 hover:ring-primary/20 dark:border-border/50 dark:bg-muted/15"
@@ -1417,6 +1430,21 @@ function WatchingNowGroupCard({
                   aria-label="Stop and mark finished"
                 >
                   <Square className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 cursor-pointer rounded-full text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handlePlaybackLeave();
+                  }}
+                  disabled={playbackBusy}
+                  aria-label="Stop session"
+                  title="Stop session"
+                >
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
             ) : null}
@@ -1693,6 +1721,19 @@ function JustFinishedGroupCard({
     }
   };
 
+  const handlePlaybackLeave = async () => {
+    if (!room.currentUserSession) return;
+    try {
+      await watchingMutation.mutateAsync({
+        action: "leave",
+        sessionId: room.currentUserSession.sessionId,
+      });
+      toast.success("Session stopped.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to stop session");
+    }
+  };
+
   return (
     <Card
       className="gap-0 overflow-hidden rounded-[15px] border border-border/60 bg-muted/25 p-0 transition hover:ring-1 hover:ring-primary/20 dark:border-border/50 dark:bg-muted/15"
@@ -1778,6 +1819,21 @@ function JustFinishedGroupCard({
                   aria-label="Stop and mark finished"
                 >
                   <Square className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 cursor-pointer rounded-full text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handlePlaybackLeave();
+                  }}
+                  disabled={playbackBusy}
+                  aria-label="Stop session"
+                  title="Stop session"
+                >
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
             ) : null}
@@ -1987,7 +2043,7 @@ function RightRail({
     // For active sessions, never show 100% until the session is actually finished.
     const minutesIn = Math.max(1, Math.round((Date.now() - new Date(currentSession.startedAt).getTime()) / 60000));
     const estimatedTotalMinutes =
-      currentSession.mediaType === "movie" && currentSession.runtimeMinutes && currentSession.runtimeMinutes > 0
+      currentSession.runtimeMinutes && currentSession.runtimeMinutes > 0
         ? currentSession.runtimeMinutes
         : 120;
     const estimated = Math.round((minutesIn / estimatedTotalMinutes) * 100);
@@ -2860,7 +2916,7 @@ export default function WatchingContent() {
           (activeSession.episodeNumber ?? null) !== (finalPick.episodeNumber ?? null))
       ) {
         await watchingMutation.mutateAsync({
-          action: "stop",
+          action: "leave",
           sessionId: activeSession.id,
         });
       }
@@ -2892,7 +2948,7 @@ export default function WatchingContent() {
     if (!activeSession) return;
     try {
       await watchingMutation.mutateAsync({
-        action: "stop",
+        action: "leave",
         sessionId: activeSession.id,
       });
       setWatchSearchQuery("");
