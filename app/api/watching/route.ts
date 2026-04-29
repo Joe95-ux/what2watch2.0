@@ -557,6 +557,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
     const autoFinishNow = new Date();
     const autoFinishSessionIds = watchingNowRaw
       .filter((session) => {
+        if (session.status !== "WATCHING_NOW") return false;
         const key =
           session.mediaType === "tv" &&
           Number.isInteger(session.seasonNumber) &&
