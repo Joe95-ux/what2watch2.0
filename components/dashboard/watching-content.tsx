@@ -196,6 +196,12 @@ const validateWatchingTextInput = (value: string) => {
   return moderation.allowed ? null : moderation.error || "Content does not meet guidelines.";
 };
 
+const matchPercentTextTone = (percent: number): string => {
+  if (percent >= 90) return "text-emerald-600 dark:text-emerald-400";
+  if (percent >= 75) return "text-amber-600 dark:text-amber-400";
+  return "text-muted-foreground";
+};
+
 const timeAgo = (iso: string) => {
   const ms = Date.now() - new Date(iso).getTime();
   const secs = Math.max(1, Math.round(ms / 1000));
@@ -1479,7 +1485,12 @@ function WatchingNowGroupCard({
             ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <span className="inline-flex h-8 items-center rounded-[20px] border border-emerald-500/25 bg-emerald-500/10 px-2.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-300">
+            <span
+              className={cn(
+                "text-[11px] font-semibold",
+                matchPercentTextTone(displayMatchPercent)
+              )}
+            >
               {displayMatchPercent}% match
             </span>
             <Button
