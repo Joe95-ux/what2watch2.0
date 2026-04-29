@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -41,12 +41,16 @@ import {
 } from "@/hooks/use-watching";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAutoGrowingTextarea } from "@/hooks/use-auto-growing-textarea";
 import { useJustWatchCountries, useTVSeasonDetails, useTVSeasons, useWatchProviders } from "@/hooks/use-content-details";
+import { useRoomMatchScores } from "@/hooks/use-room-match-scores";
 import { useSearch } from "@/hooks/use-search";
+import { useWatchingPulseStats } from "@/hooks/use-watching-pulse-stats";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { WatchingSessionDTO } from "@/lib/watching-types";
 import { getPosterUrl, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
 import WatchBreakdownSection from "@/components/content-detail/watch-breakdown-section";
+import { WatchingPulseSubtitle } from "@/components/dashboard/watching-pulse-subtitle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1218,6 +1222,7 @@ function WatchingNowGroupCard({
   currentUserId,
   onWatchNow,
   isJoiningRoom,
+  matchPercent,
 }: {
   room: WatchingNowRoomCard;
   onJoinRoom: (room: WatchingNowRoomCard) => Promise<void>;
@@ -1225,6 +1230,7 @@ function WatchingNowGroupCard({
   currentUserId?: string | null;
   onWatchNow?: (room: { tmdbId: number; mediaType: "movie" | "tv"; title: string }) => void;
   isJoiningRoom?: boolean;
+  matchPercent?: number | null;
 }) {
   const [showThoughts, setShowThoughts] = useState(false);
   const isMobile = useIsMobile();
@@ -1248,6 +1254,7 @@ function WatchingNowGroupCard({
   }, [room.participants]);
   const isCurrentUserInRoom = !!currentUserId && room.participants.some((participant) => participant.userId === currentUserId);
   const hasCurrentUserFinished = !isCurrentUserInRoom && !!room.currentUserFinishedAt;
+  const displayMatchPercent = Math.max(55, Math.min(98, Math.round(matchPercent ?? 72)));
   const canControlPlayback = Boolean(room.currentUserSession);
   const playbackBusy = watchingMutation.isPending;
   const elapsedMinutes = room.currentUserSession
@@ -1471,19 +1478,24 @@ function WatchingNowGroupCard({
               </p>
             ) : null}
           </div>
-          <Button
-            type="button"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isCurrentUserInRoom) return;
-              void onJoinRoom(room);
-            }}
-            disabled={isCurrentUserInRoom || isJoiningRoom}
-            className="h-8 shrink-0 cursor-pointer rounded-[20px] border border-emerald-500/35 bg-emerald-500/15 px-3 text-xs text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
-          >
-            {isCurrentUserInRoom ? "In room" : isJoiningRoom ? "Joining..." : "Join room"}
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="inline-flex h-8 items-center rounded-[20px] border border-emerald-500/25 bg-emerald-500/10 px-2.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-300">
+              {displayMatchPercent}% match
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isCurrentUserInRoom) return;
+                void onJoinRoom(room);
+              }}
+              disabled={isCurrentUserInRoom || isJoiningRoom}
+              className="h-8 shrink-0 cursor-pointer rounded-[20px] border border-emerald-500/35 bg-emerald-500/15 px-3 text-xs text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+            >
+              {isCurrentUserInRoom ? "In room" : isJoiningRoom ? "Joining..." : "Join room"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -2027,6 +2039,7 @@ function RightRail({
   watchMomentLabel: string;
 }) {
   const isMobile = useIsMobile();
+  const { textareaRef: thoughtTextareaRef, resize: resizeThoughtTextarea } = useAutoGrowingTextarea(thoughtText);
   const trendingLabel = useMemo(() => {
     const part = watchMomentLabel.split(" ").pop()?.toLowerCase() ?? "today";
     const isTonight = part === "evening" || part === "night";
@@ -2187,11 +2200,15 @@ function RightRail({
               <Progress value={Math.max(0, Math.min(100, currentProgress))} className="h-1.5" />
 
               <Textarea
+                ref={thoughtTextareaRef}
                 rows={2}
                 value={thoughtText}
+                onInput={() => {
+                  resizeThoughtTextarea();
+                }}
                 onChange={(e) => onThoughtTextChange(e.target.value)}
                 placeholder="Share a thought - no spoilers"
-                className="resize-none border-border/60 bg-transparent text-[13px] focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="resize-none overflow-hidden border-border/60 bg-transparent text-[13px] focus-visible:ring-0 focus-visible:ring-offset-0"
               />
 
               <div className="flex items-center justify-between gap-2">
@@ -2747,9 +2764,9 @@ export default function WatchingContent() {
     }
     return Array.from(groups.values()).sort((a, b) => b.watchingCount - a.watchingCount);
   }, [watchingData?.watchingNow, watchingData?.justFinished, currentUser?.id]);
-  const activeWatchingPeopleCount = useMemo(
-    () => (watchingData?.watchingNow ?? []).filter((session) => session.status === "WATCHING_NOW").length,
-    [watchingData?.watchingNow]
+  const { activeWatchingPeopleCount, friendsOnlineCount } = useWatchingPulseStats(
+    watchingData?.watchingNow,
+    currentUser?.id
   );
   const justFinished = useMemo(
     () => (watchingData?.justFinished ?? []).map(toFeedCard),
@@ -2849,6 +2866,22 @@ export default function WatchingContent() {
     const start = (watchingNowPage - 1) * WATCHING_NOW_PAGE_SIZE;
     return watchingNowRooms.slice(start, start + WATCHING_NOW_PAGE_SIZE);
   }, [showAllWatchingNow, watchingNowRooms, watchingNowPage]);
+  const roomMatchPayload = useMemo(
+    () =>
+      watchingNowRooms.map((room) => ({
+        key: room.key,
+        tmdbId: room.tmdbId,
+        mediaType: room.mediaType,
+        title: room.title,
+        watchingCount: room.watchingCount,
+        thoughtCount: room.thoughtCount,
+        seasonNumber: room.seasonNumber,
+        episodeNumber: room.episodeNumber,
+      })),
+    [watchingNowRooms]
+  );
+  const { data: roomMatchScoresData } = useRoomMatchScores(roomMatchPayload);
+  const roomMatchScores = roomMatchScoresData?.scores ?? {};
   const visibleJustFinished = useMemo(() => {
     if (!showAllJustFinished) return justFinishedRooms.slice(0, 3);
     const start = (justFinishedPage - 1) * JUST_FINISHED_PAGE_SIZE;
@@ -3210,9 +3243,11 @@ export default function WatchingContent() {
           <div className="mb-4 flex flex-col items-start gap-3 sm:mb-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h1 className="mb-1 text-xl font-bold tracking-tight sm:mb-2 sm:text-2xl">What are you watching?</h1>
-              <p className="text-sm text-muted-foreground sm:text-base">
-                See what your friends are watching right now · {watchMomentLabel}
-              </p>
+              <WatchingPulseSubtitle
+                watchMomentLabel={watchMomentLabel}
+                friendsOnlineCount={friendsOnlineCount}
+                activeWatchingPeopleCount={activeWatchingPeopleCount}
+              />
             </div>
           </div>
 
@@ -3564,6 +3599,7 @@ export default function WatchingContent() {
             <WatchingNowGroupCard
               key={room.key}
               room={room}
+              matchPercent={roomMatchScores[room.key]}
               currentUserId={currentUser?.id ?? null}
               isJoiningRoom={joiningRoomKey === room.key}
               onWatchNow={(selectedRoom) => {
