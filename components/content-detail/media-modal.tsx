@@ -85,12 +85,15 @@ export default function MediaModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         showCloseButton={false}
-        className="!max-w-[90vw] !w-full !h-[90vh] !max-h-[90vh] !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 overflow-hidden p-0 gap-0 bg-black !border-gray-800 dark:!border-gray-800"
+        className={cn(
+          "!max-w-[90vw] !w-full !h-[90vh] !max-h-[90vh] !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 overflow-hidden p-0 gap-0 bg-black !border-gray-800 dark:!border-gray-800",
+          currentItem.type === "video" && "grid grid-rows-[auto_minmax(0,1fr)_auto]"
+        )}
         aria-describedby={undefined}
       >
         <DialogTitle className="sr-only">{title}</DialogTitle>
         {currentItem.type === "video" ? (
-          <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3 text-white">
+          <div className="flex h-12 items-center justify-between border-b border-gray-800 px-4 text-white">
             <p className="truncate text-sm font-medium">{currentItem.data.name || title}</p>
             <button
               onClick={onClose}
@@ -154,7 +157,7 @@ export default function MediaModal({
         )}
 
         {/* Media Content */}
-        <div className="relative w-full h-full flex items-center justify-center bg-black">
+        <div className="relative min-h-0 w-full bg-black">
           {currentItem.type === "video" ? (
             <div className="relative w-full h-full">
               <iframe
@@ -180,14 +183,18 @@ export default function MediaModal({
             </div>
           )}
         </div>
-        {hasMultiple && currentItem.type === "video" ? (
-          <div className="flex items-center justify-between border-t border-gray-800 px-4 py-3">
+        {currentItem.type === "video" ? (
+          <div className="grid h-12 grid-cols-3 items-center border-t border-gray-800 px-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={handlePrev}
               disabled={!canGoPrev}
-              className={cn("cursor-pointer text-white hover:bg-white/10", !canGoPrev && "cursor-not-allowed opacity-50")}
+              className={cn(
+                "justify-self-start cursor-pointer text-white hover:bg-white/10",
+                !hasMultiple && "pointer-events-none opacity-0",
+                hasMultiple && !canGoPrev && "cursor-not-allowed opacity-50"
+              )}
               aria-label="Previous"
             >
               <ChevronLeft className="mr-1 size-4" />
@@ -201,7 +208,11 @@ export default function MediaModal({
               size="sm"
               onClick={handleNext}
               disabled={!canGoNext}
-              className={cn("cursor-pointer text-white hover:bg-white/10", !canGoNext && "cursor-not-allowed opacity-50")}
+              className={cn(
+                "justify-self-end cursor-pointer text-white hover:bg-white/10",
+                !hasMultiple && "pointer-events-none opacity-0",
+                hasMultiple && !canGoNext && "cursor-not-allowed opacity-50"
+              )}
               aria-label="Next"
             >
               Next

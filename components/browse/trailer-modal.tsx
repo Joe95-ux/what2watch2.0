@@ -177,7 +177,7 @@ export default function TrailerModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
         showCloseButton={false}
-        className="!max-w-[90vw] !w-full !h-[60vh] !max-h-[60vh] md:!h-[90vh] md:!max-h-[90vh] !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 overflow-hidden p-0 gap-0 bg-black !border-gray-800 dark:!border-gray-800"
+        className="grid grid-rows-[auto_minmax(0,1fr)_auto] !max-w-[90vw] !w-full !h-[60vh] !max-h-[60vh] md:!h-[90vh] md:!max-h-[90vh] !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2 overflow-hidden p-0 gap-0 bg-black !border-gray-800 dark:!border-gray-800"
       >
         {/* Accessibility: Hidden title and description for screen readers */}
         <DialogTitle className="sr-only">{modalTitle}</DialogTitle>
@@ -185,7 +185,7 @@ export default function TrailerModal({
           {descriptionText}
         </DialogDescription>
         
-        <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3 text-white">
+        <div className="flex h-12 items-center justify-between border-b border-gray-800 px-4 text-white">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{currentVideo?.name ?? `${title} trailers`}</p>
             {hasMultipleVideos && !isLoading ? (
@@ -204,7 +204,7 @@ export default function TrailerModal({
         </div>
 
         {/* Video Player / States */}
-        <div className="relative flex h-full w-full items-center justify-center bg-black">
+        <div className="relative min-h-0 w-full bg-black">
           {isLoading ? (
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-10 w-10 animate-spin text-white" />
@@ -261,25 +261,36 @@ export default function TrailerModal({
             </div>
           )}
         </div>
-        {hasMultipleVideos && !isLoading ? (
-          <div className="flex items-center justify-between border-t border-gray-800 px-4 py-3">
+        {!isLoading && hasVideos ? (
+          <div className="grid h-12 grid-cols-3 items-center border-t border-gray-800 px-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={handlePrev}
               disabled={!canGoPrev}
-              className={cn("cursor-pointer text-white hover:bg-white/10", !canGoPrev && "cursor-not-allowed opacity-50")}
+              className={cn(
+                "justify-self-start cursor-pointer text-white hover:bg-white/10",
+                !hasMultipleVideos && "pointer-events-none opacity-0",
+                hasMultipleVideos && !canGoPrev && "cursor-not-allowed opacity-50"
+              )}
               aria-label="Previous video"
             >
               <ChevronLeft className="mr-1 size-4" />
               Previous
             </Button>
+            <p className="justify-self-center text-xs text-white/70">
+              {currentVideoIndex + 1} / {Math.max(1, youtubeVideos.length)}
+            </p>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleNext}
               disabled={!canGoNext}
-              className={cn("cursor-pointer text-white hover:bg-white/10", !canGoNext && "cursor-not-allowed opacity-50")}
+              className={cn(
+                "justify-self-end cursor-pointer text-white hover:bg-white/10",
+                !hasMultipleVideos && "pointer-events-none opacity-0",
+                hasMultipleVideos && !canGoNext && "cursor-not-allowed opacity-50"
+              )}
               aria-label="Next video"
             >
               Next

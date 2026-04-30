@@ -14,7 +14,7 @@ const PrivacyPage = () => {
       <Card className="max-w-[800px] mx-auto rounded-[5px]">
         <CardHeader className="bg-muted/50 py-3 rounded-t-[5px]">
           <h1 className="text-3xl font-bold">Privacy Policy</h1>
-          <p className="text-sm text-muted-foreground mt-2">Date: {currentDate}</p>
+          <p className="text-sm text-muted-foreground mt-2">Last updated: {currentDate}</p>
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
           <section>
