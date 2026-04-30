@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Youtube, ChevronLeft, ChevronRight, Film, Search, Filter, X, ArrowUpDown, ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react";
+import { Play, ChevronLeft, ChevronRight, Film, Search, Filter, X, ArrowUpDown, ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YouTubeChannelExtractorInline } from "@/components/youtube/youtube-channel-extractor-inline";
 import { YouTubeChannelCard } from "@/components/youtube/youtube-channel-card";
@@ -759,7 +759,7 @@ export default function AdminYouTubeManagementContent() {
 
           {filteredChannels.length === 0 && (
             <div className="text-center py-12 border rounded-lg">
-              <Youtube className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <Play className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
               <p className="text-muted-foreground">
                 {filterNollywood === "all"
                   ? "No channels added yet. Use the form above to add your first channel."

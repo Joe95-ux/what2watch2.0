@@ -13,7 +13,7 @@ import PlaylistCard from "@/components/browse/playlist-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Clock, Film, Heart, Share2, Youtube } from "lucide-react";
+import { BookOpen, Clock, Film, Heart, Share2, Play } from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -748,7 +748,7 @@ function YouTubeSnapshotSection({ isLoading, totals, highlightVideos }: YouTubeS
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-red-500/15 text-red-500">
-                  <Youtube className="h-5 w-5" />
+                  <Play className="h-5 w-5" />
                 </div>
                 <div className="flex-1">
                   <CardTitle className="text-lg">Saved Videos</CardTitle>

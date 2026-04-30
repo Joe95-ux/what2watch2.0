@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PlaySquare, ChevronDown, List } from "lucide-react";
+import { Play, ChevronDown, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface YouTubeNavDropdownProps {
@@ -19,7 +19,7 @@ interface YouTubeNavDropdownProps {
 }
 
   const youtubeNavItems = [
-    { href: "/youtube", label: "Overview", icon: PlaySquare },
+    { href: "/youtube", label: "Overview", icon: Play },
     { href: "/youtube-channel/lists", label: "Channel Lists", icon: List },
   ];
 

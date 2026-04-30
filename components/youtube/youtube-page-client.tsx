@@ -7,11 +7,11 @@ import { YouTubeChannelsTab } from "./youtube-channels-tab";
 import { YouTubeListsTab } from "./youtube-lists-tab";
 import { YouTubeRecentReviewsTab } from "./youtube-recent-reviews-tab";
 import { YouTubeLeaderboardTab } from "./youtube-leaderboard-tab";
-import { Youtube, List, MessageSquare, Trophy } from "lucide-react";
+import { Play, List, MessageSquare, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
-  { id: "channels", label: "Channels", icon: Youtube },
+  { id: "channels", label: "Channels", icon: Play },
   { id: "lists", label: "Lists", icon: List },
   { id: "reviews", label: "Recent Reviews", icon: MessageSquare },
   { id: "leaderboard", label: "Leaderboard", icon: Trophy },

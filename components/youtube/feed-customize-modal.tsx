@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Search, X, Youtube } from "lucide-react";
+import { Search, X, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -522,7 +522,7 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
                         />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <Youtube className="h-6 w-6 text-muted-foreground" />
+                          <Play className="h-6 w-6 text-muted-foreground" />
                         </div>
                       )}
                     </div>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, Youtube, Search, Loader2, AlertCircle, Plus, UserPlus, ArrowRight } from "lucide-react";
+import { Copy, Check, Play, Search, Loader2, AlertCircle, Plus, UserPlus, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { extractChannelIdFromUrl } from "@/lib/youtube-channels";
 import { useQueryClient } from "@tanstack/react-query";
@@ -249,7 +249,7 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
-              <Youtube className="h-5 w-5 text-primary" />
+              <Play className="h-5 w-5 text-primary" />
             </div>
             <div>
               <CardTitle className="text-xl font-semibold">Channel Extractor</CardTitle>
@@ -340,7 +340,7 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
                       </div>
                     ) : (
                       <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 ring-2 ring-border">
-                        <Youtube className="h-7 w-7 text-primary" />
+                        <Play className="h-7 w-7 text-primary" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
@@ -449,7 +449,7 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
         {channels.length === 0 && !isLoading && !error && (
           <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/30">
             <div className="p-3 rounded-full bg-primary/10 w-fit mx-auto mb-4">
-              <Youtube className="h-6 w-6 text-primary" />
+              <Play className="h-6 w-6 text-primary" />
             </div>
             <p className="text-sm font-medium text-muted-foreground mb-1">Ready to search</p>
             <p className="text-xs text-muted-foreground">Enter a channel name or URL above to get started</p>

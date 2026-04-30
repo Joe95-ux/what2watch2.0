@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Heart, Bookmark, Sparkles, Youtube, X, ChevronLeft, ChevronRight, ArrowUpDown, SlidersHorizontal, Edit, Plus } from "lucide-react";
+import { Search, Heart, Bookmark, Sparkles, Play, X, ChevronLeft, ChevronRight, ArrowUpDown, SlidersHorizontal, Edit, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -565,7 +565,7 @@ export function YouTubeChannelSidebar({
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <Youtube className={cn(
+                        <Play className={cn(
                           "text-muted-foreground",
                           isCollapsed ? "h-4 w-4" : "h-5 w-5"
                         )} />

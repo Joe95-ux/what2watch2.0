@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreVertical, PlaySquare, Bookmark, List, BookOpen, Activity, UserRound, ClipboardList, Compass, LayoutDashboard } from "lucide-react";
+import { MoreVertical, Play, Bookmark, List, BookOpen, Activity, UserRound, ClipboardList, Compass, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -105,7 +105,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
               onClick={handleLinkClick}
               className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
             >
-              <PlaySquare className="mr-3 h-4 w-4 text-foreground" />
+              <Play className="mr-3 h-4 w-4 text-foreground" />
               <span>YouTube Feed</span>
             </Link>
           </div>

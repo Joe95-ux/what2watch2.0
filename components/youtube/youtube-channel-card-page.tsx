@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ChannelCuratorNoteDialog } from "./channel-curator-note-dialog";
-import { Star, UsersRound, Video, ExternalLink, Youtube, Plus, X } from "lucide-react";
+import { Star, UsersRound, Video, ExternalLink, Play, Plus, X } from "lucide-react";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -232,13 +232,13 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
               <Avatar className="h-16 w-16 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
                 <AvatarImage src={channel.thumbnail} alt={channelTitle} />
                 <AvatarFallback>
-                  <Youtube className="h-8 w-8" />
+                  <Play className="h-8 w-8" />
                 </AvatarFallback>
               </Avatar>
             ) : (
               <Avatar className="h-16 w-16 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
                 <AvatarFallback>
-                  <Youtube className="h-8 w-8" />
+                  <Play className="h-8 w-8" />
                 </AvatarFallback>
               </Avatar>
             )}
@@ -252,13 +252,13 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
               <Avatar className="h-16 w-16 ring-2 ring-border group-hover:ring-primary transition-all">
                 <AvatarImage src={channel.thumbnail} alt={channelTitle} />
                 <AvatarFallback>
-                  <Youtube className="h-8 w-8" />
+                  <Play className="h-8 w-8" />
                 </AvatarFallback>
               </Avatar>
             ) : (
               <Avatar className="h-16 w-16 ring-2 ring-border group-hover:ring-primary transition-all">
                 <AvatarFallback>
-                  <Youtube className="h-8 w-8" />
+                  <Play className="h-8 w-8" />
                 </AvatarFallback>
               </Avatar>
             )}

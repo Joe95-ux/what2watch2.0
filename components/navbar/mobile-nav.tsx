@@ -8,7 +8,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetClose, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, PlaySquare, Search, BarChart3, Sparkles, ChevronDown } from "lucide-react";
+import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, Play, Search, BarChart3, Sparkles, ChevronDown } from "lucide-react";
 import { cn, formatNotificationBadgeCount } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
 import { useYouTubeNotifications } from "@/hooks/use-youtube-notifications";
@@ -31,7 +31,7 @@ interface MobileNavProps {
 const YOUTUBE_URL = "https://www.youtube.com";
 
 const youtubeNavItems = [
-  { href: "/youtube", label: "Overview", icon: PlaySquare },
+  { href: "/youtube", label: "Overview", icon: Play },
   { href: "/youtube-channel/lists", label: "Channel Lists", icon: List },
 ];
 
@@ -414,7 +414,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   }, 100);
                 }}
               >
-                <PlaySquare className="mr-3 h-4 w-4 text-foreground" />
+                <Play className="mr-3 h-4 w-4 text-foreground" />
                 <span>YouTube</span>
               </a>
             ) : (
@@ -429,7 +429,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   )}
                 >
                   <div className="flex items-center">
-                    <PlaySquare className="mr-3 h-4 w-4 text-foreground" />
+                    <Play className="mr-3 h-4 w-4 text-foreground" />
                     <span>YouTube</span>
                   </div>
                   <ChevronDown

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Heart, Youtube, ExternalLink, Loader2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, PanelLeft, Search, ArrowLeft } from "lucide-react";
+import { Heart, Play, ExternalLink, Loader2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, PanelLeft, Search, ArrowLeft } from "lucide-react";
 import {
   useYouTubeChannel,
   useYouTubeChannelVideos,
@@ -772,7 +772,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                 />
               ) : (
                 <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                  <Youtube className="h-8 w-8 text-muted-foreground" />
+                  <Play className="h-8 w-8 text-muted-foreground" />
                 </div>
               )}
             </div>
@@ -803,7 +803,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                   />
                 ) : (
                   <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                    <Youtube className="h-16 w-16 text-muted-foreground" />
+                    <Play className="h-16 w-16 text-muted-foreground" />
                   </div>
                 )}
               </div>

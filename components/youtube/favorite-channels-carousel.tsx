@@ -3,7 +3,7 @@
 import { useFavoriteChannels } from "@/hooks/use-favorite-channels";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Youtube } from "lucide-react";
+import { Play } from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -65,7 +65,7 @@ export default function FavoriteChannelsCarousel() {
                     />
                   ) : (
                     <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                      <Youtube className="h-12 w-12 text-muted-foreground" />
+                      <Play className="h-12 w-12 text-muted-foreground" />
                     </div>
                   )}
                 </div>
