@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Youtube, TrendingUp, BarChart3, Sparkles, Target, Stethoscope, Lightbulb, Bell, MessageSquare, Award } from "lucide-react";
+import { PlaySquare, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HamburgerButton } from "./hamburger-button";
 import { useYouTubeToolsVisibility } from "@/hooks/use-youtube-tools-visibility";
@@ -29,16 +29,8 @@ interface NavDropdownProps {
 }
 
 const youtubeNavItems = [
-  { href: "/youtube", label: "Overview", icon: Youtube },
-  { href: "/youtube/trends", label: "Trending Topics", icon: TrendingUp },
-  { href: "/youtube/analyzer", label: "Title Analyzer", icon: BarChart3 },
-  { href: "/youtube/gaps", label: "Content Gaps", icon: Target },
-  { href: "/youtube/diagnostic", label: "Channel Diagnostic", icon: Stethoscope },
-  { href: "/youtube/formats", label: "Format Inspiration", icon: Lightbulb },
-  { href: "/youtube/questions", label: "Comment Questions", icon: MessageSquare },
-  { href: "/youtube/benchmarks", label: "Performance Benchmarks", icon: Award },
-  { href: "/youtube/alerts", label: "Trend Alerts", icon: Bell },
-  { href: "/youtube/insights", label: "Content Insights", icon: Sparkles },
+  { href: "/youtube", label: "Overview", icon: PlaySquare },
+  { href: "/youtube-channel/lists", label: "Channel Lists", icon: List },
 ];
 
 export function NavDropdown({ navLinks, hasHeroSection = false }: NavDropdownProps) {
@@ -87,7 +79,7 @@ export function NavDropdown({ navLinks, hasHeroSection = false }: NavDropdownPro
         {showSimpleYouTubeLink ? (
           <a href={YOUTUBE_URL} target="_blank" rel="noopener noreferrer">
             <DropdownMenuItem className="cursor-pointer flex items-center gap-2" onClick={() => setOpen(false)}>
-              <Youtube className="h-4 w-4" />
+              <PlaySquare className="h-4 w-4" />
               <span>YouTube</span>
             </DropdownMenuItem>
           </a>

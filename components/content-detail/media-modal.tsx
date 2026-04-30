@@ -89,17 +89,29 @@ export default function MediaModal({
         aria-describedby={undefined}
       >
         <DialogTitle className="sr-only">{title}</DialogTitle>
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-50 h-14 w-14 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors cursor-pointer"
-          aria-label="Close"
-        >
-          <X className="h-7 w-7 text-white" />
-        </button>
+        {currentItem.type === "video" ? (
+          <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3 text-white">
+            <p className="truncate text-sm font-medium">{currentItem.data.name || title}</p>
+            <button
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 z-50 h-14 w-14 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors cursor-pointer"
+            aria-label="Close"
+          >
+            <X className="h-7 w-7 text-white" />
+          </button>
+        )}
 
         {/* Navigation Buttons */}
-        {hasMultiple && (
+        {hasMultiple && currentItem.type !== "video" && (
           <>
             <Button
               variant="ghost"
@@ -168,6 +180,35 @@ export default function MediaModal({
             </div>
           )}
         </div>
+        {hasMultiple && currentItem.type === "video" ? (
+          <div className="flex items-center justify-between border-t border-gray-800 px-4 py-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handlePrev}
+              disabled={!canGoPrev}
+              className={cn("cursor-pointer text-white hover:bg-white/10", !canGoPrev && "cursor-not-allowed opacity-50")}
+              aria-label="Previous"
+            >
+              <ChevronLeft className="mr-1 size-4" />
+              Previous
+            </Button>
+            <span className="text-xs text-white/70">
+              {currentIndex + 1} / {items.length}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNext}
+              disabled={!canGoNext}
+              className={cn("cursor-pointer text-white hover:bg-white/10", !canGoNext && "cursor-not-allowed opacity-50")}
+              aria-label="Next"
+            >
+              Next
+              <ChevronRight className="ml-1 size-4" />
+            </Button>
+          </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

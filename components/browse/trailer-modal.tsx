@@ -185,67 +185,26 @@ export default function TrailerModal({
           {descriptionText}
         </DialogDescription>
         
-        {/* Close Button */}
-        <button
-          onClick={handleClose}
-          className="absolute top-4 right-4 z-50 h-14 w-14 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors cursor-pointer"
-          aria-label="Close"
-        >
-          <X className="h-7 w-7 text-white" />
-        </button>
-
-        {/* Navigation Buttons */}
-        {hasMultipleVideos && !isLoading && (
-          <>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handlePrev}
-              disabled={!canGoPrev}
-              className={cn(
-                "absolute left-4 top-1/2 -translate-y-1/2 z-50 h-16 w-16 rounded-full",
-                "bg-black/60 hover:bg-black/80 text-white",
-                "transition-opacity duration-300",
-                !canGoPrev ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-              )}
-              aria-label="Previous video"
-            >
-              <ChevronLeft className="size-6" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleNext}
-              disabled={!canGoNext}
-              className={cn(
-                "absolute right-4 top-1/2 -translate-y-1/2 z-50 h-16 w-16 rounded-full",
-                "bg-black/60 hover:bg-black/80 text-white",
-                "transition-opacity duration-300",
-                !canGoNext ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-              )}
-              aria-label="Next video"
-            >
-              <ChevronRight className="size-6" />
-            </Button>
-
-            {/* Video Counter */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 bg-black/60 px-4 py-2 rounded-full">
-              <span className="text-white text-sm">
+        <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3 text-white">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{currentVideo?.name ?? `${title} trailers`}</p>
+            {hasMultipleVideos && !isLoading ? (
+              <p className="text-xs text-white/70">
                 {currentVideoIndex + 1} / {youtubeVideos.length}
-              </span>
-            </div>
-          </>
-        )}
-
-        {/* Video Info */}
-        {currentVideo && !isLoading && (
-          <div className="absolute top-4 left-4 z-50 bg-black/60 px-4 py-2 rounded-lg max-w-md">
-            <p className="text-white text-sm font-medium">{currentVideo.name}</p>
+              </p>
+            ) : null}
           </div>
-        )}
+          <button
+            onClick={handleClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
         {/* Video Player / States */}
-        <div className="relative w-full h-full flex items-center justify-center bg-black">
+        <div className="relative flex h-full w-full items-center justify-center bg-black">
           {isLoading ? (
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-10 w-10 animate-spin text-white" />
@@ -302,6 +261,32 @@ export default function TrailerModal({
             </div>
           )}
         </div>
+        {hasMultipleVideos && !isLoading ? (
+          <div className="flex items-center justify-between border-t border-gray-800 px-4 py-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handlePrev}
+              disabled={!canGoPrev}
+              className={cn("cursor-pointer text-white hover:bg-white/10", !canGoPrev && "cursor-not-allowed opacity-50")}
+              aria-label="Previous video"
+            >
+              <ChevronLeft className="mr-1 size-4" />
+              Previous
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNext}
+              disabled={!canGoNext}
+              className={cn("cursor-pointer text-white hover:bg-white/10", !canGoNext && "cursor-not-allowed opacity-50")}
+              aria-label="Next video"
+            >
+              Next
+              <ChevronRight className="ml-1 size-4" />
+            </Button>
+          </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

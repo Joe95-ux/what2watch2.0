@@ -10,12 +10,25 @@ import { publishUserNotification } from "@/lib/pusher/beams-server";
  */
 export async function GET(request: NextRequest) {
   try {
+    const derivedMetricsDisabled = process.env.YOUTUBE_DERIVED_METRICS_DISABLED !== "false";
+    if (derivedMetricsDisabled) {
+      return NextResponse.json(
+        {
+          error: "Temporarily unavailable for YouTube API compliance",
+          policy: "III.E.4h",
+          details: "Derived trend alert metrics are currently disabled.",
+        },
+        { status: 410 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const secret = searchParams.get("secret");
     const cronSecret = process.env.CRON_SECRET;
+    const isVercelCron = request.headers.get("x-vercel-cron") === "1";
 
     // Verify cron secret
-    if (!cronSecret || secret !== cronSecret) {
+    if (!isVercelCron && (!cronSecret || secret !== cronSecret)) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }

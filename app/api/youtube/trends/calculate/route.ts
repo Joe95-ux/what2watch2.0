@@ -17,12 +17,25 @@ export async function POST(request: NextRequest) {
 
 async function handleTrendCalculation(request: NextRequest) {
   try {
+    const derivedMetricsDisabled = process.env.YOUTUBE_DERIVED_METRICS_DISABLED !== "false";
+    if (derivedMetricsDisabled) {
+      return NextResponse.json(
+        {
+          error: "Temporarily unavailable for YouTube API compliance",
+          policy: "III.E.4h",
+          details: "Derived trend metrics are currently disabled.",
+        },
+        { status: 410 }
+      );
+    }
+
     // Support both cron secret and user session authentication
     const authHeader = request.headers.get("authorization");
     const expectedToken = process.env.CRON_SECRET;
+    const vercelCronHeader = request.headers.get("x-vercel-cron");
     
     // Check if it's a cron request with secret
-    const isCronRequest = expectedToken && authHeader === `Bearer ${expectedToken}`;
+    const isCronRequest = vercelCronHeader === "1" || (expectedToken && authHeader === `Bearer ${expectedToken}`);
     
     // If not cron request, check for user authentication (for manual triggers)
     if (!isCronRequest) {

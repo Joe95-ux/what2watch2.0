@@ -158,6 +158,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
 
   // Use cached videos if available, otherwise use local state
   const finalTrailer = trailerFromCache || trailer;
+  const allowInlineTrailerPreview = false;
   const finalAllVideos = videosFromCache.length > 0 ? videosFromCache : allVideos;
   const finalIsLoading = isLoadingCachedVideos || isLoadingTrailer;
   const finalHasNoVideos = !finalIsLoading && finalAllVideos.length === 0;
@@ -353,7 +354,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
             }}
           >
             {/* Trailer preview layer */}
-            {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
+            {allowInlineTrailerPreview && shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
               <div className="absolute inset-0 z-10 overflow-hidden">
                 <iframe
                   key={`${finalTrailer.key}-${isVideoMuted}`}
@@ -551,7 +552,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
                       </DropdownMenu>
                     </div>
 
-                    {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
+                    {allowInlineTrailerPreview && shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
@@ -711,7 +712,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
               </>
             )}
 
-            {shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && !isVideoMuted && (
+            {allowInlineTrailerPreview && shouldShowOverlay && !isMobile && variant !== "dashboard" && finalTrailer && !finalIsLoading && finalTrailer.key && !isVideoMuted && (
               <div className="absolute inset-0 flex items-end justify-end z-20 pointer-events-none p-4">
                 <Tooltip>
                   <TooltipTrigger asChild>

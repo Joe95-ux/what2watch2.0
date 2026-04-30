@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { X, Play, Plus, Heart, Star, Clock, Volume2, VolumeX, ArrowLeft, BookOpen, BookCheck, CalendarIcon, Check, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { X, Play, Plus, Heart, Star, Clock, Volume2, VolumeX, ArrowLeft, BookOpen, CalendarIcon, Check, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import Script from "next/script";
 import { TMDBMovie, TMDBSeries, getBackdropUrl, getPosterUrl, getYouTubeEmbedUrl, TMDBVideo } from "@/lib/tmdb";
@@ -361,12 +361,8 @@ export default function ContentDetailModal({
                   className="w-full h-full"
                   allow="autoplay; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
-                  style={{ pointerEvents: "none" }}
                   title="Trailer"
                 />
-              )}
-              {isMuted && (
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none dark:from-black/90 dark:via-black/60" />
               )}
             </div>
           ) : backdropPath ? (
@@ -386,10 +382,12 @@ export default function ContentDetailModal({
           ) : (
             <div className="absolute inset-0 bg-muted" />
           )}
-          <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/95 via-black/75 to-transparent z-[9] pointer-events-none sm:hidden" />
+          {!trailer || !videosData || !allowInlineTrailerPlayback ? (
+            <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black/95 via-black/75 to-transparent z-[9] pointer-events-none sm:hidden" />
+          ) : null}
 
           {/* Content Overlay - Hidden when audio is enabled */}
-          {isMuted && (
+          {isMuted && (!trailer || !videosData || !allowInlineTrailerPlayback) && (
             <div className="absolute inset-0 flex items-end z-10">
               <div className="w-full px-6 sm:px-8 lg:px-12 pb-12">
                 <div>
@@ -549,26 +547,6 @@ export default function ContentDetailModal({
           )}
 
           {/* Clear Icon - Only show when audio is enabled (not muted) */}
-          {!isMuted && trailer && videosData && allowInlineTrailerPlayback && (
-            <div className="absolute inset-0 flex items-end justify-end z-10 pointer-events-none p-6 sm:p-8 lg:p-12">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="bg-white/10 dark:bg-white/10 text-white dark:text-white border-white/30 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/20 hover:border-white/50 dark:hover:border-white/50 p-5 rounded-[20px] backdrop-blur-sm transition-all duration-300 hover:scale-105 cursor-pointer pointer-events-auto no-close"
-                    onClick={(e) => handleButtonClick(e, () => setIsMuted(true))}
-                    aria-label="Clear"
-                  >
-                    <BookCheck className="size-6 text-white dark:text-white" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Clear</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          )}
         </div>
 
         {/* Content */}

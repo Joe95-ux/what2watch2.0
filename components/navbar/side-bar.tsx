@@ -8,7 +8,7 @@ import {
   Tv, 
   MessageSquare, 
   List, 
-  Youtube,
+  PlaySquare,
   Settings,
   User,
   LucideIcon
@@ -28,7 +28,7 @@ const sidebarLinks: NavLink[] = [
   { href: "/tv", label: "TV Shows", icon: Tv },
   { href: "/lists", label: "Lists", icon: List },
   { href: "/forum", label: "Forums", icon: MessageSquare },
-  { href: "/youtube", label: "YouTube", icon: Youtube },
+  { href: "/youtube", label: "YouTube", icon: PlaySquare },
 ];
 
 const userLinks: NavLink[] = [

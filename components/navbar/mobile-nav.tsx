@@ -8,8 +8,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetClose, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, Youtube as YoutubeIcon, Search, BarChart3, Sparkles, ChevronDown, Target, Stethoscope, Lightbulb, BellIcon, MessageSquare as MessageSquareIcon, Award } from "lucide-react";
-import { Youtube } from "lucide-react";
+import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, PlaySquare, Search, BarChart3, Sparkles, ChevronDown } from "lucide-react";
 import { cn, formatNotificationBadgeCount } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
 import { useYouTubeNotifications } from "@/hooks/use-youtube-notifications";
@@ -32,16 +31,8 @@ interface MobileNavProps {
 const YOUTUBE_URL = "https://www.youtube.com";
 
 const youtubeNavItems = [
-  { href: "/youtube", label: "Overview", icon: YoutubeIcon },
-  { href: "/youtube/trends", label: "Trending Topics", icon: TrendingUp },
-  { href: "/youtube/analyzer", label: "Title Analyzer", icon: BarChart3 },
-  { href: "/youtube/gaps", label: "Content Gaps", icon: Target },
-  { href: "/youtube/diagnostic", label: "Channel Diagnostic", icon: Stethoscope },
-  { href: "/youtube/formats", label: "Format Inspiration", icon: Lightbulb },
-  { href: "/youtube/questions", label: "Comment Questions", icon: MessageSquareIcon },
-  { href: "/youtube/benchmarks", label: "Performance Benchmarks", icon: Award },
-  { href: "/youtube/alerts", label: "Trend Alerts", icon: BellIcon },
-  { href: "/youtube/insights", label: "Content Insights", icon: Sparkles },
+  { href: "/youtube", label: "Overview", icon: PlaySquare },
+  { href: "/youtube-channel/lists", label: "Channel Lists", icon: List },
 ];
 
 export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNavProps) {
@@ -423,7 +414,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   }, 100);
                 }}
               >
-                <YoutubeIcon className="mr-3 h-4 w-4 text-foreground" />
+                <PlaySquare className="mr-3 h-4 w-4 text-foreground" />
                 <span>YouTube</span>
               </a>
             ) : (
@@ -438,7 +429,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   )}
                 >
                   <div className="flex items-center">
-                    <YoutubeIcon className="mr-3 h-4 w-4 text-foreground" />
+                    <PlaySquare className="mr-3 h-4 w-4 text-foreground" />
                     <span>YouTube</span>
                   </div>
                   <ChevronDown

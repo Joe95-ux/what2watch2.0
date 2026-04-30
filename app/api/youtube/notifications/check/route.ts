@@ -23,8 +23,9 @@ async function handleNotificationCheck(request: NextRequest) {
     // Optional: Add API key authentication for cron jobs
     const authHeader = request.headers.get("authorization");
     const expectedToken = process.env.CRON_SECRET;
+    const isVercelCron = request.headers.get("x-vercel-cron") === "1";
 
-    if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {
+    if (!isVercelCron && expectedToken && authHeader !== `Bearer ${expectedToken}`) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }

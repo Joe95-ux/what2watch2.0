@@ -9,6 +9,18 @@ const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
  */
 export async function GET(request: NextRequest) {
   try {
+    const derivedMetricsDisabled = process.env.YOUTUBE_DERIVED_METRICS_DISABLED !== "false";
+    if (derivedMetricsDisabled) {
+      return NextResponse.json(
+        {
+          error: "Temporarily unavailable for YouTube API compliance",
+          policy: "III.E.4h",
+          details: "Derived content-gap metrics are currently disabled.",
+        },
+        { status: 410 }
+      );
+    }
+
     if (!YOUTUBE_API_KEY) {
       return NextResponse.json(
         { error: "YouTube API key not configured" },

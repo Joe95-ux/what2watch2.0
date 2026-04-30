@@ -86,7 +86,52 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">5. Data Sharing</h2>
+            <h2 className="text-xl font-semibold mb-3">5. YouTube API Services</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              what2watch.net uses YouTube API Services to provide video and channel-related functionality.
+            </p>
+            <p className="text-muted-foreground leading-relaxed mt-3">
+              By using features that rely on YouTube API Services, you acknowledge and agree that YouTube data handling is also governed by Google&apos;s Privacy Policy:
+              {" "}
+              <a
+                href="http://www.google.com/policies/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                http://www.google.com/policies/privacy
+              </a>
+              .
+            </p>
+            <p className="text-muted-foreground leading-relaxed mt-3">
+              If you have authorized YouTube-connected features, you can revoke what2watch.net access any time from Google security settings:
+              {" "}
+              <a
+                href="https://security.google.com/settings/security/permissions"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                https://security.google.com/settings/security/permissions
+              </a>
+              .
+            </p>
+            <p className="text-muted-foreground leading-relaxed mt-3">
+              You can also request deletion of YouTube-related stored data from within your account controls or by contacting{" "}
+              <a href="mailto:privacy@what2watch.net" className="text-primary hover:underline">
+                privacy@what2watch.net
+              </a>
+              . We process deletion requests as soon as possible and within 7 days where required.
+            </p>
+            <ul className="mt-3 list-disc space-y-2 pl-5 text-muted-foreground">
+              <li>Refresh/update cadence: YouTube API cache is refreshed on-demand when features are used and by scheduled background jobs (daily checks, with more frequent refresh for enabled datasets).</li>
+              <li>Retention/deletion cadence: Non-authorized YouTube API cache is automatically deleted after 30 days through a scheduled retention cleanup job.</li>
+              <li>User revocation/deletion: after user revocation or deletion request, related authorized data is deleted as soon as possible and within 7 days.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-3">6. Data Sharing</h2>
             <p className="text-muted-foreground leading-relaxed mb-3">
               We do not sell your personal information. We may share your data with:
             </p>
@@ -98,7 +143,7 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">6. Your Rights</h2>
+            <h2 className="text-xl font-semibold mb-3">7. Your Rights</h2>
             <p className="text-muted-foreground leading-relaxed mb-3">
               Depending on your location, you may have the following rights:
             </p>
@@ -117,42 +162,42 @@ const PrivacyPage = () => {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">7. Data Retention</h2>
+            <h2 className="text-xl font-semibold mb-3">8. Data Retention</h2>
             <p className="text-muted-foreground leading-relaxed">
               We retain personal data only as long as necessary to fulfill the purposes outlined in this policy, or as required by law.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">8. Data Security</h2>
+            <h2 className="text-xl font-semibold mb-3">9. Data Security</h2>
             <p className="text-muted-foreground leading-relaxed">
               We implement appropriate technical and organizational measures to protect your data, but no method is 100% secure.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">9. Children's Privacy</h2>
+            <h2 className="text-xl font-semibold mb-3">10. Children's Privacy</h2>
             <p className="text-muted-foreground leading-relaxed">
               Our services are not intended for children under the age of 13. We do not knowingly collect data from minors.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">10. International Transfers</h2>
+            <h2 className="text-xl font-semibold mb-3">11. International Transfers</h2>
             <p className="text-muted-foreground leading-relaxed">
               As we operate globally, your information may be transferred to and maintained on servers outside your country. We ensure such transfers comply with applicable laws.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">11. Changes to This Policy</h2>
+            <h2 className="text-xl font-semibold mb-3">12. Changes to This Policy</h2>
             <p className="text-muted-foreground leading-relaxed">
               We may update this Privacy Policy from time to time. Changes will be posted on this page with a new "Effective Date".
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">12. Contact Us</h2>
+            <h2 className="text-xl font-semibold mb-3">13. Contact Us</h2>
             <p className="text-muted-foreground leading-relaxed">
               If you have any questions or requests regarding this Privacy Policy, please contact us at:
             </p>

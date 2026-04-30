@@ -1,1 +1,6 @@
-{"crons":[{"path":"/api/youtube/notifications/check","schedule":"0 0 * * *"}]}
+{
+  "crons": [
+    { "path": "/api/youtube/notifications/check", "schedule": "0 0 * * *" },
+    { "path": "/api/youtube/compliance/retention", "schedule": "20 2 * * *" }
+  ]
+}

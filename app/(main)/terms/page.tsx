@@ -14,6 +14,18 @@ const TermsPage = () => {
             <p className="text-muted-foreground leading-relaxed">
               By using the what2watch.net website (www.what2watch.net) and/or purchasing a premium account, you agree to the following terms of service. If you do not agree with these terms, please do not use this service.
             </p>
+            <p className="text-muted-foreground leading-relaxed mt-3">
+              Some features of what2watch.net use YouTube API Services. By using those features, you also agree to be bound by the{" "}
+              <a
+                href="https://www.youtube.com/t/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                YouTube Terms of Service
+              </a>
+              .
+            </p>
           </section>
 
           <section>

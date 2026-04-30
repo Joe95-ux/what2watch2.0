@@ -7,6 +7,18 @@ import { db } from "@/lib/db";
  */
 export async function GET(request: NextRequest) {
   try {
+    const derivedMetricsDisabled = process.env.YOUTUBE_DERIVED_METRICS_DISABLED !== "false";
+    if (derivedMetricsDisabled) {
+      return NextResponse.json(
+        {
+          error: "Temporarily unavailable for YouTube API compliance",
+          policy: "III.E.4h",
+          details: "Derived content-gap metrics are currently disabled.",
+        },
+        { status: 410 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category") || undefined;
     const limit = parseInt(searchParams.get("limit") || "20", 10);

@@ -39,7 +39,7 @@ import {
   BookOpen,
   Bookmark,
   ClipboardList,
-  Youtube,
+  PlaySquare,
   Bell,
   Shield,
   MessageSquare,
@@ -105,7 +105,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/popular?type=movies", label: "Movies", icon: Film },
     { href: "/popular?type=tv", label: "TV Shows", icon: Tv },
     { href: "/forum", label: "Forum", icon: MessageSquare },
-    { href: "/youtube", label: "YouTube", icon: Youtube },
+    { href: "/youtube", label: "YouTube", icon: PlaySquare },
   ];
 
   // Admin links visibility
@@ -132,8 +132,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   // YouTube links
   const youtubeLinks = [
-    { href: "/dashboard/youtube", label: "YouTube Dashboard", icon: Youtube },
-    { href: "/dashboard/youtube/search", label: "Search", icon: Youtube },
+    { href: "/dashboard/youtube", label: "YouTube Dashboard", icon: PlaySquare },
+    { href: "/dashboard/youtube/search", label: "Search", icon: PlaySquare },
     { href: "/dashboard/youtube/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/dashboard/youtube/notifications", label: "Notifications", icon: Bell },
     { href: "/dashboard/youtube/management", label: "Channel Management", icon: Settings },
@@ -145,7 +145,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/dashboard/admin/moderation", label: "General Moderation", icon: Shield },
     { href: "/dashboard/admin/stats", label: "Admin Stats Center", icon: BarChart3 },
     { href: "/dashboard/admin/traffic", label: "Traffic Analytics", icon: TrendingUp },
-    { href: "/dashboard/admin/youtube", label: "YouTube Management", icon: Youtube },
+    { href: "/dashboard/admin/youtube", label: "YouTube Management", icon: PlaySquare },
     { href: "/dashboard/admin/youtube/jobs", label: "YouTube Jobs", icon: Play },
   ] : [];
 
