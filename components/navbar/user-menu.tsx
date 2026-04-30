@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreVertical, Play, Bookmark, List, BookOpen, Activity, UserRound, ClipboardList, Compass, LayoutDashboard } from "lucide-react";
+import { MoreVertical, Bookmark, List, BookOpen, Activity, UserRound, ClipboardList, Compass, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 interface UserMenuProps {
   hasHeroSection?: boolean;
@@ -105,7 +106,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
               onClick={handleLinkClick}
               className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
             >
-              <Play className="mr-3 h-4 w-4 text-foreground" />
+              <YouTubeBrandIcon className="mr-3 h-4 w-4" />
               <span>YouTube Feed</span>
             </Link>
           </div>

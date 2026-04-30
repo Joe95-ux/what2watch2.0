@@ -13,7 +13,7 @@ import PlaylistCard from "@/components/browse/playlist-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Clock, Film, Heart, Share2, Play } from "lucide-react";
+import { BookOpen, Clock, Film, Heart, Share2 } from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -40,6 +40,7 @@ import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 /** Avoid `data ?? []` default in render — a new `[]` each time forces downstream memos & Embla to churn. */
 function useStableQueryArray<T>(data: T[] | undefined): T[] {
@@ -748,7 +749,7 @@ function YouTubeSnapshotSection({ isLoading, totals, highlightVideos }: YouTubeS
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-red-500/15 text-red-500">
-                  <Play className="h-5 w-5" />
+                  <YouTubeBrandIcon className="h-5 w-5" />
                 </div>
                 <div className="flex-1">
                   <CardTitle className="text-lg">Saved Videos</CardTitle>

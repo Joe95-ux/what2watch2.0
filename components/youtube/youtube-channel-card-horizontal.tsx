@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ChannelCuratorNoteDialog } from "./channel-curator-note-dialog";
-import { Star, UsersRound, Video, ExternalLink, Play, Plus, X } from "lucide-react";
+import { Star, UsersRound, Video, ExternalLink, Plus, X } from "lucide-react";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -19,6 +19,7 @@ import { ChannelReviewFormSheet } from "./channel-review-form-sheet";
 import { useState } from "react";
 import { useChannelReviews, ChannelReview } from "@/hooks/use-youtube-channel-reviews";
 import { YouTubeAddToListDropdown } from "./add-channel-to-list-dropdown";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 function formatCount(count: string | number): string {
   const num = typeof count === "string" ? parseInt(count, 10) : count;
@@ -222,13 +223,13 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
                 <Avatar className="h-full w-full aspect-square cursor-pointer ring-2 ring-border hover:ring-primary transition-all rounded-tl-lg">
                   <AvatarImage src={channel.thumbnail} alt={channelTitle} className="rounded-tl-lg" />
                   <AvatarFallback className="rounded-tl-lg">
-                    <Play className="h-8 w-8" />
+                    <YouTubeBrandIcon className="h-8 w-8" />
                   </AvatarFallback>
                 </Avatar>
               ) : (
                 <Avatar className="h-full w-full aspect-square cursor-pointer ring-2 ring-border hover:ring-primary transition-all rounded-tl-lg">
                   <AvatarFallback className="rounded-tl-lg">
-                    <Play className="h-8 w-8" />
+                    <YouTubeBrandIcon className="h-8 w-8" />
                   </AvatarFallback>
                 </Avatar>
               )}
@@ -242,13 +243,13 @@ export function YouTubeChannelCardHorizontal({ channel }: YouTubeChannelCardHori
                 <Avatar className="h-full w-full aspect-square ring-2 ring-border group-hover:ring-primary transition-all rounded-tl-lg">
                   <AvatarImage src={channel.thumbnail} alt={channelTitle} className="rounded-tl-lg" />
                   <AvatarFallback className="rounded-tl-lg">
-                    <Play className="h-8 w-8" />
+                    <YouTubeBrandIcon className="h-8 w-8" />
                   </AvatarFallback>
                 </Avatar>
               ) : (
                 <Avatar className="h-full w-full aspect-square ring-2 ring-border group-hover:ring-primary transition-all rounded-tl-lg">
                   <AvatarFallback className="rounded-tl-lg">
-                    <Play className="h-8 w-8" />
+                    <YouTubeBrandIcon className="h-8 w-8" />
                   </AvatarFallback>
                 </Avatar>
               )}

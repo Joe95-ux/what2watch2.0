@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Heart, Bookmark, Sparkles, Play, X, ChevronLeft, ChevronRight, ArrowUpDown, SlidersHorizontal, Edit, Plus } from "lucide-react";
+import { Search, Heart, Bookmark, Sparkles, X, ChevronLeft, ChevronRight, ArrowUpDown, SlidersHorizontal, Edit, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,6 +28,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 import { FeedCustomizeModal } from "@/components/youtube/feed-customize-modal";
 import { useUser } from "@clerk/nextjs";
 import { useClerk } from "@clerk/nextjs";
@@ -565,10 +566,7 @@ export function YouTubeChannelSidebar({
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <Play className={cn(
-                          "text-muted-foreground",
-                          isCollapsed ? "h-4 w-4" : "h-5 w-5"
-                        )} />
+                        <YouTubeBrandIcon className={cn(isCollapsed ? "h-4 w-4 opacity-70" : "h-5 w-5 opacity-70")} />
                       </div>
                     )}
                   </div>

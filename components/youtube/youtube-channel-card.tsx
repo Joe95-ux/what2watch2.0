@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Lock, Eye, EyeOff, ExternalLink, Play, RefreshCw, Copy, Check, Users } from "lucide-react";
+import { Lock, Eye, EyeOff, ExternalLink, RefreshCw, Copy, Check, Users } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 interface YouTubeChannelCardProps {
   channel: {
@@ -227,13 +228,13 @@ export function YouTubeChannelCard({ channel }: YouTubeChannelCardProps) {
             <Avatar className="h-12 w-12 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
               <AvatarImage src={channel.thumbnail} alt={channelTitle} />
               <AvatarFallback>
-                <Play className="h-6 w-6" />
+                <YouTubeBrandIcon className="h-6 w-6" />
               </AvatarFallback>
             </Avatar>
           ) : (
             <Avatar className="h-12 w-12 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
               <AvatarFallback>
-                <Play className="h-6 w-6" />
+                <YouTubeBrandIcon className="h-6 w-6" />
               </AvatarFallback>
             </Avatar>
           )}

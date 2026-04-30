@@ -11,15 +11,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Play, ChevronDown, List } from "lucide-react";
+import { ChevronDown, List } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 interface YouTubeNavDropdownProps {
   hasHeroSection?: boolean;
 }
 
+  const YouTubeIcon = ({ className }: { className?: string }) => <YouTubeBrandIcon className={className} />;
   const youtubeNavItems = [
-    { href: "/youtube", label: "Overview", icon: Play },
+    { href: "/youtube", label: "Overview", icon: YouTubeIcon },
     { href: "/youtube-channel/lists", label: "Channel Lists", icon: List },
   ];
 

@@ -26,6 +26,9 @@ const TermsPage = () => {
               </a>
               .
             </p>
+            <p className="text-muted-foreground leading-relaxed mt-3">
+              YouTube names, logos, and brand assets that appear in our product are used solely to identify YouTube-sourced features for API compliance and attribution. what2watch.net is not endorsed by, sponsored by, or an official partner of YouTube or Google.
+            </p>
           </section>
 
           <section>

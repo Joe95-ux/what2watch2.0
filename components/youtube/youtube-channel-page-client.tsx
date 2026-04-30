@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Heart, Play, ExternalLink, Loader2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, PanelLeft, Search, ArrowLeft } from "lucide-react";
+import { Heart, ExternalLink, Loader2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, PanelLeft, Search, ArrowLeft } from "lucide-react";
 import {
   useYouTubeChannel,
   useYouTubeChannelVideos,
@@ -40,6 +40,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { YouTubeChannelReviews } from "@/components/youtube/youtube-channel-reviews";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 type SidebarTab = "channel" | "favorites" | "watchlater" | "recommendations";
 
@@ -772,7 +773,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                 />
               ) : (
                 <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                  <Play className="h-8 w-8 text-muted-foreground" />
+                  <YouTubeBrandIcon className="h-8 w-8 opacity-60" />
                 </div>
               )}
             </div>
@@ -803,7 +804,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
                   />
                 ) : (
                   <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                    <Play className="h-16 w-16 text-muted-foreground" />
+                    <YouTubeBrandIcon className="h-16 w-16 opacity-60" />
                   </div>
                 )}
               </div>

@@ -3,7 +3,6 @@
 import { useFavoriteChannels } from "@/hooks/use-favorite-channels";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Play } from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/carousel";
 import { YouTubeProfileSkeleton } from "@/components/browse/youtube-profile-skeleton";
 import { getChannelProfilePath } from "@/lib/channel-path";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 export default function FavoriteChannelsCarousel() {
   const { data: favorites = [], isLoading } = useFavoriteChannels();
@@ -65,7 +65,7 @@ export default function FavoriteChannelsCarousel() {
                     />
                   ) : (
                     <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                      <Play className="h-12 w-12 text-muted-foreground" />
+                      <YouTubeBrandIcon className="h-12 w-12 opacity-70" />
                     </div>
                   )}
                 </div>

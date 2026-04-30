@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Play, ChevronLeft, ChevronRight, Search, Filter, X, ArrowUpDown, ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Filter, X, ArrowUpDown, ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YouTubeChannelExtractorInline } from "@/components/youtube/youtube-channel-extractor-inline";
 import { YouTubeChannelCard } from "@/components/youtube/youtube-channel-card";
@@ -22,6 +22,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 interface Channel {
   id: string;
@@ -571,7 +572,7 @@ export default function YouTubeManagementContent() {
 
           {channels.length === 0 && (
             <div className="text-center py-12 border rounded-lg">
-              <Play className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <YouTubeBrandIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="text-muted-foreground">No channels added yet. Use the form above to add your first channel.</p>
             </div>
           )}

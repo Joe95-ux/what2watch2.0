@@ -91,6 +91,9 @@ const PrivacyPage = () => {
               what2watch.net uses YouTube API Services to provide video and channel-related functionality.
             </p>
             <p className="text-muted-foreground leading-relaxed mt-3">
+              YouTube branding in our interface is used for source attribution and API compliance only. what2watch.net is not endorsed by, affiliated with, or partnered with YouTube or Google.
+            </p>
+            <p className="text-muted-foreground leading-relaxed mt-3">
               By using features that rely on YouTube API Services, you acknowledge and agree that YouTube data handling is also governed by Google&apos;s Privacy Policy:
               {" "}
               <a

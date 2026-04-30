@@ -39,7 +39,6 @@ import {
   BookOpen,
   Bookmark,
   ClipboardList,
-  Play,
   Bell,
   Shield,
   MessageSquare,
@@ -65,6 +64,7 @@ import { useAvatar } from "@/contexts/avatar-context";
 import { useClerk } from "@clerk/nextjs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DashboardSubnav } from "./dashboard-subnav";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -98,13 +98,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     setThemeIconMounted(true);
   }, []);
 
+  const YouTubeIcon = ({ className }: { className?: string }) => <YouTubeBrandIcon className={className} />;
   // General navigation items
   const generalNavItems = [
     { href: "/browse", label: "Browse", icon: Home },
     { href: "/popular?type=movies", label: "Movies", icon: Film },
     { href: "/popular?type=tv", label: "TV Shows", icon: Tv },
     { href: "/forum", label: "Forum", icon: MessageSquare },
-    { href: "/youtube", label: "YouTube", icon: Play },
+    { href: "/youtube", label: "YouTube", icon: YouTubeIcon },
   ];
 
   // Admin links visibility
@@ -131,8 +132,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   // YouTube links
   const youtubeLinks = [
-    { href: "/dashboard/youtube", label: "YouTube Dashboard", icon: Play },
-    { href: "/dashboard/youtube/search", label: "Search", icon: Play },
+    { href: "/dashboard/youtube", label: "YouTube Dashboard", icon: YouTubeIcon },
+    { href: "/dashboard/youtube/search", label: "Search", icon: YouTubeIcon },
     { href: "/dashboard/youtube/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/dashboard/youtube/notifications", label: "Notifications", icon: Bell },
     { href: "/dashboard/youtube/management", label: "Channel Management", icon: Settings },
@@ -144,8 +145,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: "/dashboard/admin/moderation", label: "General Moderation", icon: Shield },
     { href: "/dashboard/admin/stats", label: "Admin Stats Center", icon: BarChart3 },
     { href: "/dashboard/admin/traffic", label: "Traffic Analytics", icon: TrendingUp },
-    { href: "/dashboard/admin/youtube", label: "YouTube Management", icon: Play },
-    { href: "/dashboard/admin/youtube/jobs", label: "YouTube Jobs", icon: Play },
+    { href: "/dashboard/admin/youtube", label: "YouTube Management", icon: YouTubeIcon },
+    { href: "/dashboard/admin/youtube/jobs", label: "YouTube Jobs", icon: YouTubeIcon },
   ] : [];
 
   return (

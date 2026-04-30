@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ChannelCuratorNoteDialog } from "./channel-curator-note-dialog";
-import { Star, UsersRound, Video, ExternalLink, Play, Plus, X } from "lucide-react";
+import { Star, UsersRound, Video, ExternalLink, Plus, X } from "lucide-react";
 import { getChannelProfilePath } from "@/lib/channel-path";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -19,6 +19,7 @@ import { ChannelReviewFormSheet } from "./channel-review-form-sheet";
 import { useState } from "react";
 import { useChannelReviews, ChannelReview } from "@/hooks/use-youtube-channel-reviews";
 import { YouTubeAddToListDropdown } from "./add-channel-to-list-dropdown";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 function formatCount(count: string | number): string {
   const num = typeof count === "string" ? parseInt(count, 10) : count;
@@ -232,13 +233,13 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
               <Avatar className="h-16 w-16 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
                 <AvatarImage src={channel.thumbnail} alt={channelTitle} />
                 <AvatarFallback>
-                  <Play className="h-8 w-8" />
+                  <YouTubeBrandIcon className="h-8 w-8" />
                 </AvatarFallback>
               </Avatar>
             ) : (
               <Avatar className="h-16 w-16 cursor-pointer ring-2 ring-border group-hover:ring-primary transition-all">
                 <AvatarFallback>
-                  <Play className="h-8 w-8" />
+                  <YouTubeBrandIcon className="h-8 w-8" />
                 </AvatarFallback>
               </Avatar>
             )}
@@ -252,13 +253,13 @@ export function YouTubeChannelCardPage({ channel }: YouTubeChannelCardPageProps)
               <Avatar className="h-16 w-16 ring-2 ring-border group-hover:ring-primary transition-all">
                 <AvatarImage src={channel.thumbnail} alt={channelTitle} />
                 <AvatarFallback>
-                  <Play className="h-8 w-8" />
+                  <YouTubeBrandIcon className="h-8 w-8" />
                 </AvatarFallback>
               </Avatar>
             ) : (
               <Avatar className="h-16 w-16 ring-2 ring-border group-hover:ring-primary transition-all">
                 <AvatarFallback>
-                  <Play className="h-8 w-8" />
+                  <YouTubeBrandIcon className="h-8 w-8" />
                 </AvatarFallback>
               </Avatar>
             )}

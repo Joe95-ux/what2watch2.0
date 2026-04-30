@@ -8,7 +8,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetClose, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, Play, Search, BarChart3, Sparkles, ChevronDown } from "lucide-react";
+import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, Search, BarChart3, Sparkles, ChevronDown } from "lucide-react";
 import { cn, formatNotificationBadgeCount } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
 import { useYouTubeNotifications } from "@/hooks/use-youtube-notifications";
@@ -16,6 +16,7 @@ import { useGeneralNotifications } from "@/hooks/use-general-notifications";
 import { useYouTubeToolsVisibility } from "@/hooks/use-youtube-tools-visibility";
 import { UnifiedNotificationCenterMobile } from "@/components/notifications/unified-notification-center-mobile";
 import Logo from "@/components/Logo";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -30,8 +31,9 @@ interface MobileNavProps {
 
 const YOUTUBE_URL = "https://www.youtube.com";
 
+const YouTubeIcon = ({ className }: { className?: string }) => <YouTubeBrandIcon className={className} />;
 const youtubeNavItems = [
-  { href: "/youtube", label: "Overview", icon: Play },
+  { href: "/youtube", label: "Overview", icon: YouTubeIcon },
   { href: "/youtube-channel/lists", label: "Channel Lists", icon: List },
 ];
 
@@ -414,7 +416,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   }, 100);
                 }}
               >
-                <Play className="mr-3 h-4 w-4 text-foreground" />
+                <YouTubeBrandIcon className="mr-3 h-4 w-4" />
                 <span>YouTube</span>
               </a>
             ) : (
@@ -429,7 +431,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   )}
                 >
                   <div className="flex items-center">
-                    <Play className="mr-3 h-4 w-4 text-foreground" />
+                    <YouTubeBrandIcon className="mr-3 h-4 w-4" />
                     <span>YouTube</span>
                   </div>
                   <ChevronDown

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Search, X, Play } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { ChevronDown, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 interface Channel {
   id?: string; // For YouTube search results
@@ -522,7 +523,7 @@ export function FeedCustomizeModal({ open, onOpenChange }: FeedCustomizeModalPro
                         />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <Play className="h-6 w-6 text-muted-foreground" />
+                          <YouTubeBrandIcon className="h-6 w-6 opacity-70" />
                         </div>
                       )}
                     </div>

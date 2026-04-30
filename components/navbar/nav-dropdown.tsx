@@ -11,12 +11,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Play, List } from "lucide-react";
+import { List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HamburgerButton } from "./hamburger-button";
 import { useYouTubeToolsVisibility } from "@/hooks/use-youtube-tools-visibility";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 const YOUTUBE_URL = "https://www.youtube.com";
+const YouTubeIcon = ({ className }: { className?: string }) => <YouTubeBrandIcon className={className} />;
 
 interface NavLink {
   href: string;
@@ -29,7 +31,7 @@ interface NavDropdownProps {
 }
 
 const youtubeNavItems = [
-  { href: "/youtube", label: "Overview", icon: Play },
+  { href: "/youtube", label: "Overview", icon: YouTubeIcon },
   { href: "/youtube-channel/lists", label: "Channel Lists", icon: List },
 ];
 
@@ -79,7 +81,7 @@ export function NavDropdown({ navLinks, hasHeroSection = false }: NavDropdownPro
         {showSimpleYouTubeLink ? (
           <a href={YOUTUBE_URL} target="_blank" rel="noopener noreferrer">
             <DropdownMenuItem className="cursor-pointer flex items-center gap-2" onClick={() => setOpen(false)}>
-              <Play className="h-4 w-4" />
+              <YouTubeBrandIcon className="h-4 w-4" />
               <span>YouTube</span>
             </DropdownMenuItem>
           </a>

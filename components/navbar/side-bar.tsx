@@ -8,13 +8,13 @@ import {
   Tv, 
   MessageSquare, 
   List, 
-  Play,
   Settings,
   User,
   LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 interface NavLink {
   href: string;
@@ -22,13 +22,14 @@ interface NavLink {
   icon: LucideIcon;
 }
 
+const YouTubeIcon = ({ className }: { className?: string }) => <YouTubeBrandIcon className={className} />;
 const sidebarLinks: NavLink[] = [
   { href: "/browse", label: "Browse", icon: Home },
   { href: "/movies", label: "Movies", icon: Film },
   { href: "/tv", label: "TV Shows", icon: Tv },
   { href: "/lists", label: "Lists", icon: List },
   { href: "/forum", label: "Forums", icon: MessageSquare },
-  { href: "/youtube", label: "YouTube", icon: Play },
+  { href: "/youtube", label: "YouTube", icon: YouTubeIcon },
 ];
 
 const userLinks: NavLink[] = [
