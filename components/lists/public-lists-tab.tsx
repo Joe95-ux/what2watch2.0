@@ -97,20 +97,20 @@ export default function PublicListsTab() {
         setCurrentPage(1);
       }} className="w-full">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-6">
-          <TabsList className="py-[10px] px-[3px] rounded-[20px]">
-            <TabsTrigger value="lists" className="cursor-pointer p-[15px] rounded-[20px]">Lists</TabsTrigger>
-            <TabsTrigger value="playlists" className="cursor-pointer p-[15px] rounded-[20px]">Playlists</TabsTrigger>
+          <TabsList className="h-auto inline-flex rounded-md border border-border/70 p-0.5 bg-transparent gap-0.5">
+            <TabsTrigger value="lists" className="h-7 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">Lists</TabsTrigger>
+            <TabsTrigger value="playlists" className="h-7 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">Playlists</TabsTrigger>
           </TabsList>
           
           {/* View Toggle and Create Button - Only for authenticated users */}
           {isSignedIn && (
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 border rounded-[20px] px-[5px] py-[3px]">
+              <div className="inline-flex items-center gap-0.5 border border-border/70 rounded-md p-0.5">
                 <Button
                   variant={viewMode === "grid" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("grid")}
-                  className="h-8 cursor-pointer rounded-[20px]"
+                  className="h-7 w-7 p-0 cursor-pointer rounded-md"
                 >
                   <Grid3x3 className="h-4 w-4" />
                 </Button>
@@ -118,12 +118,12 @@ export default function PublicListsTab() {
                   variant={viewMode === "table" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("table")}
-                  className="h-8 cursor-pointer rounded-[20px]"
+                  className="h-7 w-7 p-0 cursor-pointer rounded-md"
                 >
                   <Table2 className="h-4 w-4" />
                 </Button>
               </div>
-              <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer rounded-[20px] h-10">
+              <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer rounded-md h-10">
                 <Plus className="size-6" />
                 Create {activeTab === "lists" ? "List" : "Playlist"}
               </Button>
@@ -152,13 +152,13 @@ export default function PublicListsTab() {
               <h3 className="text-lg font-semibold mb-2">No public lists yet</h3>
               <p className="text-muted-foreground mb-4">Be the first to create a public list!</p>
               {isSignedIn ? (
-                <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer">
+                <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer rounded-md">
                   <Plus className="h-4 w-4 mr-2" />
                   Create Your First List
                 </Button>
               ) : (
                 <div className="flex items-center justify-center gap-2">
-                  <Button asChild className="cursor-pointer">
+                  <Button asChild className="cursor-pointer rounded-md">
                     <Link href="/sign-in">Sign In to Create a List</Link>
                   </Button>
                 </div>
@@ -252,13 +252,13 @@ export default function PublicListsTab() {
               <h3 className="text-lg font-semibold mb-2">No public playlists yet</h3>
               <p className="text-muted-foreground mb-4">Be the first to create a public playlist!</p>
               {isSignedIn ? (
-                <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer">
+                <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer rounded-md">
                   <Plus className="h-4 w-4 mr-2" />
                   Create Your First Playlist
                 </Button>
               ) : (
                 <div className="flex items-center justify-center gap-2">
-                  <Button asChild className="cursor-pointer">
+                  <Button asChild className="cursor-pointer rounded-md">
                     <Link href="/sign-in">Sign In to Create a Playlist</Link>
                   </Button>
                 </div>

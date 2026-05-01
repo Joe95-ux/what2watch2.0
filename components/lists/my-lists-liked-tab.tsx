@@ -118,10 +118,10 @@ export default function MyListsLikedTab() {
         setFilterType(v as FilterType);
         setCurrentPage(1);
       }} className="w-full">
-        <TabsList className="py-[10px] px-[3px] rounded-[20px]">
-          <TabsTrigger value="all" className="cursor-pointer p-[15px] rounded-[20px]">All</TabsTrigger>
-          <TabsTrigger value="movie" className="cursor-pointer p-[15px] rounded-[20px]">Movies</TabsTrigger>
-          <TabsTrigger value="tv" className="cursor-pointer p-[15px] rounded-[20px]">TV Shows</TabsTrigger>
+        <TabsList className="h-auto inline-flex rounded-md border border-border/70 p-0.5 bg-transparent gap-0.5">
+          <TabsTrigger value="all" className="h-7 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">All</TabsTrigger>
+          <TabsTrigger value="movie" className="h-7 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">Movies</TabsTrigger>
+          <TabsTrigger value="tv" className="h-7 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">TV Shows</TabsTrigger>
         </TabsList>
       </Tabs>
 

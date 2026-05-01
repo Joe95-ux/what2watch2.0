@@ -122,21 +122,21 @@ export default function MyListsListsTab() {
             setActiveTab(v as TabType);
             setCurrentPage(1);
           }} className="w-full">
-            <TabsList className="py-[10px] px-[3px] rounded-[20px]">
-              <TabsTrigger value="lists" className="cursor-pointer p-[15px] rounded-[20px]">Curated Lists</TabsTrigger>
-              <TabsTrigger value="playlists" className="cursor-pointer p-[15px] rounded-[20px]">Playlists</TabsTrigger>
+            <TabsList className="h-auto inline-flex rounded-md border border-border/70 p-0.5 bg-transparent gap-0.5">
+              <TabsTrigger value="lists" className="h-7 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">Curated Lists</TabsTrigger>
+              <TabsTrigger value="playlists" className="h-7 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">Playlists</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
 
         {/* View Toggle and CTA - Desktop: right side, Mobile: above tabs */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 border rounded-[20px] px-[5px] py-[3px]">
+          <div className="inline-flex items-center gap-0.5 border border-border/70 rounded-md p-0.5">
             <Button
               variant={viewMode === "grid" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("grid")}
-              className="h-8 cursor-pointer rounded-[20px]"
+              className="h-7 w-7 p-0 cursor-pointer rounded-md"
             >
               <Grid3x3 className="h-4 w-4" />
             </Button>
@@ -144,7 +144,7 @@ export default function MyListsListsTab() {
               variant={viewMode === "table" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("table")}
-              className="h-8 cursor-pointer rounded-[20px]"
+              className="h-7 w-7 p-0 cursor-pointer rounded-md"
             >
               <Table2 className="h-4 w-4" />
             </Button>
@@ -167,7 +167,7 @@ export default function MyListsListsTab() {
                 setIsCreatePlaylistModalOpen(true);
               }
             }} 
-            className="cursor-pointer rounded-[20px] h-10"
+            className="cursor-pointer rounded-md h-10"
             disabled={!isSignedIn}
           >
             <Plus className="size-6" />
@@ -200,7 +200,7 @@ export default function MyListsListsTab() {
               <p className="text-muted-foreground mb-4">
                 Create and manage your ranked lists of favorite films
               </p>
-              <Button onClick={() => setIsCreateListModalOpen(true)} className="cursor-pointer h-10">
+              <Button onClick={() => setIsCreateListModalOpen(true)} className="cursor-pointer h-10 rounded-md">
                 <Plus className="size-6" />
                 Create List
               </Button>
@@ -212,7 +212,7 @@ export default function MyListsListsTab() {
               <p className="text-muted-foreground mb-4">
                 Create and manage your playlists of movies, TV shows, and YouTube videos
               </p>
-              <Button onClick={() => setIsCreatePlaylistModalOpen(true)} className="cursor-pointer h-10">
+              <Button onClick={() => setIsCreatePlaylistModalOpen(true)} className="cursor-pointer h-10 rounded-md">
                 <Plus className="size-6" />
                 Create Playlist
               </Button>

@@ -27,11 +27,11 @@ function extractTvWatchProgressLabel(title: string): string | null {
   const normalized = title.trim();
   if (!normalized) return null;
 
-  const seasonEpisodeRange = normalized.match(/(?:^|\s)(S\d+E\d+(?:\s*[-–]\s*E?\d+)?)$/i);
-  if (seasonEpisodeRange?.[1]) return seasonEpisodeRange[1].replace(/\s+/g, "");
+  const seasonEpisodeRange = normalized.match(/\bS\d+E\d+(?:\s*[-–]\s*E?\d+)?\b/i);
+  if (seasonEpisodeRange?.[0]) return seasonEpisodeRange[0].replace(/\s+/g, "");
 
-  const seasonRange = normalized.match(/(?:^|\s)(Season\s+\d+(?:\s*[-–]\s*Season\s+\d+)?)$/i);
-  if (seasonRange?.[1]) return seasonRange[1];
+  const seasonRange = normalized.match(/\bSeason\s+\d+(?:\s*[-–]\s*Season\s+\d+)?\b/i);
+  if (seasonRange?.[0]) return seasonRange[0];
 
   return null;
 }
@@ -471,36 +471,6 @@ export default function MyListsWatchedTab() {
               Timeline
             </Button>
           </div>
-          {viewMode === "timeline" ? (
-            <div className="hidden sm:inline-flex rounded-md border border-border/70 p-0.5">
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => setTimelineLayout("row-list")}
-                className={
-                  timelineLayout === "row-list"
-                    ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground"
-                    : "h-7 cursor-pointer px-2.5 text-xs"
-                }
-              >
-                Row List
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => setTimelineLayout("carousel")}
-                className={
-                  timelineLayout === "carousel"
-                    ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground"
-                    : "h-7 cursor-pointer px-2.5 text-xs"
-                }
-              >
-                Carousel
-              </Button>
-            </div>
-          ) : null}
         </div>
 
         <div className="flex-1 sm:flex-initial">
@@ -521,6 +491,38 @@ export default function MyListsWatchedTab() {
           />
         </div>
       </div>
+      {viewMode === "timeline" ? (
+        <div className="hidden sm:flex items-center justify-end">
+          <div className="inline-flex rounded-md border border-border/70 p-0.5">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setTimelineLayout("row-list")}
+              className={
+                timelineLayout === "row-list"
+                  ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground"
+                  : "h-7 cursor-pointer px-2.5 text-xs"
+              }
+            >
+              Row List
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setTimelineLayout("carousel")}
+              className={
+                timelineLayout === "carousel"
+                  ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground"
+                  : "h-7 cursor-pointer px-2.5 text-xs"
+              }
+            >
+              Carousel
+            </Button>
+          </div>
+        </div>
+      ) : null}
       <FilterRow
         filters={watchedFilters}
         openDropdowns={openDropdowns}
