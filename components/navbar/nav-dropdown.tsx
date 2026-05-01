@@ -81,7 +81,7 @@ export function NavDropdown({ navLinks, hasHeroSection = false }: NavDropdownPro
         {showSimpleYouTubeLink ? (
           <a href={YOUTUBE_URL} target="_blank" rel="noopener noreferrer">
             <DropdownMenuItem className="cursor-pointer flex items-center gap-2" onClick={() => setOpen(false)}>
-              <YouTubeBrandIcon className="h-4 w-4" />
+              <YouTubeBrandIcon className="h-6 w-6" />
               <span>YouTube</span>
             </DropdownMenuItem>
           </a>
@@ -99,7 +99,7 @@ export function NavDropdown({ navLinks, hasHeroSection = false }: NavDropdownPro
                   )}
                   onClick={() => setOpen(false)}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-6 w-6 shrink-0" />
                   <span>{item.label}</span>
                 </DropdownMenuItem>
               </Link>

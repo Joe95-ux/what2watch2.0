@@ -129,13 +129,15 @@ export function YouTubePageClient() {
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   className={cn(
-                    "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2",
+                    "relative py-4 text-sm font-medium transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2 shrink-0 h-[56px]",
                     activeTab === tab.id
                       ? "text-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon
+                    className={tab.id === "channels" ? "h-6 w-6" : "h-4 w-4"}
+                  />
                   {tab.label}
                   {activeTab === tab.id && (
                     <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />

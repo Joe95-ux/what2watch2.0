@@ -19,11 +19,11 @@ interface YouTubeNavDropdownProps {
   hasHeroSection?: boolean;
 }
 
-  const YouTubeIcon = ({ className }: { className?: string }) => <YouTubeBrandIcon className={className} />;
-  const youtubeNavItems = [
-    { href: "/youtube", label: "Overview", icon: YouTubeIcon },
-    { href: "/youtube-channel/lists", label: "Channel Lists", icon: List },
-  ];
+const YouTubeIcon = ({ className }: { className?: string }) => <YouTubeBrandIcon className={className} />;
+const youtubeNavItems = [
+  { href: "/youtube", label: "Overview", icon: YouTubeIcon },
+  { href: "/youtube-channel/lists", label: "Channel Lists", icon: List },
+];
 
 export function YouTubeNavDropdown({ hasHeroSection = false }: YouTubeNavDropdownProps) {
   const pathname = usePathname();
@@ -73,7 +73,7 @@ export function YouTubeNavDropdown({ hasHeroSection = false }: YouTubeNavDropdow
                   )}
                   onClick={() => setOpen(false)}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <Icon className="h-6 w-6 shrink-0" />
                   <span>{item.label}</span>
                 </DropdownMenuItem>
               </Link>

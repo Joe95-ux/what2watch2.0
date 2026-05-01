@@ -416,7 +416,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   }, 100);
                 }}
               >
-                <YouTubeBrandIcon className="mr-3 h-4 w-4" />
+                <YouTubeBrandIcon className="mr-3 h-6 w-6" />
                 <span>YouTube</span>
               </a>
             ) : (
@@ -431,7 +431,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
                   )}
                 >
                   <div className="flex items-center">
-                    <YouTubeBrandIcon className="mr-3 h-4 w-4" />
+                    <YouTubeBrandIcon className="mr-3 h-6 w-6" />
                     <span>YouTube</span>
                   </div>
                   <ChevronDown

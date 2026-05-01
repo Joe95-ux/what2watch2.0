@@ -566,7 +566,7 @@ export function YouTubeChannelSidebar({
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <YouTubeBrandIcon className={cn(isCollapsed ? "h-4 w-4 opacity-70" : "h-5 w-5 opacity-70")} />
+                        <YouTubeBrandIcon className="h-6 w-6 opacity-70" />
                       </div>
                     )}
                   </div>

@@ -8,9 +8,9 @@ export function YouTubeBrandIcon({ className }: { className?: string }) {
     <Image
       src="/yt_icon_red_digital.png"
       alt="YouTube"
-      width={20}
-      height={20}
-      className={cn("h-4 w-4 object-contain", className)}
+      width={24}
+      height={24}
+      className={cn("h-6 w-6 object-contain", className)}
       unoptimized
     />
   );

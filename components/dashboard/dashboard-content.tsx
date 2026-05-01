@@ -749,7 +749,7 @@ function YouTubeSnapshotSection({ isLoading, totals, highlightVideos }: YouTubeS
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-red-500/15 text-red-500">
-                  <YouTubeBrandIcon className="h-5 w-5" />
+                  <YouTubeBrandIcon className="h-6 w-6" />
                 </div>
                 <div className="flex-1">
                   <CardTitle className="text-lg">Saved Videos</CardTitle>

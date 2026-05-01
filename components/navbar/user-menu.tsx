@@ -106,7 +106,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
               onClick={handleLinkClick}
               className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
             >
-              <YouTubeBrandIcon className="mr-3 h-4 w-4" />
+              <YouTubeBrandIcon className="mr-3 h-6 w-6" />
               <span>YouTube Feed</span>
             </Link>
           </div>
