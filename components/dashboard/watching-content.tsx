@@ -3238,7 +3238,7 @@ export default function WatchingContent() {
             : "xl:grid-cols-[minmax(0,1fr)_0fr]"
         )}
       >
-        <main className="watching-page-scroll relative min-w-0 space-y-4 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 mb-6">
+        <main className="watching-page-scroll relative min-w-0 space-y-4 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 pb-12">
           <Button
             type="button"
             size="icon"
@@ -3252,7 +3252,7 @@ export default function WatchingContent() {
           {!isRightOpen ? (
             <button
               type="button"
-              className="absolute right-2 top-0 hidden h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground xl:inline-flex"
+              className="absolute right-2 top-5 hidden h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground xl:inline-flex"
               onClick={() => setIsRightOpen(true)}
               aria-label="Expand sidebar"
             >
@@ -3763,7 +3763,7 @@ export default function WatchingContent() {
 
         <aside
           className={cn(
-            "relative mb-6 hidden min-h-0 min-w-0 flex-col overflow-hidden border-l border-border/70 bg-muted/20 transition-all duration-300 ease-in-out xl:flex dark:bg-muted/10",
+            "relative pb-12 hidden min-h-0 min-w-0 flex-col overflow-hidden border-l border-border/70 bg-muted/20 transition-all duration-300 ease-in-out xl:flex dark:bg-muted/10",
             isRightOpen
               ? "pointer-events-auto opacity-100 translate-x-0"
               : "pointer-events-none opacity-0 translate-x-1 border-l-transparent"
