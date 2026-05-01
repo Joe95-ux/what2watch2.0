@@ -36,6 +36,7 @@ interface FilterSearchBarProps {
   renderFilterRowOutside?: boolean; // If true, filter row is not rendered inside
   onFilterRowStateChange?: (isOpen: boolean) => void; // Callback for filter row state
   justifyEnd?: boolean; // If true, justify the search/filter/sort row to the end
+  iconOnlyControls?: boolean; // If true, render circular icon-only sort/filter buttons
 }
 
 export function FilterSearchBar({
@@ -51,6 +52,7 @@ export function FilterSearchBar({
   renderFilterRowOutside = false,
   onFilterRowStateChange,
   justifyEnd = false,
+  iconOnlyControls = false,
 }: FilterSearchBarProps) {
   const [isFilterRowOpen, setIsFilterRowOpen] = useState(false);
   const filterRowRef = useRef<HTMLDivElement>(null);
@@ -126,12 +128,15 @@ export function FilterSearchBar({
               variant="outline"
               size="sm"
               className={cn(
-                "h-9 px-3 gap-2 cursor-pointer whitespace-nowrap shrink-0",
+                iconOnlyControls
+                  ? "h-9 w-9 rounded-full p-0 cursor-pointer shrink-0"
+                  : "h-9 px-3 gap-2 cursor-pointer whitespace-nowrap shrink-0",
                 sortOrder !== "desc" && "bg-primary/10 text-primary"
               )}
+              aria-label={sortOrder === "desc" ? "Sort newest first" : "Sort oldest first"}
             >
               <ArrowUpDown className="h-4 w-4" />
-              <span className="hidden sm:inline">
+              <span className={cn(iconOnlyControls && "sr-only", "hidden sm:inline")}>
                 {sortOrder === "desc" ? "Newest" : "Oldest"}
               </span>
             </Button>
@@ -164,12 +169,15 @@ export function FilterSearchBar({
           size="sm"
           onClick={() => setIsFilterRowOpen(!isFilterRowOpen)}
           className={cn(
-            "h-9 px-3 gap-2 cursor-pointer whitespace-nowrap shrink-0",
+            iconOnlyControls
+              ? "h-9 w-9 rounded-full p-0 cursor-pointer shrink-0"
+              : "h-9 px-3 gap-2 cursor-pointer whitespace-nowrap shrink-0",
             hasActiveFilters && "bg-primary/10 text-primary"
           )}
+          aria-label="Toggle filters"
         >
           <Filter className="h-4 w-4" />
-          <span className="hidden sm:inline">Filter</span>
+          <span className={cn(iconOnlyControls && "sr-only", "hidden sm:inline")}>Filter</span>
         </Button>
       </div>
 
