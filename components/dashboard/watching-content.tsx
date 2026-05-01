@@ -2593,6 +2593,14 @@ export default function WatchingContent() {
   }, []);
 
   useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
+
+  useEffect(() => {
     const sync = () => setIsRightOpen(window.innerWidth >= 1280);
     sync();
     window.addEventListener("resize", sync);
@@ -3230,7 +3238,7 @@ export default function WatchingContent() {
             : "xl:grid-cols-[minmax(0,1fr)_0fr]"
         )}
       >
-        <main className="relative min-w-0 space-y-4 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
+        <main className="watching-page-scroll relative min-w-0 space-y-4 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 mb-6">
           <Button
             type="button"
             size="icon"
@@ -3755,21 +3763,27 @@ export default function WatchingContent() {
 
         <aside
           className={cn(
-            "relative hidden min-w-0 overflow-hidden border-l border-border/70 bg-muted/20 transition-all duration-300 ease-in-out xl:block dark:bg-muted/10",
+            "relative mb-6 hidden min-h-0 min-w-0 flex-col overflow-hidden border-l border-border/70 bg-muted/20 transition-all duration-300 ease-in-out xl:flex dark:bg-muted/10",
             isRightOpen
               ? "pointer-events-auto opacity-100 translate-x-0"
               : "pointer-events-none opacity-0 translate-x-1 border-l-transparent"
           )}
         >
-          <div className="h-full overflow-y-auto">
-            <button
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-muted/30 px-3 py-2.5 dark:bg-muted/20">
+            <span className="truncate text-sm font-medium">Live Watch Hub</span>
+            <Button
               type="button"
-              className="absolute -left-3 top-[12px] inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground cursor-pointer"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 cursor-pointer rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
               onClick={() => setIsRightOpen(false)}
-              aria-label="Collapse sidebar"
+              aria-label="Close sidebar"
+              title="Close sidebar"
             >
-              <ChevronRight className="h-4 w-4" />
-            </button>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto watching-page-scroll">
             <RightRail
               currentSession={watchingData?.currentSession ?? null}
               alsoWatchingCurrent={contextualAlsoWatching}
@@ -3815,7 +3829,7 @@ export default function WatchingContent() {
           setIsRightOpen(open);
         }}
       >
-        <SheetContent side="right" className="w-screen max-w-none overflow-y-auto p-0 lg:hidden">
+        <SheetContent side="right" className="watching-page-scroll w-screen max-w-none overflow-y-auto p-0 lg:hidden">
           <SheetHeader className="border-b border-border/60 px-4 py-3">
             <SheetTitle className="text-sm">Live Watch Hub</SheetTitle>
           </SheetHeader>

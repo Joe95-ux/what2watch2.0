@@ -329,3 +329,43 @@
   background-color: rgb(100 116 139);
 }
 
+/* Watching page: main column + right rail — thin bar, stable gutter, darker track in dark */
+.watching-page-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(148 163 184) rgb(241 245 249);
+}
+
+.dark .watching-page-scroll {
+  scrollbar-color: rgb(51 65 85) rgb(15 23 42 / 0.9);
+}
+
+.watching-page-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.watching-page-scroll::-webkit-scrollbar-track {
+  background: rgb(241 245 249);
+}
+
+.dark .watching-page-scroll::-webkit-scrollbar-track {
+  background: rgb(15 23 42 / 0.85);
+}
+
+.watching-page-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(148 163 184);
+  border-radius: 3px;
+}
+
+.dark .watching-page-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(51 65 85);
+}
+
+.watching-page-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(100 116 139);
+}
+
+.dark .watching-page-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(71 85 105);
+}
+
