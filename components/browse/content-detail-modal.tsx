@@ -327,31 +327,31 @@ export default function ContentDetailModal({
         }}
       >
         <SheetTitle className="sr-only">{title}</SheetTitle>
-        {/* Control Buttons - Wrapped in div to avoid [&>button]:hidden selector */}
-        <div className="no-close">
-          {/* Back Button (when opened from More Like This) */}
-          {showBackButton && (
+        {/* Hero: compact header (controls never overlay the YouTube embed) + full-bleed media */}
+        <div className="grid h-[70vh] min-h-[70vh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-black">
+          <div className="no-close flex h-12 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-black px-3 text-white sm:px-4">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              {showBackButton && (
+                <button
+                  onClick={(e) => handleButtonClick(e, handleBack)}
+                  className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/10 hover:text-white"
+                  aria-label="Back"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </button>
+              )}
+              <p className="min-w-0 truncate text-sm font-medium text-white/95">{title}</p>
+            </div>
             <button
-              onClick={(e) => handleButtonClick(e, handleBack)}
-              className="absolute top-4 left-4 z-[100] h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105 no-close"
-              aria-label="Back"
+              onClick={(e) => handleButtonClick(e, onClose)}
+              className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/10 hover:text-white"
+              aria-label="Close"
             >
-              <ArrowLeft className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+              <X className="h-5 w-5" />
             </button>
-          )}
+          </div>
 
-          {/* Close Button - More Prominent */}
-          <button
-            onClick={(e) => handleButtonClick(e, onClose)}
-            className="absolute top-4 right-4 z-[100] h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-black/80 hover:bg-black/95 flex items-center justify-center transition-all shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105 no-close"
-            aria-label="Close"
-          >
-            <X className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
-          </button>
-        </div>
-
-        {/* Hero Section with Trailer/Backdrop */}
-        <div className="relative w-full h-[70vh] min-h-[70vh] overflow-hidden">
+          <div className="relative min-h-0 w-full overflow-hidden">
           {trailer && isOpen && videosData && allowInlineTrailerPlayback ? (
             <div className="absolute inset-0">
               {isOpen && (
@@ -547,6 +547,7 @@ export default function ContentDetailModal({
           )}
 
           {/* Clear Icon - Only show when audio is enabled (not muted) */}
+          </div>
         </div>
 
         {/* Content */}
