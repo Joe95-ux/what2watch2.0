@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { useViewingLogs, useWatchedTitles } from "@/hooks/use-viewing-logs";
+import { useWatchedTitles } from "@/hooks/use-viewing-logs";
 import MoreLikeThisCard from "@/components/browse/more-like-this-card";
 import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
 import { getPosterUrl, TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -91,7 +91,6 @@ export default function MyListsWatchedTab() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: watchedTitles = [], isLoading } = useWatchedTitles();
-  const { data: timelineLogs = [], isLoading: isLoadingTimelineLogs } = useViewingLogs();
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const view = searchParams.get("view");
@@ -152,13 +151,12 @@ export default function MyListsWatchedTab() {
     const targetKeys = new Set<string>();
 
     uniqueItems.forEach((entry) => targetKeys.add(`${entry.type}-${entry.watched.tmdbId}`));
-    timelineLogs.forEach((log) => targetKeys.add(`${log.mediaType}-${log.tmdbId}`));
 
     return Array.from(targetKeys).map((key) => {
       const [type, tmdbIdRaw] = key.split("-");
       return { key, type: type as "movie" | "tv", tmdbId: Number(tmdbIdRaw) };
     });
-  }, [uniqueItems, timelineLogs]);
+  }, [uniqueItems]);
 
   const { data: details = [], isLoading: isLoadingDetails } = useQuery({
     queryKey: [
@@ -206,34 +204,6 @@ export default function MyListsWatchedTab() {
     });
   }, [detailsMap, uniqueItems]);
 
-  const timelineItemsWithCanonicalTitles = useMemo(() => {
-    return timelineLogs.map((log) => {
-      const type = log.mediaType as "movie" | "tv";
-      const key = `${type}-${log.tmdbId}`;
-      const detail = detailsMap.get(key);
-      const fallbackItem = logToTMDB({
-        tmdbId: log.tmdbId,
-        mediaType: type,
-        title: cleanupTitleSlugSource(log.title),
-        posterPath: log.posterPath,
-        backdropPath: log.backdropPath,
-        releaseDate: log.releaseDate,
-        firstAirDate: log.firstAirDate,
-      });
-
-      return {
-        item: detail ?? fallbackItem,
-        type,
-        watched: {
-          id: log.id,
-          seenAt: log.watchedAt,
-          title: log.title,
-        },
-        tvWatchProgress: type === "tv" ? extractTvWatchProgressLabel(log.title ?? "") : null,
-      };
-    });
-  }, [timelineLogs, detailsMap]);
-
   const availableYears = useMemo(() => {
     const years = new Set<number>();
 
@@ -252,15 +222,15 @@ export default function MyListsWatchedTab() {
 
   const availableWatchedYears = useMemo(() => {
     const years = new Set<number>();
-    timelineItemsWithCanonicalTitles.forEach(({ watched }) => {
+    itemsWithCanonicalTitles.forEach(({ watched }) => {
       const year = new Date(watched.seenAt).getFullYear();
       if (!Number.isNaN(year)) years.add(year);
     });
     return Array.from(years).sort((a, b) => b - a);
-  }, [timelineItemsWithCanonicalTitles]);
+  }, [itemsWithCanonicalTitles]);
 
   const sortEntries = useMemo(
-    () => (entries: typeof timelineItemsWithCanonicalTitles) => {
+    () => (entries: typeof itemsWithCanonicalTitles) => {
       const sorted = [...entries];
       sorted.sort((a, b) => {
         const aWatched = new Date(a.watched.seenAt).getTime();
@@ -298,7 +268,7 @@ export default function MyListsWatchedTab() {
   }, [itemsWithCanonicalTitles, searchQuery, mediaTypeFilter, yearFilter, sortEntries]);
 
   const filteredTimelineItems = useMemo(() => {
-    const filtered = timelineItemsWithCanonicalTitles.filter((entry) => {
+    const filtered = itemsWithCanonicalTitles.filter((entry) => {
       const displayTitle = entry.type === "movie" ? (entry.item as TMDBMovie).title : (entry.item as TMDBSeries).name;
       const titleMatch =
         !searchQuery.trim() ||
@@ -313,7 +283,7 @@ export default function MyListsWatchedTab() {
       return titleMatch && mediaTypeMatch && releaseYearMatch && watchedYearMatch;
     });
     return sortEntries(filtered);
-  }, [timelineItemsWithCanonicalTitles, searchQuery, mediaTypeFilter, yearFilter, watchedYearFilter, sortEntries]);
+  }, [itemsWithCanonicalTitles, searchQuery, mediaTypeFilter, yearFilter, watchedYearFilter, sortEntries]);
 
   // Pagination
   const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
@@ -473,47 +443,84 @@ export default function MyListsWatchedTab() {
 
   return (
     <div className="space-y-6 pb-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-md border border-border/70 p-0.5">
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              setViewMode("grid");
-              applyWatchedQueryState({ view: "grid" });
-            }}
-            className={viewMode === "grid" ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground" : "h-7 cursor-pointer px-2.5 text-xs"}
-          >
-            Cards
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              setViewMode("timeline");
-              applyWatchedQueryState({ view: "timeline" });
-            }}
-            className={viewMode === "timeline" ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground" : "h-7 cursor-pointer px-2.5 text-xs"}
-          >
-            Timeline
-          </Button>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-md border border-border/70 p-0.5">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setViewMode("grid");
+                applyWatchedQueryState({ view: "grid" });
+              }}
+              className={viewMode === "grid" ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground" : "h-7 cursor-pointer px-2.5 text-xs"}
+            >
+              Cards
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setViewMode("timeline");
+                applyWatchedQueryState({ view: "timeline" });
+              }}
+              className={viewMode === "timeline" ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground" : "h-7 cursor-pointer px-2.5 text-xs"}
+            >
+              Timeline
+            </Button>
+          </div>
+          {viewMode === "timeline" ? (
+            <div className="hidden sm:inline-flex rounded-md border border-border/70 p-0.5">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setTimelineLayout("row-list")}
+                className={
+                  timelineLayout === "row-list"
+                    ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground"
+                    : "h-7 cursor-pointer px-2.5 text-xs"
+                }
+              >
+                Row List
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setTimelineLayout("carousel")}
+                className={
+                  timelineLayout === "carousel"
+                    ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground"
+                    : "h-7 cursor-pointer px-2.5 text-xs"
+                }
+              >
+                Carousel
+              </Button>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex-1 sm:flex-initial">
+          <FilterSearchBar
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search watched titles..."
+            sortOrder={sortOrder}
+            onSortChange={setSortOrder}
+            filters={watchedFilters}
+            hasActiveFilters={activeFilterCount > 0}
+            onClearAll={clearFilters}
+            renderFilterRowOutside
+            onFilterRowStateChange={setIsFilterRowOpen}
+            iconOnlyControls
+            searchMaxWidth="sm:max-w-[24rem] lg:max-w-[28rem]"
+            justifyEnd
+          />
         </div>
       </div>
-      <FilterSearchBar
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder="Search watched titles..."
-        sortOrder={sortOrder}
-        onSortChange={setSortOrder}
-        filters={watchedFilters}
-        hasActiveFilters={activeFilterCount > 0}
-        onClearAll={clearFilters}
-        renderFilterRowOutside
-        onFilterRowStateChange={setIsFilterRowOpen}
-        iconOnlyControls
-      />
       <FilterRow
         filters={watchedFilters}
         openDropdowns={openDropdowns}
@@ -531,42 +538,9 @@ export default function MyListsWatchedTab() {
         hasActiveFilters={activeFilterCount > 0}
         isOpen={isFilterRowOpen}
       />
-      {viewMode === "timeline" ? (
-        <div className="hidden sm:flex items-center justify-end">
-          <div className="inline-flex rounded-md border border-border/70 p-0.5">
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() => setTimelineLayout("row-list")}
-              className={
-                timelineLayout === "row-list"
-                  ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground"
-                  : "h-7 cursor-pointer px-2.5 text-xs"
-              }
-            >
-              Row List
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() => setTimelineLayout("carousel")}
-              className={
-                timelineLayout === "carousel"
-                  ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground"
-                  : "h-7 cursor-pointer px-2.5 text-xs"
-              }
-            >
-              Carousel
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
       {/* Content */}
       {(viewMode === "timeline"
-        ? isLoadingTimelineLogs || isLoadingDetails
+        ? isLoading || isLoadingDetails
         : isLoading || isLoadingDetails) ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {Array.from({ length: 24 }).map((_, i) => (
