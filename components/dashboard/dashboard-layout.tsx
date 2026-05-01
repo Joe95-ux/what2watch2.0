@@ -98,7 +98,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     setThemeIconMounted(true);
   }, []);
 
-  const YouTubeIcon = ({ className }: { className?: string }) => <YouTubeBrandIcon className={className} />;
+  const YouTubeIcon = ({ className }: { className?: string }) => (
+    <YouTubeBrandIcon className={cn("h-5 w-5", className)} />
+  );
   // General navigation items
   const generalNavItems = [
     { href: "/browse", label: "Browse", icon: Home },

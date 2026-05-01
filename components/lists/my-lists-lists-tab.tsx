@@ -123,8 +123,8 @@ export default function MyListsListsTab() {
             setCurrentPage(1);
           }} className="w-full">
             <TabsList className="h-auto inline-flex rounded-md border border-border/70 p-0.5 bg-transparent gap-0.5">
-              <TabsTrigger value="lists" className="h-7 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">Curated Lists</TabsTrigger>
-              <TabsTrigger value="playlists" className="h-7 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">Playlists</TabsTrigger>
+              <TabsTrigger value="lists" className="h-8 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">Curated Lists</TabsTrigger>
+              <TabsTrigger value="playlists" className="h-8 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">Playlists</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -167,7 +167,7 @@ export default function MyListsListsTab() {
                 setIsCreatePlaylistModalOpen(true);
               }
             }} 
-            className="cursor-pointer rounded-md h-10"
+            className="cursor-pointer rounded-md h-9"
             disabled={!isSignedIn}
           >
             <Plus className="size-6" />
@@ -200,7 +200,7 @@ export default function MyListsListsTab() {
               <p className="text-muted-foreground mb-4">
                 Create and manage your ranked lists of favorite films
               </p>
-              <Button onClick={() => setIsCreateListModalOpen(true)} className="cursor-pointer h-10 rounded-md">
+              <Button onClick={() => setIsCreateListModalOpen(true)} className="cursor-pointer h-9 rounded-md">
                 <Plus className="size-6" />
                 Create List
               </Button>
@@ -212,7 +212,7 @@ export default function MyListsListsTab() {
               <p className="text-muted-foreground mb-4">
                 Create and manage your playlists of movies, TV shows, and YouTube videos
               </p>
-              <Button onClick={() => setIsCreatePlaylistModalOpen(true)} className="cursor-pointer h-10 rounded-md">
+              <Button onClick={() => setIsCreatePlaylistModalOpen(true)} className="cursor-pointer h-9 rounded-md">
                 <Plus className="size-6" />
                 Create Playlist
               </Button>

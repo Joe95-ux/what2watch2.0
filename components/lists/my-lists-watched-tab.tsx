@@ -491,6 +491,23 @@ export default function MyListsWatchedTab() {
           />
         </div>
       </div>
+      <FilterRow
+        filters={watchedFilters}
+        openDropdowns={openDropdowns}
+        setOpenDropdowns={setOpenDropdowns}
+        toggleDropdown={(label) => setOpenDropdowns((prev) => ({ ...prev, [label]: !prev[label] }))}
+        getFilterDisplayValue={(filter) => {
+          const option = filter.options.find((opt) => opt.value === filter.value);
+          return option?.label || filter.value;
+        }}
+        handleFilterValueChange={(label, value, onValueChange) => {
+          onValueChange(value);
+          setOpenDropdowns((prev) => ({ ...prev, [label]: false }));
+        }}
+        onClearAll={clearFilters}
+        hasActiveFilters={activeFilterCount > 0}
+        isOpen={isFilterRowOpen}
+      />
       {viewMode === "timeline" ? (
         <div className="hidden sm:flex items-center justify-end">
           <div className="inline-flex rounded-md border border-border/70 p-0.5">
@@ -523,23 +540,6 @@ export default function MyListsWatchedTab() {
           </div>
         </div>
       ) : null}
-      <FilterRow
-        filters={watchedFilters}
-        openDropdowns={openDropdowns}
-        setOpenDropdowns={setOpenDropdowns}
-        toggleDropdown={(label) => setOpenDropdowns((prev) => ({ ...prev, [label]: !prev[label] }))}
-        getFilterDisplayValue={(filter) => {
-          const option = filter.options.find((opt) => opt.value === filter.value);
-          return option?.label || filter.value;
-        }}
-        handleFilterValueChange={(label, value, onValueChange) => {
-          onValueChange(value);
-          setOpenDropdowns((prev) => ({ ...prev, [label]: false }));
-        }}
-        onClearAll={clearFilters}
-        hasActiveFilters={activeFilterCount > 0}
-        isOpen={isFilterRowOpen}
-      />
       {/* Content */}
       {(viewMode === "timeline"
         ? isLoading || isLoadingDetails

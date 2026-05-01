@@ -3224,13 +3224,13 @@ export default function WatchingContent() {
     <div className="h-full">
       <div
         className={cn(
-          "grid min-h-[calc(100vh-65px)] grid-cols-1",
+          "grid h-[calc(100vh-65px)] min-h-[calc(100vh-65px)] overflow-hidden grid-cols-1 transition-[grid-template-columns] duration-300 ease-in-out",
           isRightOpen
             ? "xl:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]"
-            : "xl:grid-cols-[minmax(0,1fr)]"
+            : "xl:grid-cols-[minmax(0,1fr)_0fr]"
         )}
       >
-        <main className="relative min-w-0 space-y-4 px-4 py-6 sm:px-6 lg:px-8">
+        <main className="relative min-w-0 space-y-4 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
           <Button
             type="button"
             size="icon"
@@ -3753,8 +3753,15 @@ export default function WatchingContent() {
           ) : null}
         </main>
 
-        {isRightOpen ? (
-          <aside className="relative hidden border-l border-border/70 bg-muted/20 lg:block dark:bg-muted/10">
+        <aside
+          className={cn(
+            "relative hidden min-w-0 overflow-hidden border-l border-border/70 bg-muted/20 transition-all duration-300 ease-in-out xl:block dark:bg-muted/10",
+            isRightOpen
+              ? "pointer-events-auto opacity-100 translate-x-0"
+              : "pointer-events-none opacity-0 translate-x-1 border-l-transparent"
+          )}
+        >
+          <div className="h-full overflow-y-auto">
             <button
               type="button"
               className="absolute -left-3 top-[12px] inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground cursor-pointer"
@@ -3798,8 +3805,8 @@ export default function WatchingContent() {
               isSubmitting={watchingMutation.isPending}
               watchMomentLabel={watchMomentLabel}
             />
-          </aside>
-        ) : null}
+          </div>
+        </aside>
       </div>
       <Sheet
         open={isMobile ? isRightOpen : false}

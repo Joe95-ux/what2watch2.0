@@ -98,8 +98,8 @@ export default function PublicListsTab() {
       }} className="w-full">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-6">
           <TabsList className="h-auto inline-flex rounded-md border border-border/70 p-0.5 bg-transparent gap-0.5">
-            <TabsTrigger value="lists" className="h-7 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">Lists</TabsTrigger>
-            <TabsTrigger value="playlists" className="h-7 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">Playlists</TabsTrigger>
+            <TabsTrigger value="lists" className="h-8 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">Lists</TabsTrigger>
+            <TabsTrigger value="playlists" className="h-8 px-2.5 text-xs rounded-md cursor-pointer data-[state=active]:bg-muted data-[state=active]:text-foreground">Playlists</TabsTrigger>
           </TabsList>
           
           {/* View Toggle and Create Button - Only for authenticated users */}
@@ -123,7 +123,7 @@ export default function PublicListsTab() {
                   <Table2 className="h-4 w-4" />
                 </Button>
               </div>
-              <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer rounded-md h-10">
+              <Button onClick={() => setIsCreateModalOpen(true)} className="cursor-pointer rounded-md h-9">
                 <Plus className="size-6" />
                 Create {activeTab === "lists" ? "List" : "Playlist"}
               </Button>
