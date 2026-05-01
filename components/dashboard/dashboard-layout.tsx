@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import Link, { LinkProps } from "next/link";
+import { cn } from "@/lib/utils";
 import {
   Home,
   Film,
