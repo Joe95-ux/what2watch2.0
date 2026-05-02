@@ -617,7 +617,7 @@ function JustFinishedComment({
             </div>
           ) : null}
           {isReplying ? (
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-2">
+            <div className="mt-2 flex flex-col gap-2 sm:items-end sm:gap-2">
               <Textarea
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
@@ -625,7 +625,7 @@ function JustFinishedComment({
                 placeholder="Write a reply..."
                 className="min-h-[72px] w-full border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0 sm:min-h-8 sm:flex-1 sm:max-h-28 sm:resize-y"
               />
-              <div className="flex w-full shrink-0 justify-end gap-2 sm:w-auto sm:justify-start">
+              <div className="flex w-full shrink-0 justify-end gap-2 sm:w-auto">
                 <Button
                   type="button"
                   size="sm"
@@ -705,7 +705,7 @@ function JustFinishedComment({
                         onChange={(e) => setReplyEditState({ id: reply.id, content: e.target.value })}
                         className="min-h-[72px] w-full border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0 sm:min-h-8 sm:max-h-28 sm:resize-y"
                       />
-                      <div className="flex items-center justify-end gap-2 sm:justify-start">
+                      <div className="flex items-center justify-end gap-2">
                         <Button
                           type="button"
                           size="sm"
@@ -1159,7 +1159,7 @@ function FeedCard({
 
       {isReplying ? (
         <div className="border-b border-border/60 px-[14px] py-[10px] dark:border-border/50">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-2">
+          <div className="flex flex-col gap-2 sm:items-end sm:gap-2">
             <Textarea
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
