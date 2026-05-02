@@ -338,7 +338,7 @@ function ThoughtCard({
                   onChange={(e) => setEditText(e.target.value)}
                   className="min-h-[72px] border-border/60 bg-transparent text-[13px] focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 justify-end max-w-[600px]">
                   <Button
                     type="button"
                     size="sm"
@@ -481,7 +481,7 @@ function ThoughtCard({
                     ) : null}
                   </div>
                   {replyEditState?.id === reply.id ? (
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-w-[600px]">
                       <Textarea
                         value={replyEditState.content}
                         onChange={(e) => setReplyEditState({ id: reply.id, content: e.target.value })}
@@ -567,7 +567,7 @@ function ThoughtCard({
             </Button>
           ) : null}
           {isReplying ? (
-            <div className="flex flex-col gap-2 sm:items-end sm:gap-2">
+            <div className="flex flex-col gap-2 sm:items-end sm:gap-2 max-w-[600px]">
               <Textarea
                 value={replyInput}
                 onChange={(e) => setReplyInput(e.target.value)}
