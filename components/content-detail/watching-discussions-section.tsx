@@ -657,6 +657,8 @@ export default function WatchingDiscussionsSection({
   const [discussionComposerOpen, setDiscussionComposerOpen] = useState(false);
   const [discussionDraft, setDiscussionDraft] = useState("");
   const [discussionSpoiler, setDiscussionSpoiler] = useState(false);
+  const [discussionSort, setDiscussionSort] = useState<DiscussionSort>("newest");
+  const [discussionSearchQuery, setDiscussionSearchQuery] = useState("");
   const watchingMutation = useWatchingMutation();
   const { data: currentUser } = useCurrentUser();
 
