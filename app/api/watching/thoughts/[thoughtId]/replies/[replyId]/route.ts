@@ -37,7 +37,7 @@ export async function PATCH(
     if (!content) return NextResponse.json({ error: "Reply content is required" }, { status: 400 });
 
     const moderation = moderateContent(content, {
-      minLength: 1,
+      minLength: 2,
       maxLength: 1000,
       allowProfanity: false,
       sanitizeHtml: true,

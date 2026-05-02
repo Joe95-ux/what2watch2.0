@@ -36,21 +36,21 @@ export function JoinDiscussionComposer({
 
   return (
     <div className="space-y-3">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="w-full rounded-[20px] border-primary/30 bg-primary/5 font-medium text-primary hover:bg-primary/10 sm:w-auto dark:border-primary/40 dark:bg-primary/10 dark:hover:bg-primary/15"
-        onClick={() => {
-          if (blocked) return;
-          onExpandedChange(!expanded);
-        }}
-        disabled={blocked}
-        aria-expanded={expanded}
-      >
-        <MessageSquarePlus className="mr-2 h-4 w-4 shrink-0" aria-hidden />
-        Join the discussion
-      </Button>
+      {!expanded ? (
+        <button
+          type="button"
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] border border-dashed border-primary/40 bg-primary/5 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10 sm:w-auto dark:border-primary/50 dark:bg-primary/10 dark:hover:bg-primary/15"
+          onClick={() => {
+            if (blocked) return;
+            onExpandedChange(true);
+          }}
+          disabled={blocked}
+          aria-expanded={false}
+        >
+          <MessageSquarePlus className="h-4 w-4 shrink-0" aria-hidden />
+          Join the discussion
+        </button>
+      ) : null}
 
       <div
         className={cn(
@@ -81,15 +81,27 @@ export function JoinDiscussionComposer({
                 />
                 Spoiler
               </label>
-              <Button
-                type="button"
-                size="sm"
-                className="h-8 cursor-pointer rounded-[20px] px-4 text-[13px]"
-                disabled={blocked || isSubmitting || !content.trim()}
-                onClick={() => void onSubmit()}
-              >
-                {isSubmitting ? "Posting..." : "Post"}
-              </Button>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 cursor-pointer rounded-[20px] px-4 text-[13px]"
+                  disabled={blocked || isSubmitting}
+                  onClick={() => onExpandedChange(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 cursor-pointer rounded-[20px] px-4 text-[13px]"
+                  disabled={blocked || isSubmitting || !content.trim()}
+                  onClick={() => void onSubmit()}
+                >
+                  {isSubmitting ? "Posting..." : "Post"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

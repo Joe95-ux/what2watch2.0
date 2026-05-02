@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { moderateContent } from "@/lib/moderation";
+import { moderateWatchingThoughtContent } from "@/lib/moderation";
 import {
   triggerWatchingDashboardUpdated,
   triggerWatchingTitleUpdated,
@@ -36,12 +36,7 @@ export async function PATCH(
     const content = typeof body?.content === "string" ? body.content.trim() : "";
     if (!content) return NextResponse.json({ error: "Thought content is required" }, { status: 400 });
 
-    const moderation = moderateContent(content, {
-      minLength: 1,
-      maxLength: 1000,
-      allowProfanity: false,
-      sanitizeHtml: true,
-    });
+    const moderation = moderateWatchingThoughtContent(content);
     if (!moderation.allowed) {
       return NextResponse.json({ error: moderation.error || "Thought does not meet content guidelines." }, { status: 400 });
     }

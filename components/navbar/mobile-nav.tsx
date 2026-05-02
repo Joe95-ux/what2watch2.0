@@ -8,7 +8,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetClose, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, Search, BarChart3, Sparkles, ChevronDown } from "lucide-react";
+import { Settings, LogOut, Moon, Sun, Monitor, ChevronRight, Bell, LayoutDashboard, Compass, UserRound, X, Megaphone, Bookmark, List, BookOpen, ClipboardList, TrendingUp, UsersRound, MessageSquare, Search, BarChart3, Sparkles, ChevronDown, Radio } from "lucide-react";
 import { cn, formatNotificationBadgeCount } from "@/lib/utils";
 import { useForumNotifications } from "@/hooks/use-forum-notifications";
 import { useYouTubeNotifications } from "@/hooks/use-youtube-notifications";
@@ -336,6 +336,8 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               // Icons should be brighter than labels (text-foreground is brighter than text-muted-foreground)
               const iconColor = "text-foreground";
               switch (link.href) {
+                case "/dashboard/watching":
+                  return <Radio className={cn("mr-3 h-4 w-4", iconColor)} />;
                 case "/browse":
                   return <Search className={cn("mr-3 h-4 w-4", iconColor)} />;
                 case "/popular":

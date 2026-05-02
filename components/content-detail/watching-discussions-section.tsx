@@ -38,7 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { moderateContent } from "@/lib/moderation";
+import { getWatchingReplyValidationError, getWatchingThoughtValidationError } from "@/lib/moderation";
 
 type DiscussionSort = "newest" | "oldest" | "replies" | "reactions";
 
@@ -50,15 +50,6 @@ const discussionSortLabels: Record<DiscussionSort, string> = {
 };
 
 const EMOJI_REACTIONS = ["like", "🔥", "😂", "😮", "😭"] as const;
-const validateWatchingTextInput = (value: string) => {
-  const moderation = moderateContent(value, {
-    minLength: 1,
-    maxLength: 1000,
-    allowProfanity: false,
-    sanitizeHtml: false,
-  });
-  return moderation.allowed ? null : moderation.error || "Content does not meet guidelines.";
-};
 
 const timeAgo = (iso: string) => {
   const ms = Date.now() - new Date(iso).getTime();
@@ -168,7 +159,7 @@ function ThoughtCard({
 
   const handleReply = async () => {
     if (!replyInput.trim()) return;
-    const validationError = validateWatchingTextInput(replyInput.trim());
+    const validationError = getWatchingReplyValidationError(replyInput.trim());
     if (validationError) {
       toast.error(validationError);
       return;
@@ -212,7 +203,7 @@ function ThoughtCard({
   const handleThoughtEdit = async () => {
     const content = editText.trim();
     if (!content) return;
-    const validationError = validateWatchingTextInput(content);
+    const validationError = getWatchingThoughtValidationError(content);
     if (validationError) {
       toast.error(validationError);
       return;
@@ -230,7 +221,7 @@ function ThoughtCard({
     if (!replyEditState) return;
     const content = replyEditState.content.trim();
     if (!content) return;
-    const validationError = validateWatchingTextInput(content);
+    const validationError = getWatchingReplyValidationError(content);
     if (validationError) {
       toast.error(validationError);
       return;
@@ -724,7 +715,7 @@ export default function WatchingDiscussionsSection({
 
   const submitTitleDiscussion = async () => {
     const trimmed = discussionDraft.trim();
-    const validationError = validateWatchingTextInput(trimmed);
+    const validationError = getWatchingThoughtValidationError(trimmed);
     if (validationError) {
       toast.error(validationError);
       return;
@@ -744,6 +735,7 @@ export default function WatchingDiscussionsSection({
       });
       setDiscussionDraft("");
       setDiscussionSpoiler(false);
+      setDiscussionComposerOpen(false);
       toast.success("Posted to the discussion.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to post");
@@ -926,15 +918,14 @@ export default function WatchingDiscussionsSection({
         <div className="mb-3 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-start sm:gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
-                className="h-9 w-fit shrink-0 cursor-pointer gap-1.5 rounded-[20px] border-border/60 px-3 text-xs font-medium"
+                className="inline-flex w-fit shrink-0 cursor-pointer items-center gap-1 rounded-sm border-0 bg-transparent p-0 text-left text-sm text-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                Sort by · {discussionSortLabels[discussionSort]}
-                <ChevronDown className="h-3.5 w-3.5 opacity-70" aria-hidden />
-              </Button>
+                <span className="text-muted-foreground">Sort by:</span>
+                <span>{discussionSortLabels[discussionSort]}</span>
+                <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+              </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-[12rem]">
               {(Object.keys(discussionSortLabels) as DiscussionSort[]).map((key) => (

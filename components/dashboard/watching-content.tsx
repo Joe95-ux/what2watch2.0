@@ -80,7 +80,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { moderateContent } from "@/lib/moderation";
+import { getWatchingReplyValidationError, getWatchingThoughtValidationError } from "@/lib/moderation";
 import { toast } from "sonner";
 
 type WatchingFeedCard = {
@@ -187,15 +187,6 @@ type JustFinishedRoomCard = {
 };
 
 const COMMENT_EMOJI_REACTIONS = ["like", "🔥", "😂", "😮", "😭"] as const;
-const validateWatchingTextInput = (value: string) => {
-  const moderation = moderateContent(value, {
-    minLength: 1,
-    maxLength: 1000,
-    allowProfanity: false,
-    sanitizeHtml: false,
-  });
-  return moderation.allowed ? null : moderation.error || "Content does not meet guidelines.";
-};
 
 const matchPercentTextTone = (percent: number): string => {
   if (percent >= 90) return "text-emerald-600 dark:text-emerald-400";
@@ -344,7 +335,7 @@ function JustFinishedComment({
   const submitReply = async () => {
     const text = replyText.trim();
     if (!text) return;
-    const validationError = validateWatchingTextInput(text);
+    const validationError = getWatchingReplyValidationError(text);
     if (validationError) {
       toast.error(validationError);
       return;
@@ -407,7 +398,7 @@ function JustFinishedComment({
   const submitThoughtEdit = async () => {
     const content = editText.trim();
     if (!content) return;
-    const validationError = validateWatchingTextInput(content);
+    const validationError = getWatchingThoughtValidationError(content);
     if (validationError) {
       toast.error(validationError);
       return;
@@ -425,7 +416,7 @@ function JustFinishedComment({
     if (!replyEditState) return;
     const content = replyEditState.content.trim();
     if (!content) return;
-    const validationError = validateWatchingTextInput(content);
+    const validationError = getWatchingReplyValidationError(content);
     if (validationError) {
       toast.error(validationError);
       return;
@@ -896,7 +887,7 @@ function FeedCard({
   const handleCardReply = async () => {
     const content = replyText.trim();
     if (!item.primaryThoughtId || !content) return;
-    const validationError = validateWatchingTextInput(content);
+    const validationError = getWatchingReplyValidationError(content);
     if (validationError) {
       toast.error(validationError);
       return;
@@ -1908,7 +1899,7 @@ function JustFinishedGroupCard({
             onSpoilerChange={setDiscussionSpoiler}
             onSubmit={async () => {
               const trimmed = discussionDraft.trim();
-              const validationError = validateWatchingTextInput(trimmed);
+              const validationError = getWatchingThoughtValidationError(trimmed);
               if (validationError) {
                 toast.error(validationError);
                 return;
@@ -1932,6 +1923,7 @@ function JustFinishedGroupCard({
                 });
                 setDiscussionDraft("");
                 setDiscussionSpoiler(false);
+                setDiscussionComposerOpen(false);
                 toast.success("Posted.");
               } catch (error) {
                 toast.error(error instanceof Error ? error.message : "Failed to post");
@@ -3197,7 +3189,7 @@ export default function WatchingContent() {
   const submitShareThought = async () => {
     const sessionId = watchingData?.currentSession?.id;
     if (!sessionId || !thoughtText.trim()) return;
-    const validationError = validateWatchingTextInput(thoughtText.trim());
+    const validationError = getWatchingThoughtValidationError(thoughtText.trim());
     if (validationError) {
       toast.error(validationError);
       return;

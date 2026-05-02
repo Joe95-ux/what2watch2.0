@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import type { WatchingDashboardResponse, WatchingSessionDTO, WatchingTitlePresenceResponse } from "@/lib/watching-types";
 import { triggerWatchingDashboardUpdated, triggerWatchingTitleUpdated } from "@/lib/pusher/server";
 import { getMovieDetails, getTVDetails, getTVSeasonDetails } from "@/lib/tmdb";
-import { moderateContent } from "@/lib/moderation";
+import { moderateWatchingThoughtContent } from "@/lib/moderation";
 import {
   syncEpisodeViewingFromSession,
   syncEpisodeViewingFromSessions,
@@ -904,12 +904,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
         return NextResponse.json({ error: "Thought content is required" }, { status: 400 });
       }
 
-      const moderation = moderateContent(body.content, {
-        minLength: 1,
-        maxLength: 1000,
-        allowProfanity: false,
-        sanitizeHtml: true,
-      });
+      const moderation = moderateWatchingThoughtContent(body.content);
       if (!moderation.allowed) {
         return NextResponse.json({ error: moderation.error || "Thought does not meet content guidelines." }, { status: 400 });
       }
@@ -1049,12 +1044,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
       });
 
       if (body.thought?.trim()) {
-        const moderation = moderateContent(body.thought, {
-          minLength: 1,
-          maxLength: 1000,
-          allowProfanity: false,
-          sanitizeHtml: true,
-        });
+        const moderation = moderateWatchingThoughtContent(body.thought);
         if (!moderation.allowed) {
           return NextResponse.json({ error: moderation.error || "Thought does not meet content guidelines." }, { status: 400 });
         }
