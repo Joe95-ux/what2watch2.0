@@ -332,13 +332,13 @@ function ThoughtCard({
               </div>
             ) : null}
             {isEditing ? (
-              <div className="space-y-2">
+              <div className="space-y-2 max-w-[600px]">
                 <Textarea
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
                   className="min-h-[72px] border-border/60 bg-transparent text-[13px] focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
-                <div className="flex items-center gap-2 justify-end max-w-[600px]">
+                <div className="flex items-center gap-2 justify-end">
                   <Button
                     type="button"
                     size="sm"
