@@ -368,7 +368,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
             tmdbId,
             mediaType: mediaTypeParam,
             status: {
-              in: ["WATCHING_NOW", "JUST_FINISHED"],
+              in: ["WATCHING_NOW", "JUST_FINISHED", "STOPPED"],
             },
           },
         },
@@ -820,7 +820,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
         }
       | {
           action: "share_thought";
-          sessionId: string;
+          sessionId?: string;
+          tmdbId?: number;
+          mediaType?: "movie" | "tv";
+          title?: string;
+          posterPath?: string | null;
+          backdropPath?: string | null;
+          seasonNumber?: number | null;
+          episodeNumber?: number | null;
           content: string;
           spoiler?: boolean;
         };
@@ -893,12 +900,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
     }
 
     if (body.action === "share_thought") {
-      const session = await db.watchingSession.findFirst({
-        where: { id: body.sessionId, userId: currentUser.id, status: "WATCHING_NOW" },
-        select: { id: true, tmdbId: true, mediaType: true },
-      });
-      if (!session) return NextResponse.json({ error: "Active session not found" }, { status: 404 });
-
       if (!body.content.trim()) {
         return NextResponse.json({ error: "Thought content is required" }, { status: 400 });
       }
@@ -911,6 +912,99 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
       });
       if (!moderation.allowed) {
         return NextResponse.json({ error: moderation.error || "Thought does not meet content guidelines." }, { status: 400 });
+      }
+
+      await autoTimeoutWatchingSessions([currentUser.id]);
+
+      type SessionPick = { id: string; tmdbId: number; mediaType: string };
+      let session: SessionPick | null = null;
+
+      if (body.sessionId?.trim()) {
+        session = await db.watchingSession.findFirst({
+          where: {
+            id: body.sessionId,
+            userId: currentUser.id,
+            status: { in: ["WATCHING_NOW", "JUST_FINISHED", "STOPPED"] },
+          },
+          select: { id: true, tmdbId: true, mediaType: true },
+        });
+      }
+
+      const wantsTitle =
+        typeof body.tmdbId === "number" &&
+        body.tmdbId > 0 &&
+        (body.mediaType === "movie" || body.mediaType === "tv");
+
+      if (!session && wantsTitle && body.mediaType) {
+        const tmdbId = body.tmdbId;
+        const mediaType = body.mediaType;
+        const sn =
+          mediaType === "tv" && typeof body.seasonNumber === "number" && Number.isInteger(body.seasonNumber)
+            ? body.seasonNumber
+            : null;
+        const en =
+          mediaType === "tv" && typeof body.episodeNumber === "number" && Number.isInteger(body.episodeNumber)
+            ? body.episodeNumber
+            : null;
+
+        const tvEpisodeSpecific = mediaType === "tv" && sn != null && en != null;
+
+        if (tvEpisodeSpecific) {
+          session = await db.watchingSession.findFirst({
+            where: {
+              userId: currentUser.id,
+              tmdbId,
+              mediaType,
+              seasonNumber: sn,
+              episodeNumber: en,
+            },
+            orderBy: { startedAt: "desc" },
+            select: { id: true, tmdbId: true, mediaType: true },
+          });
+        }
+
+        if (!session && !tvEpisodeSpecific) {
+          session = await db.watchingSession.findFirst({
+            where: { userId: currentUser.id, tmdbId, mediaType },
+            orderBy: { startedAt: "desc" },
+            select: { id: true, tmdbId: true, mediaType: true },
+          });
+        }
+      }
+
+      if (!session && wantsTitle && body.title?.trim()) {
+        const tmdbId = body.tmdbId;
+        const mediaType = body.mediaType;
+        const created = await db.watchingSession.create({
+          data: {
+            userId: currentUser.id,
+            tmdbId,
+            mediaType,
+            title: body.title.trim(),
+            posterPath: body.posterPath ?? null,
+            backdropPath: body.backdropPath ?? null,
+            seasonNumber:
+              mediaType === "tv" && typeof body.seasonNumber === "number" && Number.isInteger(body.seasonNumber)
+                ? body.seasonNumber
+                : null,
+            episodeNumber:
+              mediaType === "tv" && typeof body.episodeNumber === "number" && Number.isInteger(body.episodeNumber)
+                ? body.episodeNumber
+                : null,
+            status: "JUST_FINISHED",
+            endedAt: new Date(),
+            visibility: "PUBLIC",
+          },
+          select: { id: true, tmdbId: true, mediaType: true },
+        });
+        session = created;
+      }
+
+      if (!session) {
+        return NextResponse.json(
+          { error: "Could not attach a discussion to your account for this title." },
+          { status: 400 }
+        );
       }
 
       await db.watchingThought.create({

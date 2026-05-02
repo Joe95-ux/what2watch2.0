@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { MoreHorizontal, Pencil, Reply, Smile, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, MoreHorizontal, Pencil, Reply, Search, Smile, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import {
   useWatchingThoughtReplies,
 } from "@/hooks/use-watching";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { JoinDiscussionComposer } from "@/components/content-detail/join-discussion-composer";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -37,6 +39,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { moderateContent } from "@/lib/moderation";
+
+type DiscussionSort = "newest" | "oldest" | "replies" | "reactions";
+
+const discussionSortLabels: Record<DiscussionSort, string> = {
+  newest: "Newest first",
+  oldest: "Oldest first",
+  replies: "Most replies",
+  reactions: "Most reactions",
+};
 
 const EMOJI_REACTIONS = ["like", "🔥", "😂", "😮", "😭"] as const;
 const validateWatchingTextInput = (value: string) => {
@@ -643,7 +654,11 @@ export default function WatchingDiscussionsSection({
   const [showSpoilers, setShowSpoilers] = useState(false);
   const [episodeFilter, setEpisodeFilter] = useState<string>("all");
   const [highlightedThoughtId, setHighlightedThoughtId] = useState<string | null>(null);
+  const [discussionComposerOpen, setDiscussionComposerOpen] = useState(false);
+  const [discussionDraft, setDiscussionDraft] = useState("");
+  const [discussionSpoiler, setDiscussionSpoiler] = useState(false);
   const watchingMutation = useWatchingMutation();
+  const { data: currentUser } = useCurrentUser();
 
   const episodeFilters = useMemo(() => {
     if (titleContext.mediaType !== "tv") return [];
@@ -691,6 +706,73 @@ export default function WatchingDiscussionsSection({
         String(thought.episodeNumber ?? "null") === episodeRaw
     );
   }, [data?.spoilerThoughts, episodeFilter, titleContext.mediaType]);
+
+  const episodePostContext = useMemo(() => {
+    if (titleContext.mediaType !== "tv" || episodeFilter === "all") {
+      return { seasonNumber: null as number | null, episodeNumber: null as number | null };
+    }
+    const [sr, er] = episodeFilter.split("-");
+    const sn = sr === "null" ? Number.NaN : Number.parseInt(sr, 10);
+    const en = er === "null" ? Number.NaN : Number.parseInt(er, 10);
+    return {
+      seasonNumber: Number.isFinite(sn) ? sn : null,
+      episodeNumber: Number.isFinite(en) ? en : null,
+    };
+  }, [titleContext.mediaType, episodeFilter]);
+
+  const submitTitleDiscussion = async () => {
+    const trimmed = discussionDraft.trim();
+    const validationError = validateWatchingTextInput(trimmed);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+    try {
+      await watchingMutation.mutateAsync({
+        action: "share_thought",
+        tmdbId: titleContext.tmdbId,
+        mediaType: titleContext.mediaType,
+        title: titleContext.title,
+        posterPath: titleContext.posterPath,
+        backdropPath: titleContext.backdropPath,
+        seasonNumber: episodePostContext.seasonNumber,
+        episodeNumber: episodePostContext.episodeNumber,
+        content: trimmed,
+        spoiler: discussionSpoiler,
+      });
+      setDiscussionDraft("");
+      setDiscussionSpoiler(false);
+      toast.success("Posted to the discussion.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to post");
+    }
+  };
+
+  const displayedRecentThoughts = useMemo(() => {
+    let list = [...filteredRecentThoughts];
+    const q = discussionSearchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter((thought) => {
+        const name = (thought.user.displayName || thought.user.username || "").toLowerCase();
+        return name.includes(q) || thought.content.toLowerCase().includes(q);
+      });
+    }
+    list.sort((a, b) => {
+      switch (discussionSort) {
+        case "newest":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "oldest":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "replies":
+          return b.replyCount - a.replyCount;
+        case "reactions":
+          return b.reactionCount - a.reactionCount;
+        default:
+          return 0;
+      }
+    });
+    return list;
+  }, [filteredRecentThoughts, discussionSearchQuery, discussionSort]);
 
   const handleWatchingToo = async () => {
     try {
@@ -812,11 +894,79 @@ export default function WatchingDiscussionsSection({
             ))}
           </div>
         ) : null}
+
+        <div className="mb-4">
+          {currentUser ? (
+            <JoinDiscussionComposer
+              expanded={discussionComposerOpen}
+              onExpandedChange={setDiscussionComposerOpen}
+              content={discussionDraft}
+              onContentChange={setDiscussionDraft}
+              spoiler={discussionSpoiler}
+              onSpoilerChange={setDiscussionSpoiler}
+              onSubmit={submitTitleDiscussion}
+              isSubmitting={watchingMutation.isPending}
+            />
+          ) : (
+            <div className="flex flex-col gap-3 rounded-[15px] border border-border/60 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-border/50 dark:bg-muted/10">
+              <p className="text-sm text-muted-foreground">Sign in to share a thought and join the discussion.</p>
+              <Button
+                asChild
+                size="sm"
+                className="h-9 w-full shrink-0 cursor-pointer rounded-[20px] sm:w-auto"
+              >
+                <Link href="/sign-in">Sign in</Link>
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <div className="mb-3 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-start sm:gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 w-fit shrink-0 cursor-pointer gap-1.5 rounded-[20px] border-border/60 px-3 text-xs font-medium"
+              >
+                Sort by · {discussionSortLabels[discussionSort]}
+                <ChevronDown className="h-3.5 w-3.5 opacity-70" aria-hidden />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[12rem]">
+              {(Object.keys(discussionSortLabels) as DiscussionSort[]).map((key) => (
+                <DropdownMenuItem
+                  key={key}
+                  className="cursor-pointer text-sm"
+                  onClick={() => setDiscussionSort(key)}
+                >
+                  {discussionSortLabels[key]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <div className="relative w-full min-w-0 sm:max-w-md lg:w-80 lg:max-w-none">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <Input
+              value={discussionSearchQuery}
+              onChange={(e) => setDiscussionSearchQuery(e.target.value)}
+              placeholder="Search discussions…"
+              className="h-9 border-border/60 bg-transparent pl-9 text-sm"
+              aria-label="Search discussions"
+            />
+          </div>
+        </div>
+
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Recent thoughts - no spoilers
         </h3>
         <div className="mt-3 space-y-3">
-          {filteredRecentThoughts.map((thought) => (
+          {displayedRecentThoughts.map((thought) => (
             <ThoughtCard
               key={thought.thoughtId}
               thought={thought}
@@ -826,6 +976,8 @@ export default function WatchingDiscussionsSection({
           ))}
           {!filteredRecentThoughts.length ? (
             <p className="text-sm text-muted-foreground">No recent spoiler-free thoughts yet.</p>
+          ) : !displayedRecentThoughts.length ? (
+            <p className="text-sm text-muted-foreground">No thoughts match your search.</p>
           ) : null}
         </div>
       </div>

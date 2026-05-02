@@ -43,7 +43,14 @@ type WatchingActionBody =
     }
   | {
       action: "share_thought";
-      sessionId: string;
+      sessionId?: string;
+      tmdbId?: number;
+      mediaType?: "movie" | "tv";
+      title?: string;
+      posterPath?: string | null;
+      backdropPath?: string | null;
+      seasonNumber?: number | null;
+      episodeNumber?: number | null;
       content: string;
       spoiler?: boolean;
     };

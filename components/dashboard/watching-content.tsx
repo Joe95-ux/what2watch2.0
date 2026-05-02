@@ -50,6 +50,7 @@ import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { WatchingSessionDTO } from "@/lib/watching-types";
 import { getPosterUrl, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
 import WatchBreakdownSection from "@/components/content-detail/watch-breakdown-section";
+import { JoinDiscussionComposer } from "@/components/content-detail/join-discussion-composer";
 import { WatchingPulseSubtitle } from "@/components/dashboard/watching-pulse-subtitle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -1644,6 +1645,9 @@ function JustFinishedGroupCard({
   onWatchNow?: (room: { tmdbId: number; mediaType: "movie" | "tv"; title: string }) => void;
 }) {
   const [showThoughts, setShowThoughts] = useState(true);
+  const [discussionComposerOpen, setDiscussionComposerOpen] = useState(false);
+  const [discussionDraft, setDiscussionDraft] = useState("");
+  const [discussionSpoiler, setDiscussionSpoiler] = useState(false);
   const isMobile = useIsMobile();
   const [showFinishOverrideDialog, setShowFinishOverrideDialog] = useState(false);
   const topAvatars = room.participants.slice(0, 6);
@@ -1887,6 +1891,62 @@ function JustFinishedGroupCard({
             })()}
           </p>
         </div>
+      </div>
+
+      <div
+        className="border-b border-border/60 px-[14px] py-3 dark:border-border/50"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
+        {currentUserId ? (
+          <JoinDiscussionComposer
+            expanded={discussionComposerOpen}
+            onExpandedChange={setDiscussionComposerOpen}
+            content={discussionDraft}
+            onContentChange={setDiscussionDraft}
+            spoiler={discussionSpoiler}
+            onSpoilerChange={setDiscussionSpoiler}
+            onSubmit={async () => {
+              const trimmed = discussionDraft.trim();
+              const validationError = validateWatchingTextInput(trimmed);
+              if (validationError) {
+                toast.error(validationError);
+                return;
+              }
+              try {
+                await watchingMutation.mutateAsync({
+                  action: "share_thought",
+                  ...(room.currentUserSession
+                    ? { sessionId: room.currentUserSession.sessionId }
+                    : {
+                        tmdbId: room.tmdbId,
+                        mediaType: room.mediaType,
+                        title: room.title,
+                        posterPath: room.posterPath,
+                        backdropPath: room.backdropPath,
+                        seasonNumber: room.seasonNumber,
+                        episodeNumber: room.episodeNumber,
+                      }),
+                  content: trimmed,
+                  spoiler: discussionSpoiler,
+                });
+                setDiscussionDraft("");
+                setDiscussionSpoiler(false);
+                toast.success("Posted.");
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "Failed to post");
+              }
+            }}
+            isSubmitting={watchingMutation.isPending}
+          />
+        ) : (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">Sign in to join the discussion.</p>
+            <Button asChild size="sm" className="h-9 w-full shrink-0 rounded-[20px] sm:w-auto">
+              <Link href="/sign-in">Sign in</Link>
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="border-b border-border/60 px-[14px] py-[10px] dark:border-border/50">
