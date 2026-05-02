@@ -744,7 +744,8 @@ export default function WatchingDiscussionsSection({
 
   const displayedRecentThoughts = useMemo(() => {
     let list = [...filteredRecentThoughts];
-    const q = discussionSearchQuery.trim().toLowerCase();
+    const q =
+      filteredRecentThoughts.length < 4 ? "" : discussionSearchQuery.trim().toLowerCase();
     if (q) {
       list = list.filter((thought) => {
         const name = (thought.user.displayName || thought.user.username || "").toLowerCase();
@@ -900,6 +901,7 @@ export default function WatchingDiscussionsSection({
               onSpoilerChange={setDiscussionSpoiler}
               onSubmit={submitTitleDiscussion}
               isSubmitting={watchingMutation.isPending}
+              isTitleDiscussion={true}
             />
           ) : (
             <div className="flex flex-col gap-3 rounded-[15px] border border-border/60 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-border/50 dark:bg-muted/10">
@@ -915,45 +917,47 @@ export default function WatchingDiscussionsSection({
           )}
         </div>
 
-        <div className="mb-3 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-start sm:gap-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex w-fit shrink-0 cursor-pointer items-center gap-1 rounded-sm border-0 bg-transparent p-0 text-left text-sm text-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <span className="text-muted-foreground">Sort by:</span>
-                <span>{discussionSortLabels[discussionSort]}</span>
-                <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[12rem]">
-              {(Object.keys(discussionSortLabels) as DiscussionSort[]).map((key) => (
-                <DropdownMenuItem
-                  key={key}
-                  className="cursor-pointer text-sm"
-                  onClick={() => setDiscussionSort(key)}
+        {filteredRecentThoughts.length >= 4 ? (
+          <div className="mb-3 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-start sm:gap-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex w-fit shrink-0 cursor-pointer items-center gap-1 rounded-sm border-0 bg-transparent p-0 text-left text-sm text-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
-                  {discussionSortLabels[key]}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <span className="text-muted-foreground">Sort by:</span>
+                  <span>{discussionSortLabels[discussionSort]}</span>
+                  <ChevronDown className="relative top-[3px] h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="min-w-[12rem]">
+                {(Object.keys(discussionSortLabels) as DiscussionSort[]).map((key) => (
+                  <DropdownMenuItem
+                    key={key}
+                    className="cursor-pointer text-sm"
+                    onClick={() => setDiscussionSort(key)}
+                  >
+                    {discussionSortLabels[key]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-          <div className="relative w-full min-w-0 sm:max-w-md lg:w-80 lg:max-w-none">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden
-            />
-            <Input
-              value={discussionSearchQuery}
-              onChange={(e) => setDiscussionSearchQuery(e.target.value)}
-              placeholder="Search discussions…"
-              className="h-9 border-border/60 bg-transparent pl-9 text-sm"
-              aria-label="Search discussions"
-            />
+            <div className="relative w-full min-w-0 sm:max-w-md lg:w-80 lg:max-w-none">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <Input
+                value={discussionSearchQuery}
+                onChange={(e) => setDiscussionSearchQuery(e.target.value)}
+                placeholder="Search discussions…"
+                className="h-9 border-border/60 bg-transparent pl-9 text-sm"
+                aria-label="Search discussions"
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Recent thoughts - no spoilers

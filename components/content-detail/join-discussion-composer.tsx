@@ -18,6 +18,7 @@ type JoinDiscussionComposerProps = {
   disabled?: boolean;
   /** When false, still show CTA but disable interaction (e.g. signed-out). */
   canPost?: boolean;
+  isTitleDiscussion?: boolean;
 };
 
 export function JoinDiscussionComposer({
@@ -29,13 +30,14 @@ export function JoinDiscussionComposer({
   onSpoilerChange,
   onSubmit,
   isSubmitting,
+  isTitleDiscussion = false,
   disabled = false,
   canPost = true,
 }: JoinDiscussionComposerProps) {
   const blocked = disabled || !canPost;
 
   return (
-    <div className="space-y-3">
+    <div className={cn("space-y-3", isTitleDiscussion ? "flex flex-col" : "")}>
       {!expanded ? (
         <button
           type="button"
