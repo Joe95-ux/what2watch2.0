@@ -521,7 +521,7 @@ function JustFinishedComment({
                 onChange={(e) => setEditText(e.target.value)}
                 className="min-h-[72px] border-border/60 bg-transparent text-[13px] focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 justify-end">
                 <Button
                   type="button"
                   size="sm"
