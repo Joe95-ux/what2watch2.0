@@ -523,9 +523,9 @@ function PopularContentInner() {
             {/* Tabs */}
             <Tabs value={type === "movie" ? "movies" : type} onValueChange={(v) => handleTypeChange(v === "movies" ? "movie" : v as "all" | "movie" | "tv")} className={cn(isMobile && "self-start")}>
               <TabsList className="bg-background h-10 border border-border">
-                <TabsTrigger value="all" className="cursor-pointer">All</TabsTrigger>
-                <TabsTrigger value="movies" className="cursor-pointer">Movies</TabsTrigger>
-                <TabsTrigger value="tv" className="cursor-pointer">TV Shows</TabsTrigger>
+                <TabsTrigger value="all" className="cursor-pointer border-none">All</TabsTrigger>
+                <TabsTrigger value="movies" className="cursor-pointer border-none">Movies</TabsTrigger>
+                <TabsTrigger value="tv" className="cursor-pointer border-none">TV Shows</TabsTrigger>
               </TabsList>
             </Tabs>
 

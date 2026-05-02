@@ -14,6 +14,7 @@ import { useForumNotifications } from "@/hooks/use-forum-notifications";
 import { useYouTubeNotifications } from "@/hooks/use-youtube-notifications";
 import { useGeneralNotifications } from "@/hooks/use-general-notifications";
 import { useYouTubeToolsVisibility } from "@/hooks/use-youtube-tools-visibility";
+import { useWatchingDashboard } from "@/hooks/use-watching";
 import { UnifiedNotificationCenterMobile } from "@/components/notifications/unified-notification-center-mobile";
 import Logo from "@/components/Logo";
 import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
@@ -59,9 +60,11 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
   const { data: forumData } = useForumNotifications(false);
   const { data: youtubeData } = useYouTubeNotifications(false);
   const { data: generalData } = useGeneralNotifications(false);
+  const { data: watchingDashboard } = useWatchingDashboard(Boolean(isSignedIn));
   const forumUnreadCount = forumData?.unreadCount || 0;
   const youtubeUnreadCount = youtubeData?.unreadCount || 0;
   const generalUnreadCount = generalData?.unreadCount || 0;
+  const watchingBadgeCount = watchingDashboard?.watchingNow?.length ?? 0;
   const totalUnreadCount = forumUnreadCount + youtubeUnreadCount + generalUnreadCount;
   const formattedTotalUnreadCount = formatNotificationBadgeCount(totalUnreadCount);
   const isSingleDigitUnreadBadge = totalUnreadCount < 10;
@@ -337,7 +340,17 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               const iconColor = "text-foreground";
               switch (link.href) {
                 case "/dashboard/watching":
-                  return <Radio className={cn("mr-3 h-4 w-4", iconColor)} />;
+                  return (
+                    <Radio
+                      className={cn(
+                        "mr-3 h-4 w-4",
+                        iconColor,
+                        watchingBadgeCount > 0
+                          ? "text-emerald-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.55)] animate-pulse"
+                          : undefined
+                      )}
+                    />
+                  );
                 case "/browse":
                   return <Search className={cn("mr-3 h-4 w-4", iconColor)} />;
                 case "/popular":
@@ -373,6 +386,11 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
               >
                 {getIcon()}
                 <span>{link.label}</span>
+                {link.href === "/dashboard/watching" && watchingBadgeCount > 0 ? (
+                  <span className="ml-auto text-xs font-medium bg-primary text-primary-foreground rounded-full px-2 py-0.5 min-w-[1.5rem] text-center">
+                    {watchingBadgeCount}
+                  </span>
+                ) : null}
               </Link>
             );
             // Guide comes right after Popular in the mobile menu

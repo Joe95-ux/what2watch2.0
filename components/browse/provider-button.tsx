@@ -23,7 +23,7 @@ export function ProviderButton({ providers, onClick }: ProviderButtonProps) {
     <Button
       variant="outline"
       onClick={onClick}
-      className="relative h-10 px-2 cursor-pointer"
+      className="relative h-9 px-2 cursor-pointer"
     >
       <div className="flex items-center -space-x-2">
         {displayProviders.map((provider, index) => (
@@ -31,7 +31,7 @@ export function ProviderButton({ providers, onClick }: ProviderButtonProps) {
             key={provider.provider_id}
             className={cn(
               "relative rounded-lg overflow-hidden",
-              "h-8 w-8 flex-shrink-0"
+              "h-7 w-7 flex-shrink-0"
             )}
             style={{ zIndex: displayProviders.length - index }}
           >

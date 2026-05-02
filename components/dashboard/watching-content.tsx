@@ -3304,7 +3304,7 @@ export default function WatchingContent() {
           {!isRightOpen ? (
             <button
               type="button"
-              className="absolute right-2 top-5 hidden h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground xl:inline-flex"
+              className="absolute right-8 top-5 hidden h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground xl:inline-flex"
               onClick={() => setIsRightOpen(true)}
               aria-label="Expand sidebar"
             >
