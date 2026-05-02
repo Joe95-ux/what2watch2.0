@@ -3238,7 +3238,7 @@ export default function WatchingContent() {
             : "xl:grid-cols-[minmax(0,1fr)_0fr]"
         )}
       >
-        <main className="watching-page-scroll relative pb-12 min-w-0 space-y-4 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
+        <main className="watching-page-scroll relative pb-16 min-w-0 space-y-4 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
           <Button
             type="button"
             size="icon"
