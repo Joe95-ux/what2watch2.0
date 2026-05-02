@@ -482,12 +482,12 @@ function ThoughtCard({
                   </div>
                   {replyEditState?.id === reply.id ? (
                     <div className="space-y-2">
-                      <Input
+                      <Textarea
                         value={replyEditState.content}
                         onChange={(e) => setReplyEditState({ id: reply.id, content: e.target.value })}
-                        className="h-8 border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
+                        className="min-h-[72px] w-full border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0 sm:min-h-8 sm:max-h-28 sm:resize-y"
                       />
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-end gap-2 sm:justify-start">
                         <Button
                           type="button"
                           size="sm"
@@ -567,34 +567,36 @@ function ThoughtCard({
             </Button>
           ) : null}
           {isReplying ? (
-            <div className="flex items-center gap-2">
-              <Input
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-2">
+              <Textarea
                 value={replyInput}
                 onChange={(e) => setReplyInput(e.target.value)}
                 placeholder="Write a reply..."
-                className="h-8 border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="min-h-[72px] w-full border-border/60 bg-transparent text-xs focus-visible:ring-0 focus-visible:ring-offset-0 sm:min-h-8 sm:flex-1 sm:max-h-28 sm:resize-y"
               />
-              <Button
-                size="sm"
-                className="h-8 cursor-pointer rounded-[20px] px-3 text-xs"
-                onClick={handleReply}
-                disabled={addReplyMutation.isPending || !replyInput.trim()}
-              >
-                <Reply className="h-3.5 w-3.5" /> Reply
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="h-8 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs text-muted-foreground hover:bg-muted"
-                onClick={() => {
-                  setIsReplying(false);
-                  setReplyParentId(null);
-                  setReplyInput("");
-                }}
-              >
-                Cancel
-              </Button>
+              <div className="flex w-full shrink-0 justify-end gap-2 sm:w-auto sm:justify-start">
+                <Button
+                  size="sm"
+                  className="h-8 cursor-pointer rounded-[20px] px-3 text-xs"
+                  onClick={handleReply}
+                  disabled={addReplyMutation.isPending || !replyInput.trim()}
+                >
+                  <Reply className="h-3.5 w-3.5" /> Reply
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs text-muted-foreground hover:bg-muted"
+                  onClick={() => {
+                    setIsReplying(false);
+                    setReplyParentId(null);
+                    setReplyInput("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           ) : null}
           </div>
@@ -856,7 +858,7 @@ export default function WatchingDiscussionsSection({
       ) : null}
 
       <div>
-        {titleContext.mediaType === "tv" ? (
+        {titleContext.mediaType === "tv" && episodeFilters.length > 0 ? (
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <Button
               type="button"

@@ -101,7 +101,7 @@ export function JoinDiscussionComposer({
                   disabled={blocked || isSubmitting || !content.trim()}
                   onClick={() => void onSubmit()}
                 >
-                  {isSubmitting ? "Posting..." : "Post"}
+                  {isSubmitting ? "Commenting..." : "Commment"}
                 </Button>
               </div>
             </div>
