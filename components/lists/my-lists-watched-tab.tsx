@@ -315,7 +315,13 @@ export default function MyListsWatchedTab() {
     });
 
     return Array.from(grouped.entries())
-      .sort(([a], [b]) => b.localeCompare(a))
+      .sort(([a], [b]) => {
+        // Match "Date watched" sort: full timeline order by calendar bucket, not only within each day.
+        if (sortField === "watchedAt" && sortOrder === "asc") {
+          return a.localeCompare(b);
+        }
+        return b.localeCompare(a);
+      })
       .map(([dateKey, items]) => {
         const baseDate = new Date(dateKey);
         if (grouping === "month") {
@@ -343,7 +349,7 @@ export default function MyListsWatchedTab() {
           items,
         };
       });
-  }, [filteredTimelineItems, grouping]);
+  }, [filteredTimelineItems, grouping, sortField, sortOrder]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
