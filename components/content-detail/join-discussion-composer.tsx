@@ -19,6 +19,7 @@ type JoinDiscussionComposerProps = {
   /** When false, still show CTA but disable interaction (e.g. signed-out). */
   canPost?: boolean;
   isTitleDiscussion?: boolean;
+  isRoomCard?: boolean;
 };
 
 export function JoinDiscussionComposer({
@@ -31,17 +32,21 @@ export function JoinDiscussionComposer({
   onSubmit,
   isSubmitting,
   isTitleDiscussion = false,
+  isRoomCard = false,
   disabled = false,
   canPost = true,
 }: JoinDiscussionComposerProps) {
   const blocked = disabled || !canPost;
 
   return (
-    <div className={cn("space-y-3", isTitleDiscussion ? "flex flex-col" : "")}>
+    <div className={cn(!isRoomCard ? "space-y-3" : "", isTitleDiscussion ? "flex flex-col" : "")}>
       {!expanded ? (
         <button
           type="button"
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] border border-dashed border-primary/40 bg-primary/5 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10 sm:w-auto dark:border-primary/50 dark:bg-primary/10 dark:hover:bg-primary/15"
+          className={cn(
+            "flex w-full cursor-pointer items-center justify-center gap-2 border border-dashed border-primary/40 bg-primary/5 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10 sm:w-auto dark:border-primary/50 dark:bg-primary/10 dark:hover:bg-primary/15",
+            isRoomCard ? "rounded-none" : "rounded-[8px]"
+          )}
           onClick={() => {
             if (blocked) return;
             onExpandedChange(true);

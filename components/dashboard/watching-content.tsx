@@ -1913,6 +1913,7 @@ function JustFinishedGroupCard({
             onContentChange={setDiscussionDraft}
             spoiler={discussionSpoiler}
             onSpoilerChange={setDiscussionSpoiler}
+            isRoomCard
             onSubmit={async () => {
               const trimmed = discussionDraft.trim();
               const validationError = getWatchingThoughtValidationError(trimmed);
