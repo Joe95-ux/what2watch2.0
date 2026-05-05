@@ -180,7 +180,7 @@ export default function OverviewSection({
     hasActiveProSubscription(currentUser?.stripeSubscriptionStatus) ||
     currentUser?.aiChatMaxQuestions === -1;
   const [isExpanded, setIsExpanded] = useState(false);
-  const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const [detailsExpanded, setDetailsExpanded] = useState(true);
   const [isCreateListModalOpen, setIsCreateListModalOpen] = useState(false);
   const synopsis = item.overview || "";
   const shouldTruncate = synopsis.length > MAX_SYNOPSIS_LENGTH;
