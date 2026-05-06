@@ -3426,11 +3426,11 @@ export default function WatchingContent() {
             </div>
           </div>
           <Dialog open={searchModalOpen} onOpenChange={setSearchModalOpen}>
-            <DialogContent className="max-w-2xl p-0">
+            <DialogContent className="max-w-[calc(100vw-1rem)] sm:max-w-2xl p-0 max-h-[98vh]">
               <DialogHeader className="border-b border-border/60 px-4 py-3">
                 <DialogTitle className="text-base">Search title to start watching</DialogTitle>
               </DialogHeader>
-              <div className="px-4 py-3">
+              <div className="px-4">
                 <Input
                   value={watchSearchQuery}
                   onChange={(e) => {
@@ -3448,7 +3448,7 @@ export default function WatchingContent() {
                   autoComplete="off"
                 />
               </div>
-              <div className="min-h-[280px] max-h-[55vh] overflow-y-auto border-t border-border/60 p-2 scrollbar-thin">
+              <div className="min-h-[280px] max-h-[50vh] overflow-y-auto border-t border-border/60 p-2 scrollbar-thin">
                 {!debouncedWatchSearch.trim() ? (
                   <div className="flex h-full items-center justify-center p-4 text-center text-sm text-muted-foreground">
                     Start typing to search.
