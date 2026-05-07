@@ -45,6 +45,7 @@ import { useAutoGrowingTextarea } from "@/hooks/use-auto-growing-textarea";
 import { useJustWatchCountries, useTVSeasonDetails, useTVSeasons, useWatchProviders } from "@/hooks/use-content-details";
 import { useRoomMatchScores } from "@/hooks/use-room-match-scores";
 import { useSearch } from "@/hooks/use-search";
+import { useViewingLogsByContent } from "@/hooks/use-viewing-logs";
 import { useWatchingPulseStats } from "@/hooks/use-watching-pulse-stats";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { WatchingSessionDTO } from "@/lib/watching-types";
@@ -2617,6 +2618,7 @@ export default function WatchingContent() {
     selectedTvTmdbId && Number.isInteger(parsedSeasonInput) && parsedSeasonInput > 0 ? parsedSeasonInput : null;
   const { data: tvPickerSeasons } = useTVSeasons(selectedTvTmdbId);
   const { data: tvPickerSeasonDetails } = useTVSeasonDetails(selectedTvTmdbId, selectedSeasonForDetails);
+  const { data: selectedTitleViewingLogs } = useViewingLogsByContent(selectedTvTmdbId, selectedTvTmdbId ? "tv" : null);
   const tvRegularSeasons = useMemo(
     () => (tvPickerSeasons?.seasons ?? []).filter((season) => season.season_number > 0),
     [tvPickerSeasons?.seasons]
@@ -2643,6 +2645,38 @@ export default function WatchingContent() {
   );
   const selectedSeasonEpisodeCount =
     selectedSeasonForDetails != null ? (episodeCountBySeason.get(selectedSeasonForDetails) ?? null) : null;
+  const latestLoggedTvProgress = useMemo(() => {
+    if (!selectedTitleViewingLogs?.length) return null;
+    for (const log of selectedTitleViewingLogs) {
+      if (log.type === "episodeLog" && Number.isInteger(log.seasonNumber) && (log.seasonNumber ?? 0) > 0) {
+        const directEpisode = log.episodeNumber;
+        const groupedEpisode = Array.isArray(log.episodeNumbers) && log.episodeNumbers.length
+          ? Math.max(...log.episodeNumbers)
+          : null;
+        const resolvedEpisode =
+          Number.isInteger(directEpisode) && (directEpisode ?? 0) > 0
+            ? (directEpisode as number)
+            : groupedEpisode;
+        if (resolvedEpisode && resolvedEpisode > 0) {
+          return {
+            seasonNumber: log.seasonNumber as number,
+            episodeNumber: resolvedEpisode,
+          };
+        }
+      }
+      if (log.type === "viewingLog" && log.title) {
+        const match = log.title.match(/\bS(\d+)\s*E(\d+)\b/i);
+        if (match) {
+          const seasonNumber = Number.parseInt(match[1], 10);
+          const episodeNumber = Number.parseInt(match[2], 10);
+          if (Number.isInteger(seasonNumber) && seasonNumber > 0 && Number.isInteger(episodeNumber) && episodeNumber > 0) {
+            return { seasonNumber, episodeNumber };
+          }
+        }
+      }
+    }
+    return null;
+  }, [selectedTitleViewingLogs]);
   const hasValidSelectedEpisodeRange =
     selectedPick?.mediaType !== "tv" ||
     selectedSeasonForDetails == null ||
@@ -3180,6 +3214,28 @@ export default function WatchingContent() {
         return;
       }
     }
+    if (latestLoggedTvProgress) {
+      const currentSeason = latestLoggedTvProgress.seasonNumber;
+      const currentEpisode = latestLoggedTvProgress.episodeNumber;
+      const episodesInSeason = episodeCountBySeason.get(currentSeason) ?? null;
+      const sortedSeasonNumbers = tvRegularSeasons
+        .map((season) => season.season_number)
+        .sort((a, b) => a - b);
+      const nextSeasonCandidate = sortedSeasonNumbers.find((seasonNumber) => seasonNumber > currentSeason) ?? null;
+      if (episodesInSeason != null && currentEpisode >= episodesInSeason) {
+        if (nextSeasonCandidate != null) {
+          setSelectedSeasonNumber(String(nextSeasonCandidate));
+          setSelectedEpisodeNumber("1");
+        } else {
+          setSelectedSeasonNumber(String(currentSeason));
+          setSelectedEpisodeNumber(String(episodesInSeason));
+        }
+      } else {
+        setSelectedSeasonNumber(String(currentSeason));
+        setSelectedEpisodeNumber(String(currentEpisode + 1));
+      }
+      return;
+    }
     if (
       activeSession &&
       activeSession.mediaType === "tv" &&
@@ -3199,6 +3255,7 @@ export default function WatchingContent() {
     currentUser?.id,
     selectedSeasonNumber,
     selectedEpisodeNumber,
+    latestLoggedTvProgress,
     episodeCountBySeason,
     tvRegularSeasons,
   ]);
