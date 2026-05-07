@@ -14,7 +14,6 @@ const globalForPrisma = globalThis as unknown as {
 export const db =
   globalForPrisma.prisma ?? prismaClientSingleton();
 
-// Only cache in development (prevents hot-reload connection spam)
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = db;
-}
+// Cache client on globalThis in all environments to avoid creating
+// additional Prisma clients per module reload/evaluation.
+globalForPrisma.prisma = db;

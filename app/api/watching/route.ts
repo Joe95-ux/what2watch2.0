@@ -554,8 +554,20 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
       }))
     );
 
+    // Runtime-based auto-finish must include the signed-in user's current session.
+    // `watchingNowRaw` is capped at 40 rows (newest network-wide starts), so an older
+    // "still watching" session can be missing from that list while still being `currentSessionRaw`.
+    const watchingSessionById = new Map<string, (typeof watchingNowRaw)[number]>();
+    for (const session of watchingNowRaw) {
+      watchingSessionById.set(session.id, session);
+    }
+    if (currentSessionRaw?.status === "WATCHING_NOW") {
+      watchingSessionById.set(currentSessionRaw.id, currentSessionRaw);
+    }
+    const sessionsEligibleForRuntimeFinish = [...watchingSessionById.values()];
+
     const autoFinishNow = new Date();
-    const autoFinishSessionIds = watchingNowRaw
+    const autoFinishSessionIds = sessionsEligibleForRuntimeFinish
       .filter((session) => {
         if (session.status !== "WATCHING_NOW") return false;
         const key =
@@ -582,8 +594,12 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
           endedAt: autoFinishNow,
         },
       });
+      const autoFinishedRows = autoFinishSessionIds
+        .map((id) => watchingSessionById.get(id))
+        .filter((row): row is NonNullable<typeof row> => Boolean(row));
+
       await upsertWatchedTitles(
-        watchingNowRaw.filter((session) => autoFinishSessionIds.includes(session.id)).map((session) => ({
+        autoFinishedRows.map((session) => ({
           userId: session.userId,
           tmdbId: session.tmdbId,
           mediaType: session.mediaType,
@@ -597,7 +613,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
         autoFinishNow
       );
       await syncEpisodeViewingFromSessions(
-        watchingNowRaw.filter((session) => autoFinishSessionIds.includes(session.id)).map((session) => ({
+        autoFinishedRows.map((session) => ({
           userId: session.userId,
           tmdbId: session.tmdbId,
           mediaType: session.mediaType,
@@ -611,14 +627,12 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
       );
 
       const autoFinishedSet = new Set(autoFinishSessionIds);
-      const autoFinishedSessions = watchingNowRaw
-        .filter((session) => autoFinishedSet.has(session.id))
-        .map((session) => ({
-          ...session,
-          status: "JUST_FINISHED" as const,
-          endedAt: session.endedAt ?? autoFinishNow,
-          updatedAt: autoFinishNow,
-        }));
+      const autoFinishedSessions = autoFinishedRows.map((session) => ({
+        ...session,
+        status: "JUST_FINISHED" as const,
+        endedAt: session.endedAt ?? autoFinishNow,
+        updatedAt: autoFinishNow,
+      }));
 
       watchingNowRaw = watchingNowRaw.filter((session) => !autoFinishedSet.has(session.id));
       justFinishedRaw = [...autoFinishedSessions, ...justFinishedRaw]
