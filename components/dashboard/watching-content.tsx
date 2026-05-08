@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -47,6 +46,7 @@ import { useJustWatchCountries, useTVSeasonDetails, useTVSeasons, useWatchProvid
 import { useRoomMatchScores } from "@/hooks/use-room-match-scores";
 import { useSearch } from "@/hooks/use-search";
 import { useViewingLogsByContent } from "@/hooks/use-viewing-logs";
+import { useWatchingRoomDeepLink } from "@/hooks/use-watching-room-deep-link";
 import { useWatchPartyRoomPusher } from "@/hooks/use-watch-party-room-pusher";
 import { useWatchingPulseStats } from "@/hooks/use-watching-pulse-stats";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
@@ -54,6 +54,7 @@ import type { WatchingSessionDTO } from "@/lib/watching-types";
 import { getPosterUrl, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
 import WatchBreakdownSection from "@/components/content-detail/watch-breakdown-section";
 import { JoinDiscussionComposer } from "@/components/content-detail/join-discussion-composer";
+import { WatchRoomActionsMenu } from "@/components/dashboard/watch-room-actions-menu";
 import { WatchingPulseSubtitle } from "@/components/dashboard/watching-pulse-subtitle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -1511,18 +1512,15 @@ function WatchingNowGroupCard({
             >
               {displayMatchPercent}% match
             </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onInviteRoom?.(room);
-              }}
-              className="h-8 shrink-0 cursor-pointer rounded-[20px] px-3 text-xs text-muted-foreground hover:bg-muted"
-            >
-              Invite
-            </Button>
+            <WatchRoomActionsMenu
+              title={room.title}
+              canControlPlayback={canControlPlayback}
+              isWatchingNow={room.currentUserSession?.status === "WATCHING_NOW"}
+              onInvite={() => onInviteRoom?.(room)}
+              onTogglePlayback={() => void handlePlaybackToggle()}
+              onFinish={() => void handlePlaybackFinish(false)}
+              onLeave={() => void handlePlaybackLeave()}
+            />
             <Button
               type="button"
               size="sm"
@@ -2623,9 +2621,6 @@ function RightRail({
 
 export default function WatchingContent() {
   const isMobile = useIsMobile();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { data: currentUser, isLoading } = useCurrentUser();
   const { data: watchingData, isLoading: isWatchingLoading } = useWatchingDashboard(true);
   const watchingMutation = useWatchingMutation();
@@ -3077,7 +3072,21 @@ export default function WatchingContent() {
     const start = (justFinishedPage - 1) * JUST_FINISHED_PAGE_SIZE;
     return justFinishedRooms.slice(start, start + JUST_FINISHED_PAGE_SIZE);
   }, [showAllJustFinished, justFinishedRooms, justFinishedPage]);
-  const focusedRoomKey = searchParams.get("room");
+  const { focusedRoomKey, setFocusedRoomInUrl, buildRoomInviteUrl } = useWatchingRoomDeepLink({
+    rooms: watchingNowRooms,
+    pageSize: WATCHING_NOW_PAGE_SIZE,
+    onFocusedRoomResolved: (focused, _index, targetPage) => {
+      setShowAllWatchingNow(true);
+      setWatchingNowPage(targetPage);
+      setActiveCardContext({
+        tmdbId: focused.tmdbId,
+        mediaType: focused.mediaType,
+        title: focused.title,
+        seasonNumber: focused.seasonNumber ?? null,
+        episodeNumber: focused.episodeNumber ?? null,
+      });
+    },
+  });
 
   const effectiveAlsoWatchingContext = useMemo(() => {
     if (activeCardContext) return activeCardContext;
@@ -3129,23 +3138,6 @@ export default function WatchingContent() {
     }
     setWatchingNowPage((page) => Math.min(page, watchingNowTotalPages));
   }, [showAllWatchingNow, watchingNowTotalPages]);
-
-  useEffect(() => {
-    if (!focusedRoomKey || !watchingNowRooms.length) return;
-    const roomIndex = watchingNowRooms.findIndex((room) => room.key === focusedRoomKey);
-    if (roomIndex < 0) return;
-    setShowAllWatchingNow(true);
-    const nextPage = Math.floor(roomIndex / WATCHING_NOW_PAGE_SIZE) + 1;
-    setWatchingNowPage(nextPage);
-    const focused = watchingNowRooms[roomIndex];
-    setActiveCardContext({
-      tmdbId: focused.tmdbId,
-      mediaType: focused.mediaType,
-      title: focused.title,
-      seasonNumber: focused.seasonNumber ?? null,
-      episodeNumber: focused.episodeNumber ?? null,
-    });
-  }, [focusedRoomKey, watchingNowRooms]);
 
   useEffect(() => {
     if (!showAllJustFinished) {
@@ -3242,7 +3234,8 @@ export default function WatchingContent() {
   };
 
   const activeSession = watchingData?.currentSession ?? null;
-  useWatchPartyRoomPusher(activeSession?.id ?? null, Boolean(activeSession?.id));
+  const subscribedWatchPartyRoomId = focusedRoomKey ?? activeSession?.id ?? null;
+  useWatchPartyRoomPusher(subscribedWatchPartyRoomId, Boolean(subscribedWatchPartyRoomId));
   const isWatchingActive = Boolean(activeSession) && !isChangingTitle;
   const composeInputValue = isWatchingActive ? activeSession?.title ?? "" : watchSearchQuery;
 
@@ -3858,9 +3851,11 @@ export default function WatchingContent() {
                 }
               }}
               onInviteRoom={(selectedRoom) => {
-                const params = new URLSearchParams(searchParams.toString());
-                params.set("room", selectedRoom.key);
-                const inviteUrl = `${window.location.origin}${pathname}?${params.toString()}`;
+                const inviteUrl = buildRoomInviteUrl(selectedRoom.key);
+                if (!inviteUrl) {
+                  toast.error("Failed to create invite link.");
+                  return;
+                }
                 void navigator.clipboard.writeText(inviteUrl).then(
                   () => toast.success("Invite link copied."),
                   () => toast.error("Failed to copy invite link.")
@@ -3868,9 +3863,7 @@ export default function WatchingContent() {
               }}
               onSelect={(selectedRoom) =>
                 {
-                  const params = new URLSearchParams(searchParams.toString());
-                  params.set("room", selectedRoom.key);
-                  router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+                  setFocusedRoomInUrl(selectedRoom.key);
                   setActiveCardContext({
                     tmdbId: selectedRoom.tmdbId,
                     mediaType: selectedRoom.mediaType,
