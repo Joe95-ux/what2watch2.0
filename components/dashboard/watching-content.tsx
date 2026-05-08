@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -46,6 +47,7 @@ import { useJustWatchCountries, useTVSeasonDetails, useTVSeasons, useWatchProvid
 import { useRoomMatchScores } from "@/hooks/use-room-match-scores";
 import { useSearch } from "@/hooks/use-search";
 import { useViewingLogsByContent } from "@/hooks/use-viewing-logs";
+import { useWatchPartyRoomPusher } from "@/hooks/use-watch-party-room-pusher";
 import { useWatchingPulseStats } from "@/hooks/use-watching-pulse-stats";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { WatchingSessionDTO } from "@/lib/watching-types";
@@ -1233,19 +1235,23 @@ function FeedCard({
 function WatchingNowGroupCard({
   room,
   onJoinRoom,
+  onInviteRoom,
   onSelect,
   currentUserId,
   onWatchNow,
   isJoiningRoom,
   matchPercent,
+  isHighlighted = false,
 }: {
   room: WatchingNowRoomCard;
   onJoinRoom: (room: WatchingNowRoomCard) => Promise<void>;
+  onInviteRoom?: (room: WatchingNowRoomCard) => void;
   onSelect?: (room: WatchingNowRoomCard) => void;
   currentUserId?: string | null;
   onWatchNow?: (room: { tmdbId: number; mediaType: "movie" | "tv"; title: string }) => void;
   isJoiningRoom?: boolean;
   matchPercent?: number | null;
+  isHighlighted?: boolean;
 }) {
   const [showThoughts, setShowThoughts] = useState(false);
   const isMobile = useIsMobile();
@@ -1369,7 +1375,10 @@ function WatchingNowGroupCard({
 
   return (
     <Card
-      className="gap-0 overflow-hidden rounded-[15px] border border-border/60 bg-muted/25 p-0 transition hover:ring-1 hover:ring-primary/20 dark:border-border/50 dark:bg-muted/15"
+      className={cn(
+        "gap-0 overflow-hidden rounded-[15px] border border-border/60 bg-muted/25 p-0 transition hover:ring-1 hover:ring-primary/20 dark:border-border/50 dark:bg-muted/15",
+        isHighlighted ? "ring-2 ring-emerald-500/40" : ""
+      )}
       role="button"
       tabIndex={0}
       onClick={() => onSelect?.(room)}
@@ -1502,6 +1511,18 @@ function WatchingNowGroupCard({
             >
               {displayMatchPercent}% match
             </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onInviteRoom?.(room);
+              }}
+              className="h-8 shrink-0 cursor-pointer rounded-[20px] px-3 text-xs text-muted-foreground hover:bg-muted"
+            >
+              Invite
+            </Button>
             <Button
               type="button"
               size="sm"
@@ -2427,9 +2448,53 @@ function RightRail({
                   {item.releaseYear ?? "Year unknown"} · {item.mediaType === "movie" ? "Movie" : "TV"}
                 </p>
               </div>
+              <div className="inline-flex items-center gap-2 xl:hidden">
+                <span
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-1 text-[11px] font-medium",
+                    item.watchingCount > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
+                  )}
+                >
+                  <span className={cn("h-1.5 w-1.5 rounded-full", item.watchingCount > 0 ? "bg-emerald-500" : "bg-muted-foreground/50")} />
+                  .{item.watchingCount}
+                </span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 cursor-pointer rounded-full text-muted-foreground hover:bg-muted"
+                      aria-label={`More actions for ${item.title}`}
+                    >
+                      <MoreHorizontal className="h-3.5 w-3.5 rotate-90" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem
+                      className="cursor-default text-xs text-muted-foreground focus:bg-transparent focus:text-muted-foreground"
+                    >
+                      {item.watchingCount > 0 ? `${item.watchingCount} watching` : `${item.watchedCount} watched`}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer text-xs"
+                      onClick={() =>
+                        onUseTrendingItem({
+                          tmdbId: item.tmdbId,
+                          mediaType: item.mediaType,
+                          title: item.title,
+                          posterPath: item.posterPath,
+                        })
+                      }
+                    >
+                      Use
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               <span
                 className={cn(
-                  "inline-flex min-w-[4.5rem] shrink-0 items-center justify-end rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                  "hidden min-w-[4.5rem] shrink-0 items-center justify-end rounded-full border px-2 py-0.5 text-[11px] font-medium xl:inline-flex",
                   item.watchingCount > 0
                     ? "border-emerald-500/35 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                     : "border-slate-500/25 bg-slate-500/15 text-slate-700 dark:text-slate-300"
@@ -2441,7 +2506,7 @@ function RightRail({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 cursor-pointer rounded-[20px] px-2 text-xs text-muted-foreground hover:bg-muted"
+                className="hidden h-7 cursor-pointer rounded-[20px] px-2 text-xs text-muted-foreground hover:bg-muted xl:inline-flex"
                 onClick={() =>
                   onUseTrendingItem({
                     tmdbId: item.tmdbId,
@@ -2558,6 +2623,9 @@ function RightRail({
 
 export default function WatchingContent() {
   const isMobile = useIsMobile();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: currentUser, isLoading } = useCurrentUser();
   const { data: watchingData, isLoading: isWatchingLoading } = useWatchingDashboard(true);
   const watchingMutation = useWatchingMutation();
@@ -3009,6 +3077,7 @@ export default function WatchingContent() {
     const start = (justFinishedPage - 1) * JUST_FINISHED_PAGE_SIZE;
     return justFinishedRooms.slice(start, start + JUST_FINISHED_PAGE_SIZE);
   }, [showAllJustFinished, justFinishedRooms, justFinishedPage]);
+  const focusedRoomKey = searchParams.get("room");
 
   const effectiveAlsoWatchingContext = useMemo(() => {
     if (activeCardContext) return activeCardContext;
@@ -3060,6 +3129,23 @@ export default function WatchingContent() {
     }
     setWatchingNowPage((page) => Math.min(page, watchingNowTotalPages));
   }, [showAllWatchingNow, watchingNowTotalPages]);
+
+  useEffect(() => {
+    if (!focusedRoomKey || !watchingNowRooms.length) return;
+    const roomIndex = watchingNowRooms.findIndex((room) => room.key === focusedRoomKey);
+    if (roomIndex < 0) return;
+    setShowAllWatchingNow(true);
+    const nextPage = Math.floor(roomIndex / WATCHING_NOW_PAGE_SIZE) + 1;
+    setWatchingNowPage(nextPage);
+    const focused = watchingNowRooms[roomIndex];
+    setActiveCardContext({
+      tmdbId: focused.tmdbId,
+      mediaType: focused.mediaType,
+      title: focused.title,
+      seasonNumber: focused.seasonNumber ?? null,
+      episodeNumber: focused.episodeNumber ?? null,
+    });
+  }, [focusedRoomKey, watchingNowRooms]);
 
   useEffect(() => {
     if (!showAllJustFinished) {
@@ -3156,6 +3242,7 @@ export default function WatchingContent() {
   };
 
   const activeSession = watchingData?.currentSession ?? null;
+  useWatchPartyRoomPusher(activeSession?.id ?? null, Boolean(activeSession?.id));
   const isWatchingActive = Boolean(activeSession) && !isChangingTitle;
   const composeInputValue = isWatchingActive ? activeSession?.title ?? "" : watchSearchQuery;
 
@@ -3770,15 +3857,30 @@ export default function WatchingContent() {
                   setJoiningRoomKey((current) => (current === selectedRoom.key ? null : current));
                 }
               }}
+              onInviteRoom={(selectedRoom) => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.set("room", selectedRoom.key);
+                const inviteUrl = `${window.location.origin}${pathname}?${params.toString()}`;
+                void navigator.clipboard.writeText(inviteUrl).then(
+                  () => toast.success("Invite link copied."),
+                  () => toast.error("Failed to copy invite link.")
+                );
+              }}
               onSelect={(selectedRoom) =>
-                setActiveCardContext({
-                  tmdbId: selectedRoom.tmdbId,
-                  mediaType: selectedRoom.mediaType,
-                  title: selectedRoom.title,
-                  seasonNumber: selectedRoom.seasonNumber ?? null,
-                  episodeNumber: selectedRoom.episodeNumber ?? null,
-                })
+                {
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.set("room", selectedRoom.key);
+                  router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+                  setActiveCardContext({
+                    tmdbId: selectedRoom.tmdbId,
+                    mediaType: selectedRoom.mediaType,
+                    title: selectedRoom.title,
+                    seasonNumber: selectedRoom.seasonNumber ?? null,
+                    episodeNumber: selectedRoom.episodeNumber ?? null,
+                  });
+                }
               }
+              isHighlighted={focusedRoomKey === room.key}
             />
           ))}
           {!watchingNowRooms.length ? <p className="text-sm text-muted-foreground">No one in your network is watching right now.</p> : null}

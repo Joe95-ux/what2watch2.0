@@ -16,6 +16,11 @@ export const PUSHER_EVENTS = {
   YOUTUBE_NOTIFICATIONS_CHANGED: "notifications.youtube.changed",
   WATCHING_DASHBOARD_UPDATED: "watching.dashboard.updated",
   WATCHING_TITLE_UPDATED: "watching.title.updated",
+  WATCH_PARTY_ROOM_UPDATED: "watch-party.room.updated",
+  WATCH_PARTY_PARTICIPANTS_UPDATED: "watch-party.participants.updated",
+  WATCH_PARTY_CHAT_UPDATED: "watch-party.chat.updated",
+  WATCH_PARTY_REACTIONS_UPDATED: "watch-party.reactions.updated",
+  WATCH_PARTY_HOST_CONTROLS_UPDATED: "watch-party.host-controls.updated",
 } as const;
 
 export function getForumPostChannelName(postId: string) {
@@ -68,4 +73,8 @@ export function getWatchingDashboardChannelName() {
 
 export function getWatchingTitleChannelName(mediaType: "movie" | "tv", tmdbId: number) {
   return `watching-title-${mediaType}-${tmdbId}`;
+}
+
+export function getWatchPartyRoomChannelName(roomId: string) {
+  return `watch-party-room-${roomId}`;
 }

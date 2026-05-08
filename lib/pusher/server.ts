@@ -11,6 +11,7 @@ import {
   getReviewsChannelName,
   getUserChannelName,
   getViewingLogCommentsChannelName,
+  getWatchPartyRoomChannelName,
   getWatchingDashboardChannelName,
   getWatchingTitleChannelName,
   PUSHER_EVENTS,
@@ -209,5 +210,45 @@ export async function triggerWatchingTitleUpdated(
     getWatchingTitleChannelName(mediaType, tmdbId),
     PUSHER_EVENTS.WATCHING_TITLE_UPDATED,
     { mediaType, tmdbId, ...payload }
+  );
+}
+
+export async function triggerWatchPartyRoomUpdated(roomId: string, payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getWatchPartyRoomChannelName(roomId),
+    PUSHER_EVENTS.WATCH_PARTY_ROOM_UPDATED,
+    { roomId, ...payload }
+  );
+}
+
+export async function triggerWatchPartyParticipantsUpdated(roomId: string, payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getWatchPartyRoomChannelName(roomId),
+    PUSHER_EVENTS.WATCH_PARTY_PARTICIPANTS_UPDATED,
+    { roomId, ...payload }
+  );
+}
+
+export async function triggerWatchPartyChatUpdated(roomId: string, payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getWatchPartyRoomChannelName(roomId),
+    PUSHER_EVENTS.WATCH_PARTY_CHAT_UPDATED,
+    { roomId, ...payload }
+  );
+}
+
+export async function triggerWatchPartyReactionsUpdated(roomId: string, payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getWatchPartyRoomChannelName(roomId),
+    PUSHER_EVENTS.WATCH_PARTY_REACTIONS_UPDATED,
+    { roomId, ...payload }
+  );
+}
+
+export async function triggerWatchPartyHostControlsUpdated(roomId: string, payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getWatchPartyRoomChannelName(roomId),
+    PUSHER_EVENTS.WATCH_PARTY_HOST_CONTROLS_UPDATED,
+    { roomId, ...payload }
   );
 }
