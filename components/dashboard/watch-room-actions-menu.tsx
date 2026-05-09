@@ -11,23 +11,14 @@ import {
 
 type WatchRoomActionsMenuProps = {
   title: string;
-  canControlPlayback: boolean;
-  isWatchingNow: boolean;
-  onInvite?: () => void;
-  onTogglePlayback?: () => void;
-  onFinish?: () => void;
-  onLeave?: () => void;
+  onCopyInviteLink?: () => void;
 };
 
-export function WatchRoomActionsMenu({
-  title,
-  canControlPlayback,
-  isWatchingNow,
-  onInvite,
-  onTogglePlayback,
-  onFinish,
-  onLeave,
-}: WatchRoomActionsMenuProps) {
+/**
+ * Secondary actions that are not duplicated on the card surface.
+ * Playback (pause / finish / leave) stays on the card header for one-tap access.
+ */
+export function WatchRoomActionsMenu({ title, onCopyInviteLink }: WatchRoomActionsMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -37,7 +28,7 @@ export function WatchRoomActionsMenu({
           size="icon"
           onClick={(e) => e.stopPropagation()}
           className="h-8 w-8 shrink-0 cursor-pointer rounded-full text-muted-foreground hover:bg-muted"
-          aria-label={`Room actions for ${title}`}
+          aria-label={`More for ${title}`}
         >
           <MoreHorizontal className="h-4 w-4" />
         </Button>
@@ -47,44 +38,11 @@ export function WatchRoomActionsMenu({
           className="cursor-pointer text-xs"
           onClick={(e) => {
             e.stopPropagation();
-            onInvite?.();
+            onCopyInviteLink?.();
           }}
         >
           Copy invite link
         </DropdownMenuItem>
-        {canControlPlayback ? (
-          <DropdownMenuItem
-            className="cursor-pointer text-xs"
-            onClick={(e) => {
-              e.stopPropagation();
-              onTogglePlayback?.();
-            }}
-          >
-            {isWatchingNow ? "Pause playback" : "Resume playback"}
-          </DropdownMenuItem>
-        ) : null}
-        {canControlPlayback ? (
-          <DropdownMenuItem
-            className="cursor-pointer text-xs"
-            onClick={(e) => {
-              e.stopPropagation();
-              onFinish?.();
-            }}
-          >
-            Mark finished
-          </DropdownMenuItem>
-        ) : null}
-        {canControlPlayback ? (
-          <DropdownMenuItem
-            className="cursor-pointer text-xs text-destructive focus:text-destructive"
-            onClick={(e) => {
-              e.stopPropagation();
-              onLeave?.();
-            }}
-          >
-            Leave room
-          </DropdownMenuItem>
-        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

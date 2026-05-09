@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -1246,7 +1246,7 @@ function WatchingNowGroupCard({
 }: {
   room: WatchingNowRoomCard;
   onJoinRoom: (room: WatchingNowRoomCard) => Promise<void>;
-  onInviteRoom?: (room: WatchingNowRoomCard) => void;
+  onInviteRoom?: (room: WatchingNowRoomCard) => void | Promise<void>;
   onSelect?: (room: WatchingNowRoomCard) => void;
   currentUserId?: string | null;
   onWatchNow?: (room: { tmdbId: number; mediaType: "movie" | "tv"; title: string }) => void;
@@ -1514,12 +1514,9 @@ function WatchingNowGroupCard({
             </span>
             <WatchRoomActionsMenu
               title={room.title}
-              canControlPlayback={canControlPlayback}
-              isWatchingNow={room.currentUserSession?.status === "WATCHING_NOW"}
-              onInvite={() => onInviteRoom?.(room)}
-              onTogglePlayback={() => void handlePlaybackToggle()}
-              onFinish={() => void handlePlaybackFinish(false)}
-              onLeave={() => void handlePlaybackLeave()}
+              onCopyInviteLink={() => {
+                void onInviteRoom?.(room);
+              }}
             />
             <Button
               type="button"
@@ -2623,6 +2620,7 @@ export default function WatchingContent() {
   const isMobile = useIsMobile();
   const { data: currentUser, isLoading } = useCurrentUser();
   const { data: watchingData, isLoading: isWatchingLoading } = useWatchingDashboard(true);
+  const queryClient = useQueryClient();
   const watchingMutation = useWatchingMutation();
   const [uiNowTick, setUiNowTick] = useState(() => Date.now());
   const [isRightOpen, setIsRightOpen] = useState(false);
@@ -3072,7 +3070,14 @@ export default function WatchingContent() {
     const start = (justFinishedPage - 1) * JUST_FINISHED_PAGE_SIZE;
     return justFinishedRooms.slice(start, start + JUST_FINISHED_PAGE_SIZE);
   }, [showAllJustFinished, justFinishedRooms, justFinishedPage]);
-  const { focusedRoomKey, setFocusedRoomInUrl, buildRoomInviteUrl } = useWatchingRoomDeepLink({
+  const {
+    focusedRoomKey,
+    partyId,
+    setFocusedRoomInUrl,
+    setFeedRoomFocusInUrl,
+    setPartyAndRoomInUrl,
+    buildPartyInviteUrl,
+  } = useWatchingRoomDeepLink({
     rooms: watchingNowRooms,
     pageSize: WATCHING_NOW_PAGE_SIZE,
     onFocusedRoomResolved: (focused, _index, targetPage) => {
@@ -3087,6 +3092,59 @@ export default function WatchingContent() {
       });
     },
   });
+
+  useEffect(() => {
+    if (!partyId || !currentUser?.id) return;
+    let cancelled = false;
+    const storageKey = `w2w:watch-party:landed:${partyId}`;
+    const run = async () => {
+      try {
+        const joinRes = await fetch(`/api/watch-party/rooms/${encodeURIComponent(partyId)}/join`, {
+          method: "POST",
+        });
+        if (joinRes.status === 401) {
+          toast.error("Sign in to join this watch party.");
+          return;
+        }
+        if (joinRes.status === 410) {
+          toast.error("This watch party has ended.");
+          return;
+        }
+        if (!joinRes.ok) {
+          const err = (await joinRes.json().catch(() => ({}))) as { error?: string };
+          toast.error(typeof err.error === "string" ? err.error : "Could not join watch party.");
+          return;
+        }
+        const getRes = await fetch(`/api/watch-party/rooms/${encodeURIComponent(partyId)}`);
+        if (!getRes.ok) return;
+        const data = (await getRes.json()) as {
+          title?: string;
+          feedRoomKey?: string;
+          status?: string;
+        };
+        if (cancelled) return;
+        if (data.status === "ENDED") {
+          toast.error("This watch party has ended.");
+          return;
+        }
+        if (data.feedRoomKey) {
+          queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+          setFocusedRoomInUrl(data.feedRoomKey);
+          const already = typeof window !== "undefined" && sessionStorage.getItem(storageKey);
+          if (!already) {
+            toast.success(`Joined · ${data.title ?? "watch party"}`);
+            sessionStorage.setItem(storageKey, "1");
+          }
+        }
+      } catch {
+        if (!cancelled) toast.error("Could not join watch party.");
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [partyId, currentUser?.id, queryClient, setFocusedRoomInUrl]);
 
   const effectiveAlsoWatchingContext = useMemo(() => {
     if (activeCardContext) return activeCardContext;
@@ -3234,8 +3292,7 @@ export default function WatchingContent() {
   };
 
   const activeSession = watchingData?.currentSession ?? null;
-  const subscribedWatchPartyRoomId = focusedRoomKey ?? activeSession?.id ?? null;
-  useWatchPartyRoomPusher(subscribedWatchPartyRoomId, Boolean(subscribedWatchPartyRoomId));
+  useWatchPartyRoomPusher(partyId, Boolean(partyId));
   const isWatchingActive = Boolean(activeSession) && !isChangingTitle;
   const composeInputValue = isWatchingActive ? activeSession?.title ?? "" : watchSearchQuery;
 
@@ -3850,20 +3907,43 @@ export default function WatchingContent() {
                   setJoiningRoomKey((current) => (current === selectedRoom.key ? null : current));
                 }
               }}
-              onInviteRoom={(selectedRoom) => {
-                const inviteUrl = buildRoomInviteUrl(selectedRoom.key);
-                if (!inviteUrl) {
-                  toast.error("Failed to create invite link.");
-                  return;
+              onInviteRoom={async (selectedRoom) => {
+                try {
+                  const res = await fetch("/api/watch-party/rooms/ensure", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      tmdbId: selectedRoom.tmdbId,
+                      mediaType: selectedRoom.mediaType,
+                      title: selectedRoom.title,
+                      posterPath: selectedRoom.posterPath,
+                      backdropPath: selectedRoom.backdropPath,
+                      seasonNumber: selectedRoom.mediaType === "tv" ? selectedRoom.seasonNumber : null,
+                      episodeNumber: selectedRoom.mediaType === "tv" ? selectedRoom.episodeNumber : null,
+                      watchingSessionId: selectedRoom.currentUserSession?.sessionId ?? null,
+                    }),
+                  });
+                  if (!res.ok) {
+                    const err = (await res.json().catch(() => ({}))) as { error?: string };
+                    toast.error(typeof err.error === "string" ? err.error : "Could not create invite link.");
+                    return;
+                  }
+                  const payload = (await res.json()) as { id: string; feedRoomKey: string };
+                  const inviteUrl = buildPartyInviteUrl(payload.id, payload.feedRoomKey);
+                  if (!inviteUrl) {
+                    toast.error("Failed to build invite link.");
+                    return;
+                  }
+                  setPartyAndRoomInUrl(payload.id, payload.feedRoomKey);
+                  await navigator.clipboard.writeText(inviteUrl);
+                  toast.success("Invite link copied.");
+                } catch {
+                  toast.error("Could not create invite link.");
                 }
-                void navigator.clipboard.writeText(inviteUrl).then(
-                  () => toast.success("Invite link copied."),
-                  () => toast.error("Failed to copy invite link.")
-                );
               }}
               onSelect={(selectedRoom) =>
                 {
-                  setFocusedRoomInUrl(selectedRoom.key);
+                  setFeedRoomFocusInUrl(selectedRoom.key);
                   setActiveCardContext({
                     tmdbId: selectedRoom.tmdbId,
                     mediaType: selectedRoom.mediaType,

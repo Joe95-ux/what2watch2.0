@@ -162,6 +162,8 @@ model User {
   followedActivities Activity[] @relation("UserFollowedActivities")
   activityLikes ActivityLike[]
   watchingSessions WatchingSession[]
+  hostedWatchParties WatchPartyRoom[] @relation("WatchPartyHost")
+  watchPartyParticipations WatchPartyParticipant[]
   watchedTitles WatchedTitle[]
   watchingThoughts WatchingThought[]
   watchingThoughtReactions WatchingThoughtReaction[]
@@ -1327,6 +1329,44 @@ model WatchingSession {
   @@index([userId, status, startedAt])
   @@index([tmdbId, mediaType, status])
   @@index([createdAt])
+}
+
+/// Social watch party for a title (episode-specific for TV). Host creates; invite uses Mongo id in ?party=
+model WatchPartyRoom {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  hostUserId        String   @db.ObjectId
+  host              User     @relation("WatchPartyHost", fields: [hostUserId], references: [id], onDelete: Cascade)
+  status            String   @default("OPEN") // OPEN | ENDED
+  tmdbId            Int
+  mediaType         String // "movie" | "tv"
+  title             String
+  posterPath        String?
+  backdropPath      String?
+  seasonNumber      Int?
+  episodeNumber     Int?
+  watchingSessionId String?  @db.ObjectId
+  createdAt         DateTime @default(now())
+  endedAt           DateTime?
+  participants      WatchPartyParticipant[]
+
+  @@map("watch_party_rooms")
+  @@index([hostUserId, status])
+  @@index([tmdbId, mediaType, status])
+}
+
+model WatchPartyParticipant {
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  roomId   String    @db.ObjectId
+  room     WatchPartyRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId   String    @db.ObjectId
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     String    @default("GUEST") // HOST | GUEST
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime?
+
+  @@map("watch_party_participants")
+  @@unique([roomId, userId])
+  @@index([roomId, leftAt])
 }
 
 model WatchingThought {
