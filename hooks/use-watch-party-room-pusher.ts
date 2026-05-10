@@ -16,7 +16,7 @@ export function useWatchPartyRoomPusher(roomId: string | null, enabled = true) {
     const channelName = getWatchPartyRoomChannelName(roomId);
     const channel = pusher.subscribe(channelName);
     const handleUpdate = () => {
-      // Keep existing watching surfaces in sync until dedicated watch-party queries land.
+      queryClient.invalidateQueries({ queryKey: ["watch-party-room", roomId] });
       queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["watching-title"] });
       queryClient.invalidateQueries({ queryKey: ["watching-replies-to-you"] });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -48,6 +48,10 @@ import { useSearch } from "@/hooks/use-search";
 import { useViewingLogsByContent } from "@/hooks/use-viewing-logs";
 import { useWatchingRoomDeepLink } from "@/hooks/use-watching-room-deep-link";
 import { useWatchPartyRoomPusher } from "@/hooks/use-watch-party-room-pusher";
+import {
+  fetchWatchPartyRoomSummary,
+  useWatchPartyRoomSummary,
+} from "@/hooks/use-watch-party-room-summary";
 import { useWatchingPulseStats } from "@/hooks/use-watching-pulse-stats";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { WatchingSessionDTO } from "@/lib/watching-types";
@@ -1237,6 +1241,10 @@ function WatchingNowGroupCard({
   room,
   onJoinRoom,
   onInviteRoom,
+  onEndWatchParty,
+  isEndingWatchParty = false,
+  onLeaveWatchParty,
+  isLeavingWatchParty = false,
   onSelect,
   currentUserId,
   onWatchNow,
@@ -1247,6 +1255,10 @@ function WatchingNowGroupCard({
   room: WatchingNowRoomCard;
   onJoinRoom: (room: WatchingNowRoomCard) => Promise<void>;
   onInviteRoom?: (room: WatchingNowRoomCard) => void | Promise<void>;
+  onEndWatchParty?: () => void | Promise<void>;
+  isEndingWatchParty?: boolean;
+  onLeaveWatchParty?: () => void | Promise<void>;
+  isLeavingWatchParty?: boolean;
   onSelect?: (room: WatchingNowRoomCard) => void;
   currentUserId?: string | null;
   onWatchNow?: (room: { tmdbId: number; mediaType: "movie" | "tv"; title: string }) => void;
@@ -1517,6 +1529,10 @@ function WatchingNowGroupCard({
               onCopyInviteLink={() => {
                 void onInviteRoom?.(room);
               }}
+              onEndParty={onEndWatchParty}
+              isEndingParty={isEndingWatchParty}
+              onLeaveParty={onLeaveWatchParty}
+              isLeavingParty={isLeavingWatchParty}
             />
             <Button
               type="button"
@@ -2651,6 +2667,8 @@ export default function WatchingContent() {
   const [justFinishedPage, setJustFinishedPage] = useState(1);
   const [isChangingTitle, setIsChangingTitle] = useState(false);
   const [joiningRoomKey, setJoiningRoomKey] = useState<string | null>(null);
+  const [endingWatchPartyRoomKey, setEndingWatchPartyRoomKey] = useState<string | null>(null);
+  const [leavingWatchPartyRoomKey, setLeavingWatchPartyRoomKey] = useState<string | null>(null);
   const [activeCardContext, setActiveCardContext] = useState<{
     tmdbId: number;
     mediaType: "movie" | "tv";
@@ -3093,6 +3111,65 @@ export default function WatchingContent() {
     },
   });
 
+  const { data: partyRoomSummary } = useWatchPartyRoomSummary(partyId);
+
+  const endWatchPartyForFeedRoom = useCallback(
+    async (feedRoomKey: string) => {
+      if (!partyId) return;
+      setEndingWatchPartyRoomKey(feedRoomKey);
+      try {
+        const res = await fetch(`/api/watch-party/rooms/${encodeURIComponent(partyId)}/end`, { method: "POST" });
+        if (res.status === 403) {
+          toast.error("Only the host can end this party.");
+          return;
+        }
+        if (!res.ok) {
+          const err = (await res.json().catch(() => ({}))) as { error?: string };
+          toast.error(typeof err.error === "string" ? err.error : "Could not end watch party.");
+          return;
+        }
+        await queryClient.invalidateQueries({ queryKey: ["watch-party-room", partyId] });
+        queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+        setFeedRoomFocusInUrl(feedRoomKey);
+        toast.success("Watch party ended.");
+      } catch {
+        toast.error("Could not end watch party.");
+      } finally {
+        setEndingWatchPartyRoomKey(null);
+      }
+    },
+    [partyId, queryClient, setFeedRoomFocusInUrl]
+  );
+
+  const leaveWatchPartyForFeedRoom = useCallback(
+    async (feedRoomKey: string) => {
+      if (!partyId) return;
+      setLeavingWatchPartyRoomKey(feedRoomKey);
+      try {
+        const res = await fetch(`/api/watch-party/rooms/${encodeURIComponent(partyId)}/leave`, { method: "POST" });
+        if (res.status === 400) {
+          const err = (await res.json().catch(() => ({}))) as { error?: string };
+          toast.error(typeof err.error === "string" ? err.error : "Cannot leave this party.");
+          return;
+        }
+        if (!res.ok) {
+          const err = (await res.json().catch(() => ({}))) as { error?: string };
+          toast.error(typeof err.error === "string" ? err.error : "Could not leave watch party.");
+          return;
+        }
+        await queryClient.invalidateQueries({ queryKey: ["watch-party-room", partyId] });
+        queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+        setFeedRoomFocusInUrl(feedRoomKey);
+        toast.success("Left watch party.");
+      } catch {
+        toast.error("Could not leave watch party.");
+      } finally {
+        setLeavingWatchPartyRoomKey(null);
+      }
+    },
+    [partyId, queryClient, setFeedRoomFocusInUrl]
+  );
+
   useEffect(() => {
     if (!partyId || !currentUser?.id) return;
     let cancelled = false;
@@ -3115,13 +3192,10 @@ export default function WatchingContent() {
           toast.error(typeof err.error === "string" ? err.error : "Could not join watch party.");
           return;
         }
-        const getRes = await fetch(`/api/watch-party/rooms/${encodeURIComponent(partyId)}`);
-        if (!getRes.ok) return;
-        const data = (await getRes.json()) as {
-          title?: string;
-          feedRoomKey?: string;
-          status?: string;
-        };
+        const data = await queryClient.fetchQuery({
+          queryKey: ["watch-party-room", partyId],
+          queryFn: () => fetchWatchPartyRoomSummary(partyId),
+        });
         if (cancelled) return;
         if (data.status === "ENDED") {
           toast.error("This watch party has ended.");
@@ -3877,7 +3951,18 @@ export default function WatchingContent() {
             </Button>
           </div>
 
-          {visibleWatchingNow.map((room) => (
+          {visibleWatchingNow.map((room) => {
+            const canEndThisParty =
+              Boolean(partyId) &&
+              partyRoomSummary?.feedRoomKey === room.key &&
+              partyRoomSummary.isHost &&
+              partyRoomSummary.status === "OPEN";
+            const canLeaveThisParty =
+              Boolean(partyId) &&
+              partyRoomSummary?.feedRoomKey === room.key &&
+              !partyRoomSummary.isHost &&
+              partyRoomSummary.status === "OPEN";
+            return (
             <WatchingNowGroupCard
               key={room.key}
               room={room}
@@ -3954,8 +4039,25 @@ export default function WatchingContent() {
                 }
               }
               isHighlighted={focusedRoomKey === room.key}
+              onEndWatchParty={
+                canEndThisParty
+                  ? () => {
+                      void endWatchPartyForFeedRoom(room.key);
+                    }
+                  : undefined
+              }
+              isEndingWatchParty={endingWatchPartyRoomKey === room.key}
+              onLeaveWatchParty={
+                canLeaveThisParty
+                  ? () => {
+                      void leaveWatchPartyForFeedRoom(room.key);
+                    }
+                  : undefined
+              }
+              isLeavingWatchParty={leavingWatchPartyRoomKey === room.key}
             />
-          ))}
+            );
+          })}
           {!watchingNowRooms.length ? <p className="text-sm text-muted-foreground">No one in your network is watching right now.</p> : null}
 
           {showAllWatchingNow && watchingNowTotalPages > 1 ? (

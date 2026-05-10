@@ -6,19 +6,34 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 type WatchRoomActionsMenuProps = {
   title: string;
   onCopyInviteLink?: () => void;
+  /** Host-only: ends the Mongo watch party and clears `?party=` from the URL. */
+  onEndParty?: () => void | Promise<void>;
+  isEndingParty?: boolean;
+  /** Guest: leaves participation and clears `?party=` from the URL. */
+  onLeaveParty?: () => void | Promise<void>;
+  isLeavingParty?: boolean;
 };
 
 /**
  * Secondary actions that are not duplicated on the card surface.
  * Playback (pause / finish / leave) stays on the card header for one-tap access.
  */
-export function WatchRoomActionsMenu({ title, onCopyInviteLink }: WatchRoomActionsMenuProps) {
+export function WatchRoomActionsMenu({
+  title,
+  onCopyInviteLink,
+  onEndParty,
+  isEndingParty = false,
+  onLeaveParty,
+  isLeavingParty = false,
+}: WatchRoomActionsMenuProps) {
+  const partyActionBusy = isEndingParty || isLeavingParty;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -40,9 +55,39 @@ export function WatchRoomActionsMenu({ title, onCopyInviteLink }: WatchRoomActio
             e.stopPropagation();
             onCopyInviteLink?.();
           }}
+          disabled={partyActionBusy}
         >
           Copy invite link
         </DropdownMenuItem>
+        {onEndParty ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer text-xs text-destructive focus:text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                void onEndParty();
+              }}
+              disabled={partyActionBusy}
+            >
+              {isEndingParty ? "Ending…" : "End watch party"}
+            </DropdownMenuItem>
+          </>
+        ) : onLeaveParty ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                void onLeaveParty();
+              }}
+              disabled={partyActionBusy}
+            >
+              {isLeavingParty ? "Leaving…" : "Leave watch party"}
+            </DropdownMenuItem>
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
