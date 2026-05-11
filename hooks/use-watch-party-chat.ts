@@ -15,7 +15,8 @@ async function fetchWatchPartyChat(partyId: string): Promise<{ messages: WatchPa
     const err = (await res.json().catch(() => ({}))) as { error?: string };
     throw new Error(typeof err.error === "string" ? err.error : "Failed to load chat");
   }
-  return res.json() as Promise<{ messages: WatchPartyChatMessage[] }>;
+  const data = (await res.json()) as { messages?: WatchPartyChatMessage[] };
+  return { messages: Array.isArray(data.messages) ? data.messages : [] };
 }
 
 export function useWatchPartyChat(partyId: string | null, enabled: boolean) {

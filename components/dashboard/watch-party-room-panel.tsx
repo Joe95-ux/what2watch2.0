@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, isValid } from "date-fns";
 import { toast } from "sonner";
 import { useWatchPartyChat, useWatchPartyChatSend } from "@/hooks/use-watch-party-chat";
 import { useWatchPartyReactionToggle, useWatchPartyReactions } from "@/hooks/use-watch-party-reactions";
@@ -30,6 +30,7 @@ export function WatchPartyRoomPanel({
   isParticipant,
   partyParticipants,
 }: WatchPartyRoomPanelProps) {
+  const members = partyParticipants ?? [];
   const queryEnabled = Boolean(partyId) && isParticipant;
   const { data: chatData, isLoading: chatLoading } = useWatchPartyChat(partyId, queryEnabled);
   const { data: reactionData, isLoading: reactionsLoading } = useWatchPartyReactions(partyId, queryEnabled);
@@ -74,14 +75,14 @@ export function WatchPartyRoomPanel({
 
   return (
     <div className="mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
-      {partyParticipants.length > 0 ? (
+      {members.length > 0 ? (
         <div className="flex flex-wrap items-center gap-1">
           <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Party</span>
           <div className="flex -space-x-1.5 pl-1">
-            {partyParticipants.slice(0, 12).map((p) => (
+            {members.slice(0, 12).map((p) => (
               <Avatar key={p.userId} className="h-6 w-6 border border-background text-[10px]">
                 <AvatarImage src={p.avatarUrl ?? undefined} alt={p.name} />
-                <AvatarFallback>{p.name[0]}</AvatarFallback>
+                <AvatarFallback>{p.name?.[0] ?? "?"}</AvatarFallback>
               </Avatar>
             ))}
           </div>
@@ -90,8 +91,9 @@ export function WatchPartyRoomPanel({
 
       <div className="flex flex-wrap gap-1">
         {WATCH_PARTY_REACTION_KINDS.map((kind) => {
-          const count = reactionData?.counts[kind] ?? 0;
-          const active = reactionData?.mine.includes(kind);
+          const count = reactionData?.counts?.[kind] ?? 0;
+          const mine = reactionData?.mine ?? [];
+          const active = mine.includes(kind);
           const disabled = !partyOpen || reactionsLoading || toggleReaction.isPending;
           return (
             <Button
@@ -125,12 +127,14 @@ export function WatchPartyRoomPanel({
                 <li key={m.id} className="flex gap-2 text-[12px]">
                   <Avatar className="mt-0.5 h-6 w-6 shrink-0">
                     <AvatarImage src={m.user.avatarUrl ?? undefined} alt={m.user.name} />
-                    <AvatarFallback>{m.user.name[0]}</AvatarFallback>
+                    <AvatarFallback>{m.user.name?.[0] ?? "?"}</AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
                     <p className="text-[11px] text-muted-foreground">
                       <span className="font-medium text-foreground">{m.user.name}</span> ·{" "}
-                      {formatDistanceToNow(new Date(m.createdAt), { addSuffix: true })}
+                      {isValid(new Date(m.createdAt))
+                        ? formatDistanceToNow(new Date(m.createdAt), { addSuffix: true })
+                        : "recently"}
                     </p>
                     <p className="whitespace-pre-wrap break-words text-foreground">{m.content}</p>
                   </div>

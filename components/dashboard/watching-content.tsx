@@ -3969,6 +3969,12 @@ export default function WatchingContent() {
               See all
             </Button>
           </div>
+          <p className="mb-2 text-[11px] leading-snug text-muted-foreground">
+            <span className="font-medium text-foreground/90">Watch party:</span> tap ⋯ on a room card, then{" "}
+            <span className="font-medium text-foreground/90">Copy invite link</span> to host for that title. Open the
+            link to join; party chat shows on the matching card while the address includes{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-[10px]">party=</code>.
+          </p>
 
           {partyFeedMissing && partyId && partyRoomSummary ? (
             <div className="mb-3 space-y-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-3">

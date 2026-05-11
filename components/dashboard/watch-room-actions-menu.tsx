@@ -51,6 +51,7 @@ export function WatchRoomActionsMenu({
       <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuItem
           className="cursor-pointer text-xs"
+          title="Creates or reuses your watch party for this title and copies a shareable link."
           onClick={(e) => {
             e.stopPropagation();
             onCopyInviteLink?.();
