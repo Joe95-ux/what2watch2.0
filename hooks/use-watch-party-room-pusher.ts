@@ -17,6 +17,8 @@ export function useWatchPartyRoomPusher(roomId: string | null, enabled = true) {
     const channel = pusher.subscribe(channelName);
     const handleUpdate = () => {
       queryClient.invalidateQueries({ queryKey: ["watch-party-room", roomId] });
+      queryClient.invalidateQueries({ queryKey: ["watch-party-chat", roomId] });
+      queryClient.invalidateQueries({ queryKey: ["watch-party-reactions", roomId] });
       queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["watching-title"] });
       queryClient.invalidateQueries({ queryKey: ["watching-replies-to-you"] });

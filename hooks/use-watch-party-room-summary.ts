@@ -2,12 +2,22 @@
 
 import { useQuery } from "@tanstack/react-query";
 
+export type WatchPartyRoomParticipant = {
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+};
+
 export type WatchPartyRoomSummary = {
   id: string;
   title: string;
+  tmdbId: number;
+  mediaType: "movie" | "tv";
   feedRoomKey: string;
   participantCount: number;
   isHost: boolean;
+  isParticipant: boolean;
+  participants: WatchPartyRoomParticipant[];
   status: "OPEN" | "ENDED";
 };
 
@@ -20,7 +30,7 @@ export async function fetchWatchPartyRoomSummary(partyId: string): Promise<Watch
   return res.json() as Promise<WatchPartyRoomSummary>;
 }
 
-/** Cached GET for the party in the URL (`?party=`); used for host-only UI (e.g. End party). */
+/** Cached GET for the party in the URL (`?party=`): menus, participant line, empty-feed banner. */
 export function useWatchPartyRoomSummary(partyId: string | null) {
   return useQuery({
     queryKey: ["watch-party-room", partyId],

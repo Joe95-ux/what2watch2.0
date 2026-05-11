@@ -53,6 +53,31 @@ export async function GET(
     where: { roomId: room.id, leftAt: null },
   });
 
+  const myParticipation = await db.watchPartyParticipant.findUnique({
+    where: {
+      roomId_userId: { roomId: room.id, userId: authResult.user.id },
+    },
+    select: { leftAt: true },
+  });
+  const isParticipant = Boolean(myParticipation && myParticipation.leftAt == null);
+
+  const participants = isParticipant
+    ? (
+        await db.watchPartyParticipant.findMany({
+          where: { roomId: room.id, leftAt: null },
+          orderBy: { joinedAt: "asc" },
+          take: 24,
+          include: {
+            user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+          },
+        })
+      ).map((p) => ({
+        userId: p.userId,
+        name: p.user.displayName || p.user.username || "Unknown",
+        avatarUrl: p.user.avatarUrl,
+      }))
+    : [];
+
   const feedRoomKey = watchPartyFeedRoomKey(
     room.tmdbId,
     room.mediaType as "movie" | "tv",
@@ -71,6 +96,8 @@ export async function GET(
     feedRoomKey,
     participantCount: activeCount,
     isHost: room.hostUserId === authResult.user.id,
+    isParticipant,
+    participants,
     status: room.status,
   });
 }

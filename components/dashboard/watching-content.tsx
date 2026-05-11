@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -58,6 +58,7 @@ import type { WatchingSessionDTO } from "@/lib/watching-types";
 import { getPosterUrl, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
 import WatchBreakdownSection from "@/components/content-detail/watch-breakdown-section";
 import { JoinDiscussionComposer } from "@/components/content-detail/join-discussion-composer";
+import { WatchPartyRoomPanel } from "@/components/dashboard/watch-party-room-panel";
 import { WatchRoomActionsMenu } from "@/components/dashboard/watch-room-actions-menu";
 import { WatchingPulseSubtitle } from "@/components/dashboard/watching-pulse-subtitle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -87,6 +88,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { watchTitleHref } from "@/lib/watch-title-href";
 import { cn } from "@/lib/utils";
 import { getWatchingReplyValidationError, getWatchingThoughtValidationError } from "@/lib/moderation";
 import { toast } from "sonner";
@@ -212,16 +214,6 @@ const timeAgo = (iso: string) => {
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.round(hrs / 24);
   return `${days}d ago`;
-};
-
-const titlePageHref = (mediaType: "movie" | "tv", tmdbId: number, title: string) => {
-  const slug = title
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-  return `/${mediaType}/${tmdbId}/${slug || "title"}`;
 };
 
 const resolveTmdbImageSrc = (
@@ -1051,7 +1043,7 @@ function FeedCard({
 
       <div className="border-b border-border/60 px-[14px] py-[13px] dark:border-border/50">
         <div className="flex items-start gap-[10px]">
-          <Link href={titlePageHref(item.mediaType, item.tmdbId, item.title)} className="shrink-0">
+          <Link href={watchTitleHref(item.mediaType, item.tmdbId, item.title)} className="shrink-0">
             <div className="relative h-16 w-12 overflow-hidden rounded-md bg-muted">
               <Image
                 src={resolveTmdbImageSrc(item.posterPath, item.backdropPath, "w200")}
@@ -1066,7 +1058,7 @@ function FeedCard({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <Link
-                href={titlePageHref(item.mediaType, item.tmdbId, item.title)}
+                href={watchTitleHref(item.mediaType, item.tmdbId, item.title)}
                 className="truncate text-sm font-medium hover:underline"
               >
                 {item.title}
@@ -1251,6 +1243,8 @@ function WatchingNowGroupCard({
   isJoiningRoom,
   matchPercent,
   isHighlighted = false,
+  watchPartyCue,
+  partyInlineSlot,
 }: {
   room: WatchingNowRoomCard;
   onJoinRoom: (room: WatchingNowRoomCard) => Promise<void>;
@@ -1265,6 +1259,9 @@ function WatchingNowGroupCard({
   isJoiningRoom?: boolean;
   matchPercent?: number | null;
   isHighlighted?: boolean;
+  /** When `?party=` matches this card: loading line, live count, or ended. */
+  watchPartyCue?: { label: string; variant: "loading" | "live" | "ended" } | null;
+  partyInlineSlot?: ReactNode;
 }) {
   const [showThoughts, setShowThoughts] = useState(false);
   const isMobile = useIsMobile();
@@ -1405,7 +1402,7 @@ function WatchingNowGroupCard({
       <div className="flex flex-col gap-2 border-b border-border/60 bg-muted/35 px-[14px] py-[13px] sm:flex-row sm:items-start sm:justify-between dark:border-border/50 dark:bg-muted/20">
         <div className="flex min-w-0 items-start gap-3">
           <Link
-            href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
+            href={watchTitleHref(room.mediaType, room.tmdbId, room.title)}
             className="shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1423,7 +1420,7 @@ function WatchingNowGroupCard({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <Link
-                href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
+                href={watchTitleHref(room.mediaType, room.tmdbId, room.title)}
                 className="truncate text-sm font-medium hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -1509,6 +1506,18 @@ function WatchingNowGroupCard({
               ))}
             </div>
             <p className="truncate text-[13px] text-muted-foreground">{participantLabel}</p>
+            {watchPartyCue ? (
+              <p
+                className={cn(
+                  "mt-1 text-[11px] font-medium",
+                  watchPartyCue.variant === "ended" && "text-muted-foreground",
+                  watchPartyCue.variant === "loading" && "text-muted-foreground",
+                  watchPartyCue.variant === "live" && "text-sky-600 dark:text-sky-400"
+                )}
+              >
+                {watchPartyCue.label}
+              </p>
+            ) : null}
             {hasCurrentUserFinished ? (
               <p className="mt-1 inline-flex items-center rounded-full border border-slate-500/25 bg-slate-500/15 px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
                 You finished {timeAgo(room.currentUserFinishedAt ?? new Date().toISOString())}
@@ -1549,6 +1558,7 @@ function WatchingNowGroupCard({
             </Button>
           </div>
         </div>
+        {partyInlineSlot}
       </div>
 
       <div className="border-b border-border/60 px-[14px] py-[13px] dark:border-border/50">
@@ -1817,7 +1827,7 @@ function JustFinishedGroupCard({
       <div className="flex flex-col gap-2 border-b border-border/60 bg-muted/35 px-[14px] py-[13px] sm:flex-row sm:items-start sm:justify-between dark:border-border/50 dark:bg-muted/20">
         <div className="flex min-w-0 items-start gap-3">
           <Link
-            href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
+            href={watchTitleHref(room.mediaType, room.tmdbId, room.title)}
             className="shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1835,7 +1845,7 @@ function JustFinishedGroupCard({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <Link
-                href={titlePageHref(room.mediaType, room.tmdbId, room.title)}
+                href={watchTitleHref(room.mediaType, room.tmdbId, room.title)}
                 className="truncate text-sm font-medium hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -2274,7 +2284,7 @@ function RightRail({
 
             <div className="space-y-[10px] px-[13px] py-[12px]">
               <div className="flex items-start gap-[10px]">
-                <Link href={titlePageHref(currentSession.mediaType, currentSession.tmdbId, currentSession.title)} className="shrink-0">
+                <Link href={watchTitleHref(currentSession.mediaType, currentSession.tmdbId, currentSession.title)} className="shrink-0">
                   {currentSession.posterPath ? (
                     <div className="relative h-16 w-12 overflow-hidden rounded-md bg-muted">
                       <Image
@@ -2295,7 +2305,7 @@ function RightRail({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <Link
-                      href={titlePageHref(currentSession.mediaType, currentSession.tmdbId, currentSession.title)}
+                      href={watchTitleHref(currentSession.mediaType, currentSession.tmdbId, currentSession.title)}
                       className="truncate text-[14px] font-medium hover:underline"
                     >
                       {currentSession.title}
@@ -2437,7 +2447,7 @@ function RightRail({
               className="flex w-full items-center gap-2 sm:gap-[14px] py-[8px] text-left hover:bg-muted/30"
             >
               <span className="w-7 text-center font-serif text-[18px] font-semibold leading-none text-muted-foreground">{i + 1}</span>
-              <Link href={titlePageHref(item.mediaType, item.tmdbId, item.title)} className="shrink-0">
+              <Link href={watchTitleHref(item.mediaType, item.tmdbId, item.title)} className="shrink-0">
                 {item.posterPath ? (
                   <div className="relative h-12 w-9 overflow-hidden rounded bg-muted">
                     <Image src={getPosterUrl(item.posterPath, "w200")} alt="" fill className="object-cover" sizes="36px" unoptimized />
@@ -2450,7 +2460,7 @@ function RightRail({
               </Link>
               <div className="min-w-0 flex-1 pr-1">
                 <Link
-                  href={titlePageHref(item.mediaType, item.tmdbId, item.title)}
+                  href={watchTitleHref(item.mediaType, item.tmdbId, item.title)}
                   className="block truncate text-[13px] font-medium hover:underline"
                 >
                   {item.title}
@@ -2599,7 +2609,7 @@ function RightRail({
               <p className="pl-[38px] pr-1 text-[13px] text-foreground/90">{reply.text}</p>
               <div className="pl-[38px] pt-1">
                 <Link
-                  href={`${titlePageHref(reply.mediaType, reply.tmdbId, reply.title)}?tab=discussions&focusThought=${reply.thoughtId}`}
+                  href={`${watchTitleHref(reply.mediaType, reply.tmdbId, reply.title)}?tab=discussions&focusThought=${reply.thoughtId}`}
                   className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 transition hover:bg-emerald-500/15 dark:text-emerald-300"
                   title={`Jump to discussion · ${reply.title}${
                     reply.mediaType === "tv" && reply.seasonNumber && reply.episodeNumber
@@ -3111,7 +3121,16 @@ export default function WatchingContent() {
     },
   });
 
-  const { data: partyRoomSummary } = useWatchPartyRoomSummary(partyId);
+  const {
+    data: partyRoomSummary,
+    isFetching: isPartySummaryFetching,
+    isPending: isPartySummaryPending,
+  } = useWatchPartyRoomSummary(partyId);
+
+  const partyFeedMissing =
+    Boolean(partyId) &&
+    partyRoomSummary?.status === "OPEN" &&
+    !watchingNowRooms.some((r) => r.key === partyRoomSummary.feedRoomKey);
 
   const endWatchPartyForFeedRoom = useCallback(
     async (feedRoomKey: string) => {
@@ -3951,7 +3970,52 @@ export default function WatchingContent() {
             </Button>
           </div>
 
+          {partyFeedMissing && partyId && partyRoomSummary ? (
+            <div className="mb-3 space-y-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-3">
+              <p className="text-sm text-muted-foreground">
+                {"You're in "}
+                <span className="font-medium text-foreground">{partyRoomSummary.title}</span>
+                {" · "}
+                no one in your network appears on this title in the feed.{" "}
+                <Link
+                  href={watchTitleHref(
+                    partyRoomSummary.mediaType === "tv" ? "tv" : "movie",
+                    partyRoomSummary.tmdbId,
+                    partyRoomSummary.title
+                  )}
+                  className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
+                >
+                  Open title page
+                </Link>{" "}
+                to start watching.
+              </p>
+              <WatchPartyRoomPanel
+                partyId={partyId}
+                partyOpen={partyRoomSummary.status === "OPEN"}
+                isParticipant={partyRoomSummary.isParticipant}
+                partyParticipants={partyRoomSummary.participants}
+              />
+            </div>
+          ) : null}
+
           {visibleWatchingNow.map((room) => {
+            const partySummaryLoading =
+              Boolean(partyId) &&
+              (isPartySummaryPending || (isPartySummaryFetching && partyRoomSummary === undefined));
+            let watchPartyCue: { label: string; variant: "loading" | "live" | "ended" } | null = null;
+            if (partyId && partyRoomSummary?.feedRoomKey === room.key) {
+              if (partyRoomSummary.status === "ENDED") {
+                watchPartyCue = { label: "Watch party ended", variant: "ended" };
+              } else {
+                const n = partyRoomSummary.participantCount;
+                watchPartyCue = {
+                  label: `${n} ${n === 1 ? "person" : "people"} in watch party`,
+                  variant: "live",
+                };
+              }
+            } else if (partySummaryLoading && focusedRoomKey === room.key) {
+              watchPartyCue = { label: "Watch party…", variant: "loading" };
+            }
             const canEndThisParty =
               Boolean(partyId) &&
               partyRoomSummary?.feedRoomKey === room.key &&
@@ -4055,6 +4119,17 @@ export default function WatchingContent() {
                   : undefined
               }
               isLeavingWatchParty={leavingWatchPartyRoomKey === room.key}
+              watchPartyCue={watchPartyCue}
+              partyInlineSlot={
+                !partyFeedMissing && partyId && partyRoomSummary && room.key === partyRoomSummary.feedRoomKey ? (
+                  <WatchPartyRoomPanel
+                    partyId={partyId}
+                    partyOpen={partyRoomSummary.status === "OPEN"}
+                    isParticipant={partyRoomSummary.isParticipant}
+                    partyParticipants={partyRoomSummary.participants}
+                  />
+                ) : null
+              }
             />
             );
           })}

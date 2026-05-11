@@ -164,6 +164,8 @@ model User {
   watchingSessions WatchingSession[]
   hostedWatchParties WatchPartyRoom[] @relation("WatchPartyHost")
   watchPartyParticipations WatchPartyParticipant[]
+  watchPartyMessages WatchPartyMessage[]
+  watchPartyReactions WatchPartyReaction[]
   watchedTitles WatchedTitle[]
   watchingThoughts WatchingThought[]
   watchingThoughtReactions WatchingThoughtReaction[]
@@ -1348,6 +1350,8 @@ model WatchPartyRoom {
   createdAt         DateTime @default(now())
   endedAt           DateTime?
   participants      WatchPartyParticipant[]
+  messages            WatchPartyMessage[]
+  reactions           WatchPartyReaction[]
 
   @@map("watch_party_rooms")
   @@index([hostUserId, status])
@@ -1367,6 +1371,33 @@ model WatchPartyParticipant {
   @@map("watch_party_participants")
   @@unique([roomId, userId])
   @@index([roomId, leftAt])
+}
+
+model WatchPartyMessage {
+  id        String         @id @default(auto()) @map("_id") @db.ObjectId
+  roomId    String         @db.ObjectId
+  room      WatchPartyRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId    String         @db.ObjectId
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime       @default(now())
+
+  @@map("watch_party_messages")
+  @@index([roomId, createdAt])
+}
+
+model WatchPartyReaction {
+  id        String         @id @default(auto()) @map("_id") @db.ObjectId
+  roomId    String         @db.ObjectId
+  room      WatchPartyRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId    String         @db.ObjectId
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  createdAt DateTime       @default(now())
+
+  @@map("watch_party_reactions")
+  @@unique([roomId, userId, kind])
+  @@index([roomId])
 }
 
 model WatchingThought {
