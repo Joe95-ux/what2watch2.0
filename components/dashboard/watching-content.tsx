@@ -89,8 +89,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { watchTitleHref } from "@/lib/watch-title-href";
+import type { WatchRoomLike } from "@/hooks/use-watching-room-deep-link";
 import { cn } from "@/lib/utils";
-import { useRef } from "react";
 import { getWatchingReplyValidationError, getWatchingThoughtValidationError } from "@/lib/moderation";
 import { toast } from "sonner";
 
@@ -196,7 +196,7 @@ type JustFinishedRoomCard = {
     runtimeMinutes: number | null;
   } | null;
 };
-const justCreatedPartyIdRef = useRef<string | null>(null);
+
 
 const COMMENT_EMOJI_REACTIONS = ["like", "🔥", "😂", "😮", "😭"] as const;
 
@@ -3100,17 +3100,9 @@ export default function WatchingContent() {
     const start = (justFinishedPage - 1) * JUST_FINISHED_PAGE_SIZE;
     return justFinishedRooms.slice(start, start + JUST_FINISHED_PAGE_SIZE);
   }, [showAllJustFinished, justFinishedRooms, justFinishedPage]);
-  const {
-    focusedRoomKey,
-    partyId,
-    setFocusedRoomInUrl,
-    setFeedRoomFocusInUrl,
-    setPartyAndRoomInUrl,
-    buildPartyInviteUrl,
-  } = useWatchingRoomDeepLink({
-    rooms: watchingNowRooms,
-    pageSize: WATCHING_NOW_PAGE_SIZE,
-    onFocusedRoomResolved: (focused, _index, targetPage) => {
+
+  const handleFocusedRoomResolved = useCallback(
+    (focused: WatchRoomLike, _index: number, targetPage: number) => {
       setShowAllWatchingNow(true);
       setWatchingNowPage(targetPage);
       setActiveCardContext({
@@ -3121,6 +3113,19 @@ export default function WatchingContent() {
         episodeNumber: focused.episodeNumber ?? null,
       });
     },
+    []
+  );
+  const {
+    focusedRoomKey,
+    partyId,
+    setFocusedRoomInUrl,
+    setFeedRoomFocusInUrl,
+    setPartyAndRoomInUrl,
+    buildPartyInviteUrl,
+  } = useWatchingRoomDeepLink({
+    rooms: watchingNowRooms,
+    pageSize: WATCHING_NOW_PAGE_SIZE,
+    onFocusedRoomResolved: handleFocusedRoomResolved,
   });
 
   const {
@@ -3195,7 +3200,6 @@ export default function WatchingContent() {
   useEffect(() => {
     if (!partyId || !currentUser?.id) return;
     if (partyRoomSummary?.isParticipant) return;
-    if (justCreatedPartyIdRef.current === partyId) return; // Don't auto-join if we just created the party 
 
     let cancelled = false;
     const storageKey = `w2w:watch-party:landed:${partyId}`;
@@ -4096,7 +4100,6 @@ export default function WatchingContent() {
                     return;
                   }
                   const payload = (await res.json()) as { id: string; feedRoomKey: string };
-                  justCreatedPartyIdRef.current = payload.id;
                   const inviteUrl = buildPartyInviteUrl(payload.id, payload.feedRoomKey);
                   if (!inviteUrl) {
                     toast.error("Failed to build invite link.");

@@ -3,7 +3,7 @@
 import { useCallback, useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-type WatchRoomLike = {
+export type WatchRoomLike = {
   key: string;
   tmdbId: number;
   mediaType: "movie" | "tv";
@@ -111,5 +111,6 @@ export function useWatchingRoomDeepLink({
     setPartyAndRoomInUrl,
     buildRoomInviteUrl,
     buildPartyInviteUrl,
+
   };
 }
