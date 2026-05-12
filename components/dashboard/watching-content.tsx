@@ -90,6 +90,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { watchTitleHref } from "@/lib/watch-title-href";
 import { cn } from "@/lib/utils";
+import { useRef } from "react";
 import { getWatchingReplyValidationError, getWatchingThoughtValidationError } from "@/lib/moderation";
 import { toast } from "sonner";
 
@@ -195,6 +196,7 @@ type JustFinishedRoomCard = {
     runtimeMinutes: number | null;
   } | null;
 };
+const justCreatedPartyIdRef = useRef<string | null>(null);
 
 const COMMENT_EMOJI_REACTIONS = ["like", "🔥", "😂", "😮", "😭"] as const;
 
@@ -3193,6 +3195,7 @@ export default function WatchingContent() {
   useEffect(() => {
     if (!partyId || !currentUser?.id) return;
     if (partyRoomSummary?.isParticipant) return;
+    if (justCreatedPartyIdRef.current === partyId) return; // Don't auto-join if we just created the party 
 
     let cancelled = false;
     const storageKey = `w2w:watch-party:landed:${partyId}`;
@@ -4093,6 +4096,7 @@ export default function WatchingContent() {
                     return;
                   }
                   const payload = (await res.json()) as { id: string; feedRoomKey: string };
+                  justCreatedPartyIdRef.current = payload.id;
                   const inviteUrl = buildPartyInviteUrl(payload.id, payload.feedRoomKey);
                   if (!inviteUrl) {
                     toast.error("Failed to build invite link.");
