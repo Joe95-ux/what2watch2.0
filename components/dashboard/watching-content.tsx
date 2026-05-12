@@ -3189,15 +3189,21 @@ export default function WatchingContent() {
     [partyId, queryClient, setFeedRoomFocusInUrl]
   );
 
+  // Auto-join watch party effect
   useEffect(() => {
     if (!partyId || !currentUser?.id) return;
+    if (partyRoomSummary?.isParticipant) return;
+
     let cancelled = false;
     const storageKey = `w2w:watch-party:landed:${partyId}`;
+
     const run = async () => {
       try {
         const joinRes = await fetch(`/api/watch-party/rooms/${encodeURIComponent(partyId)}/join`, {
           method: "POST",
         });
+        if (cancelled) return;
+
         if (joinRes.status === 401) {
           toast.error("Sign in to join this watch party.");
           return;
@@ -3208,36 +3214,44 @@ export default function WatchingContent() {
         }
         if (!joinRes.ok) {
           const err = (await joinRes.json().catch(() => ({}))) as { error?: string };
+          if (cancelled) return;
           toast.error(typeof err.error === "string" ? err.error : "Could not join watch party.");
           return;
         }
+
         const data = await queryClient.fetchQuery({
           queryKey: ["watch-party-room", partyId],
           queryFn: () => fetchWatchPartyRoomSummary(partyId),
         });
         if (cancelled) return;
+
         if (data.status === "ENDED") {
           toast.error("This watch party has ended.");
           return;
         }
+
         if (data.feedRoomKey) {
-          queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
-          setFocusedRoomInUrl(data.feedRoomKey);
           const already = typeof window !== "undefined" && sessionStorage.getItem(storageKey);
           if (!already) {
             toast.success(`Joined · ${data.title ?? "watch party"}`);
             sessionStorage.setItem(storageKey, "1");
+          }
+          setFocusedRoomInUrl(data.feedRoomKey);
+          // Invalidate after URL is set to avoid mid-flight re-render race
+          if (!cancelled) {
+            await queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
           }
         }
       } catch {
         if (!cancelled) toast.error("Could not join watch party.");
       }
     };
+
     void run();
     return () => {
       cancelled = true;
     };
-  }, [partyId, currentUser?.id, queryClient, setFocusedRoomInUrl]);
+  }, [partyId, currentUser?.id, partyRoomSummary?.isParticipant, queryClient, setFocusedRoomInUrl]);
 
   const effectiveAlsoWatchingContext = useMemo(() => {
     if (activeCardContext) return activeCardContext;
@@ -3267,6 +3281,7 @@ export default function WatchingContent() {
     );
   }, [watchingData?.watchingNow, watchingData?.alsoWatchingCurrent, effectiveAlsoWatchingContext, currentUser?.id]);
 
+  // Active card context cleanup effect
   useEffect(() => {
     if (!activeCardContext) return;
     const existsInFeed = (watchingData?.watchingNow ?? []).some(
