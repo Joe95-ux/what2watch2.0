@@ -66,6 +66,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   if (existing) {
     const feedRoomKey = watchPartyFeedRoomKey(body.tmdbId, body.mediaType, seasonNumber, episodeNumber);
+    await db.watchPartyParticipant.upsert({
+      where: {
+        roomId_userId: { roomId: existing.id, userId: authResult.user.id },
+      },
+      create: {
+        roomId: existing.id,
+        userId: authResult.user.id,
+        role: "HOST",
+      },
+      update: {
+        leftAt: null,
+        role: "HOST",
+      },
+    });
+    await Promise.all([
+      triggerWatchPartyParticipantsUpdated(existing.id, { action: "joined", userId: authResult.user.id }),
+      triggerWatchingDashboardUpdated({ action: "watch_party_join", userId: authResult.user.id }),
+    ]);
     return NextResponse.json({ id: existing.id, feedRoomKey, created: false });
   }
 

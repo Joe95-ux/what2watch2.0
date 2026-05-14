@@ -51,6 +51,7 @@ import { useWatchPartyRoomPusher } from "@/hooks/use-watch-party-room-pusher";
 import {
   fetchWatchPartyRoomSummary,
   useWatchPartyRoomSummary,
+  type WatchPartyRoomSummary,
 } from "@/hooks/use-watch-party-room-summary";
 import { useWatchingPulseStats } from "@/hooks/use-watching-pulse-stats";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
@@ -3196,16 +3197,41 @@ export default function WatchingContent() {
     [partyId, queryClient, setFeedRoomFocusInUrl]
   );
 
-  // Auto-join watch party effect
+  // Auto-join watch party: POST /join is idempotent. Do not depend on `partyRoomSummary` here — when the
+  // summary query resolves with `isParticipant: true`, re-running this effect would cancel the in-flight
+  // join handler and skip URL focus + dashboard invalidation (host after "copy link" and guests were affected).
   useEffect(() => {
     if (!partyId || !currentUser?.id) return;
-    if (partyRoomSummary?.isParticipant) return;
 
     let cancelled = false;
     const storageKey = `w2w:watch-party:landed:${partyId}`;
 
+    const finishAfterJoin = async (data: WatchPartyRoomSummary) => {
+      if (data.status === "ENDED") {
+        toast.error("This watch party has ended.");
+        return;
+      }
+      if (!data.feedRoomKey) return;
+      const already = typeof window !== "undefined" && sessionStorage.getItem(storageKey);
+      if (!already) {
+        toast.success(`Joined · ${data.title ?? "watch party"}`);
+        sessionStorage.setItem(storageKey, "1");
+      }
+      setFocusedRoomInUrl(data.feedRoomKey);
+      if (!cancelled) {
+        await queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+      }
+    };
+
     const run = async () => {
       try {
+        const cached = queryClient.getQueryData<WatchPartyRoomSummary>(["watch-party-room", partyId]);
+        if (cached?.isParticipant) {
+          if (cancelled) return;
+          await finishAfterJoin(cached);
+          return;
+        }
+
         const joinRes = await fetch(`/api/watch-party/rooms/${encodeURIComponent(partyId)}/join`, {
           method: "POST",
         });
@@ -3232,23 +3258,7 @@ export default function WatchingContent() {
         });
         if (cancelled) return;
 
-        if (data.status === "ENDED") {
-          toast.error("This watch party has ended.");
-          return;
-        }
-
-        if (data.feedRoomKey) {
-          const already = typeof window !== "undefined" && sessionStorage.getItem(storageKey);
-          if (!already) {
-            toast.success(`Joined · ${data.title ?? "watch party"}`);
-            sessionStorage.setItem(storageKey, "1");
-          }
-          setFocusedRoomInUrl(data.feedRoomKey);
-          // Invalidate after URL is set to avoid mid-flight re-render race
-          if (!cancelled) {
-            await queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
-          }
-        }
+        await finishAfterJoin(data);
       } catch {
         if (!cancelled) toast.error("Could not join watch party.");
       }
@@ -3258,7 +3268,7 @@ export default function WatchingContent() {
     return () => {
       cancelled = true;
     };
-  }, [partyId, currentUser?.id, partyRoomSummary?.isParticipant, queryClient, setFocusedRoomInUrl]);
+  }, [partyId, currentUser?.id, queryClient, setFocusedRoomInUrl]);
 
   const effectiveAlsoWatchingContext = useMemo(() => {
     if (activeCardContext) return activeCardContext;
