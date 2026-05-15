@@ -27,6 +27,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import {
   useAddWatchingThoughtReply,
@@ -1250,6 +1251,8 @@ function WatchingNowGroupCard({
   isHighlighted = false,
   watchPartyCue,
   partyInlineSlot,
+  isInWatchParty = false,
+  isJoiningWatchParty = false,
 }: {
   room: WatchingNowRoomCard;
   onJoinRoom: (room: WatchingNowRoomCard) => Promise<void>;
@@ -1267,6 +1270,9 @@ function WatchingNowGroupCard({
   /** When `?party=` matches this card: loading line, live count, or ended. */
   watchPartyCue?: { label: string; variant: "loading" | "live" | "ended" } | null;
   partyInlineSlot?: ReactNode;
+  /** User joined the Mongo watch party for this card (via invite link), separate from feed "watching now". */
+  isInWatchParty?: boolean;
+  isJoiningWatchParty?: boolean;
 }) {
   const [showThoughts, setShowThoughts] = useState(false);
   const isMobile = useIsMobile();
@@ -1558,13 +1564,21 @@ function WatchingNowGroupCard({
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                if (isCurrentUserInRoom) return;
+                if (isCurrentUserInRoom || isInWatchParty) return;
                 void onJoinRoom(room);
               }}
-              disabled={isCurrentUserInRoom || isJoiningRoom}
+              disabled={isCurrentUserInRoom || isInWatchParty || isJoiningWatchParty || isJoiningRoom}
               className="h-8 shrink-0 cursor-pointer rounded-[20px] border border-emerald-500/35 bg-emerald-500/15 px-3 text-xs text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
             >
-              {isCurrentUserInRoom ? "In room" : isJoiningRoom ? "Joining..." : "Join room"}
+              {isJoiningWatchParty
+                ? "Joining party…"
+                : isInWatchParty
+                  ? "In party"
+                  : isCurrentUserInRoom
+                    ? "In room"
+                    : isJoiningRoom
+                      ? "Joining..."
+                      : "Join room"}
             </Button>
           </div>
         </div>
@@ -2654,7 +2668,9 @@ function RightRail({
 
 export default function WatchingContent() {
   const isMobile = useIsMobile();
-  const { data: currentUser, isLoading } = useCurrentUser();
+  const { isLoaded: clerkLoaded } = useUser();
+  const { data: currentUser, isLoading, isFetched: currentUserFetched } = useCurrentUser();
+  const watchPartyAuthReady = clerkLoaded && currentUserFetched;
   const { data: watchingData, isLoading: isWatchingLoading } = useWatchingDashboard(true);
   const queryClient = useQueryClient();
   const watchingMutation = useWatchingMutation();
@@ -3136,32 +3152,38 @@ export default function WatchingContent() {
     onFocusedRoomResolved: handleFocusedRoomResolved,
   });
 
-  const { membershipSettled } = useWatchPartyMembership(partyId, currentUser?.id, queryClient, {
-    onJoined: (data) => {
-      if (data.status === "ENDED") {
-        toast.error("This watch party has ended.");
-        return;
-      }
-      if (!data.feedRoomKey) return;
-      const storageKey = `w2w:watch-party:landed:${data.id}`;
-      const already = typeof window !== "undefined" && sessionStorage.getItem(storageKey);
-      if (!already) {
-        toast.success(`Joined · ${data.title ?? "watch party"}`);
-        sessionStorage.setItem(storageKey, "1");
-      }
-      setFocusedRoomInUrl(data.feedRoomKey);
-      void queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+  const { membershipSettled } = useWatchPartyMembership(
+    partyId,
+    currentUser?.id,
+    queryClient,
+    {
+      onJoined: (data) => {
+        if (data.status === "ENDED") {
+          toast.error("This watch party has ended.");
+          return;
+        }
+        if (!data.feedRoomKey) return;
+        const storageKey = `w2w:watch-party:landed:${data.id}`;
+        const already = typeof window !== "undefined" && sessionStorage.getItem(storageKey);
+        if (!already) {
+          toast.success(`Joined · ${data.title ?? "watch party"}`);
+          sessionStorage.setItem(storageKey, "1");
+        }
+        setFocusedRoomInUrl(data.feedRoomKey);
+        void queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+      },
+      onError: (error) => {
+        if (error instanceof WatchPartyJoinError) {
+          toast.error(error.message);
+          return;
+        }
+        toast.error("Could not join watch party.");
+      },
     },
-    onError: (error) => {
-      if (error instanceof WatchPartyJoinError) {
-        toast.error(error.message);
-        return;
-      }
-      toast.error("Could not join watch party.");
-    },
-  });
+    { authReady: watchPartyAuthReady }
+  );
 
-  const summaryQueryEnabled = !partyId || !currentUser?.id || membershipSettled;
+  const summaryQueryEnabled = Boolean(partyId && currentUser?.id && membershipSettled);
 
   const {
     data: partyRoomSummary,
@@ -4031,6 +4053,12 @@ export default function WatchingContent() {
               room={room}
               matchPercent={roomMatchScores[room.key]}
               currentUserId={currentUser?.id ?? null}
+              isInWatchParty={
+                Boolean(partyId && partyRoomSummary?.feedRoomKey === room.key && partyRoomSummary.isParticipant)
+              }
+              isJoiningWatchParty={Boolean(
+                partyId && partyRoomSummary?.feedRoomKey === room.key && isJoiningWatchParty
+              )}
               isJoiningRoom={joiningRoomKey === room.key}
               onWatchNow={(selectedRoom) => {
                 setWatchModalTarget({
@@ -4106,10 +4134,7 @@ export default function WatchingContent() {
                 if (copied) {
                   toast.success("Invite link copied — you're in the party.");
                 } else {
-                  toast.success("Watch party is ready. Copy the link from your browser address bar.", {
-                    description: inviteUrl,
-                    duration: 10_000,
-                  });
+                  toast.success("Watch party is ready — copy the link from your address bar.");
                 }
               }}
               onSelect={(selectedRoom) =>

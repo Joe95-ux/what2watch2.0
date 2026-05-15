@@ -50,6 +50,7 @@ export async function ensureWatchPartyMembership(
 
     const summary = await fetchWatchPartyRoomSummary(partyId);
     queryClient.setQueryData(["watch-party-room", partyId], summary);
+    await queryClient.invalidateQueries({ queryKey: ["watch-party-room", partyId] });
     return summary;
   })().finally(() => {
     joinFlightByPartyId.delete(partyId);
@@ -72,38 +73,47 @@ export function useWatchPartyMembership(
   partyId: string | null,
   userId: string | undefined,
   queryClient: QueryClient,
-  callbacks?: WatchPartyMembershipCallbacks
+  callbacks?: WatchPartyMembershipCallbacks,
+  options?: { authReady?: boolean }
 ) {
   const callbacksRef = useRef(callbacks);
   callbacksRef.current = callbacks;
+  const authReady = options?.authReady ?? true;
   const [settledPartyId, setSettledPartyId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!partyId || !userId) {
+    if (!partyId) {
+      setSettledPartyId(null);
+      return;
+    }
+    if (!authReady) {
+      return;
+    }
+    if (!userId) {
       setSettledPartyId(null);
       return;
     }
 
     let cancelled = false;
+    setSettledPartyId(null);
 
     void ensureWatchPartyMembership(queryClient, partyId)
       .then((summary) => {
         if (cancelled) return;
         callbacksRef.current?.onJoined?.(summary);
+        setSettledPartyId(partyId);
       })
       .catch((error: unknown) => {
         if (cancelled) return;
+        setSettledPartyId(null);
         const err = error instanceof Error ? error : new Error("Could not join watch party.");
         callbacksRef.current?.onError?.(err);
-      })
-      .finally(() => {
-        if (!cancelled) setSettledPartyId(partyId);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [partyId, userId, queryClient]);
+  }, [partyId, userId, queryClient, authReady]);
 
   const membershipSettled = Boolean(partyId && userId && settledPartyId === partyId);
 
