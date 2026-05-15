@@ -1,7 +1,12 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { WatchPartyReactionKind } from "@/lib/watch-party-reaction-kinds";
+import {
+  emptyWatchPartyReactionCounts,
+  isWatchPartyReactionKind,
+  WATCH_PARTY_REACTION_KINDS,
+  type WatchPartyReactionKind,
+} from "@/lib/watch-party-reaction-kinds";
 
 export type WatchPartyReactionsPayload = {
   counts: Record<WatchPartyReactionKind, number>;
@@ -9,14 +14,14 @@ export type WatchPartyReactionsPayload = {
 };
 
 function parseReactionsPayload(data: Partial<WatchPartyReactionsPayload>): WatchPartyReactionsPayload {
+  const counts = emptyWatchPartyReactionCounts();
+  for (const kind of WATCH_PARTY_REACTION_KINDS) {
+    if (typeof data.counts?.[kind] === "number") counts[kind] = data.counts[kind];
+  }
   return {
-    counts: {
-      heart: typeof data.counts?.heart === "number" ? data.counts.heart : 0,
-      fire: typeof data.counts?.fire === "number" ? data.counts.fire : 0,
-      clap: typeof data.counts?.clap === "number" ? data.counts.clap : 0,
-    },
+    counts,
     mine: Array.isArray(data.mine)
-      ? data.mine.filter((k): k is WatchPartyReactionKind => k === "heart" || k === "fire" || k === "clap")
+      ? data.mine.filter((k): k is WatchPartyReactionKind => isWatchPartyReactionKind(k))
       : [],
   };
 }

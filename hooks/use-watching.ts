@@ -6,12 +6,9 @@ import type {
   WatchingTitlePresenceResponse,
   WatchingVisibility,
 } from "@/lib/watching-types";
-import { getPusherClient } from "@/lib/pusher/client";
-import {
-  getWatchingDashboardChannelName,
-  getWatchingTitleChannelName,
-  PUSHER_EVENTS,
-} from "@/lib/pusher/channels";
+import { getPusherClient, isPusherClientConfigured } from "@/lib/pusher/client";
+import { getWatchingDashboardChannelName, PUSHER_EVENTS } from "@/lib/pusher/channels";
+import { useWatchingTitlePusher } from "@/hooks/use-watching-title-pusher";
 
 type WatchingActionBody =
   | {
@@ -268,32 +265,20 @@ export function useWatchingDashboard(enabled = true) {
 }
 
 export function useWatchingForTitle(tmdbId: number, mediaType: "movie" | "tv", enabled = true) {
-  const queryClient = useQueryClient();
+  const pusherRealtime = isPusherClientConfigured();
+  const queryEnabled = enabled && tmdbId > 0;
 
-  useEffect(() => {
-    if (!enabled || tmdbId <= 0) return;
-    const pusher = getPusherClient();
-    if (!pusher) return;
-
-    const channelName = getWatchingTitleChannelName(mediaType, tmdbId);
-    const channel = pusher.subscribe(channelName);
-    const handleUpdate = () => {
-      queryClient.invalidateQueries({ queryKey: ["watching-title", tmdbId, mediaType] });
-      queryClient.invalidateQueries({ queryKey: ["watching-thought-replies"] });
-    };
-
-    channel.bind(PUSHER_EVENTS.WATCHING_TITLE_UPDATED, handleUpdate);
-    return () => {
-      channel.unbind(PUSHER_EVENTS.WATCHING_TITLE_UPDATED, handleUpdate);
-      pusher.unsubscribe(channelName);
-    };
-  }, [enabled, mediaType, queryClient, tmdbId]);
+  useWatchingTitlePusher(tmdbId, mediaType, queryEnabled && pusherRealtime);
 
   return useQuery({
     queryKey: ["watching-title", tmdbId, mediaType],
     queryFn: () => fetchWatchingForTitle(tmdbId, mediaType),
-    staleTime: 30 * 1000,
-    enabled: enabled && tmdbId > 0,
+    enabled: queryEnabled,
+    staleTime: pusherRealtime ? 1000 * 60 * 5 : 30 * 1000,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import {
+  emptyWatchPartyReactionCounts,
   isWatchPartyReactionKind,
   WATCH_PARTY_REACTION_KINDS,
   type WatchPartyReactionKind,
@@ -81,11 +82,7 @@ export async function GET(
     select: { userId: true, kind: true },
   });
 
-  const counts: Record<WatchPartyReactionKind, number> = {
-    heart: 0,
-    fire: 0,
-    clap: 0,
-  };
+  const counts = emptyWatchPartyReactionCounts();
   const mine = new Set<WatchPartyReactionKind>();
   for (const row of rows) {
     if (!isWatchPartyReactionKind(row.kind)) continue;
@@ -155,7 +152,7 @@ export async function POST(
     select: { userId: true, kind: true },
   });
 
-  const counts: Record<WatchPartyReactionKind, number> = { heart: 0, fire: 0, clap: 0 };
+  const counts = emptyWatchPartyReactionCounts();
   const mine = new Set<WatchPartyReactionKind>();
   for (const row of rows) {
     if (!isWatchPartyReactionKind(row.kind)) continue;

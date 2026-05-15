@@ -1,7 +1,7 @@
 "use client";
 
 import type { QueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchWatchPartyRoomSummary, type WatchPartyRoomSummary } from "@/hooks/use-watch-party-room-summary";
 
 export class WatchPartyJoinError extends Error {
@@ -28,6 +28,8 @@ export async function ensureWatchPartyMembership(
   if (existing) return existing;
 
   const flight = (async () => {
+    await queryClient.cancelQueries({ queryKey: ["watch-party-room", partyId] });
+
     const joinRes = await fetch(`/api/watch-party/rooms/${encodeURIComponent(partyId)}/join`, {
       method: "POST",
     });
@@ -46,10 +48,9 @@ export async function ensureWatchPartyMembership(
       );
     }
 
-    return queryClient.fetchQuery({
-      queryKey: ["watch-party-room", partyId],
-      queryFn: () => fetchWatchPartyRoomSummary(partyId),
-    });
+    const summary = await fetchWatchPartyRoomSummary(partyId);
+    queryClient.setQueryData(["watch-party-room", partyId], summary);
+    return summary;
   })().finally(() => {
     joinFlightByPartyId.delete(partyId);
   });
@@ -63,7 +64,10 @@ type WatchPartyMembershipCallbacks = {
   onError?: (error: WatchPartyJoinError | Error) => void;
 };
 
-/** When `?party=` is present, join the current user and keep the summary cache in sync. */
+/**
+ * When `?party=` is present, join the current user and keep the summary cache in sync.
+ * Returns `membershipSettled` once join + summary refresh finished for the current party id.
+ */
 export function useWatchPartyMembership(
   partyId: string | null,
   userId: string | undefined,
@@ -72,17 +76,36 @@ export function useWatchPartyMembership(
 ) {
   const callbacksRef = useRef(callbacks);
   callbacksRef.current = callbacks;
+  const [settledPartyId, setSettledPartyId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!partyId || !userId) return;
+    if (!partyId || !userId) {
+      setSettledPartyId(null);
+      return;
+    }
+
+    let cancelled = false;
 
     void ensureWatchPartyMembership(queryClient, partyId)
       .then((summary) => {
+        if (cancelled) return;
         callbacksRef.current?.onJoined?.(summary);
       })
       .catch((error: unknown) => {
+        if (cancelled) return;
         const err = error instanceof Error ? error : new Error("Could not join watch party.");
         callbacksRef.current?.onError?.(err);
+      })
+      .finally(() => {
+        if (!cancelled) setSettledPartyId(partyId);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [partyId, userId, queryClient]);
+
+  const membershipSettled = Boolean(partyId && userId && settledPartyId === partyId);
+
+  return { membershipSettled };
 }

@@ -26,7 +26,8 @@ import { useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { MovieChatSheet } from "./movie-chat-sheet";
 import { mergeMovieChatPersist, readMovieChatPersist } from "@/lib/movie-chat-persist";
-import { useWatchingForTitle, useWatchingMutation } from "@/hooks/use-watching";
+import { useWatchingMutation } from "@/hooks/use-watching";
+import type { WatchingTitlePresenceResponse } from "@/lib/watching-types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface DetailsType {
@@ -57,9 +58,20 @@ interface HeroSectionProps {
   videosData: { id: number; results: TMDBVideo[] } | null;
   watchAvailability?: JustWatchAvailabilityResponse | null;
   onCollectionClick?: () => void;
+  /** Shared with discussions tab — one query + one Pusher subscription per title page. */
+  titleWatchingData?: WatchingTitlePresenceResponse;
 }
 
-export default function HeroSection({ item, type, details, trailer, videosData, watchAvailability, onCollectionClick }: HeroSectionProps) {
+export default function HeroSection({
+  item,
+  type,
+  details,
+  trailer,
+  videosData,
+  watchAvailability,
+  onCollectionClick,
+  titleWatchingData,
+}: HeroSectionProps) {
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [initialVideoId, setInitialVideoId] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -236,7 +248,6 @@ export default function HeroSection({ item, type, details, trailer, videosData, 
   };
 
   const trailerDurationText = trailerDuration ? formatTrailerDuration(trailerDuration) : null;
-  const { data: titleWatchingData } = useWatchingForTitle(item.id, type);
   const watchingMutation = useWatchingMutation();
 
   const handleWatchingToo = useCallback(async () => {

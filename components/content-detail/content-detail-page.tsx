@@ -342,6 +342,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           trailer={trailer}
           videosData={videosData || null}
           watchAvailability={watchAvailability}
+          titleWatchingData={watchingTitleData}
           onCollectionClick={() => setIsCollectionSectionOpen(!isCollectionSectionOpen)}
         />
       </div>

@@ -3130,11 +3130,38 @@ export default function WatchingContent() {
     onFocusedRoomResolved: handleFocusedRoomResolved,
   });
 
+  const { membershipSettled } = useWatchPartyMembership(partyId, currentUser?.id, queryClient, {
+    onJoined: (data) => {
+      if (data.status === "ENDED") {
+        toast.error("This watch party has ended.");
+        return;
+      }
+      if (!data.feedRoomKey) return;
+      const storageKey = `w2w:watch-party:landed:${data.id}`;
+      const already = typeof window !== "undefined" && sessionStorage.getItem(storageKey);
+      if (!already) {
+        toast.success(`Joined · ${data.title ?? "watch party"}`);
+        sessionStorage.setItem(storageKey, "1");
+      }
+      setFocusedRoomInUrl(data.feedRoomKey);
+      void queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+    },
+    onError: (error) => {
+      if (error instanceof WatchPartyJoinError) {
+        toast.error(error.message);
+        return;
+      }
+      toast.error("Could not join watch party.");
+    },
+  });
+
+  const summaryQueryEnabled = !partyId || !currentUser?.id || membershipSettled;
+
   const {
     data: partyRoomSummary,
     isFetching: isPartySummaryFetching,
     isPending: isPartySummaryPending,
-  } = useWatchPartyRoomSummary(partyId);
+  } = useWatchPartyRoomSummary(partyId, { enabled: summaryQueryEnabled });
 
   const partyFeedMissing =
     Boolean(partyId) &&
@@ -3142,10 +3169,7 @@ export default function WatchingContent() {
     !watchingNowRooms.some((r) => r.key === partyRoomSummary.feedRoomKey);
 
   const isJoiningWatchParty =
-    Boolean(partyId) &&
-    Boolean(currentUser?.id) &&
-    !partyRoomSummary?.isParticipant &&
-    (isPartySummaryPending || isPartySummaryFetching);
+    Boolean(partyId) && Boolean(currentUser?.id) && !membershipSettled;
 
   const endWatchPartyForFeedRoom = useCallback(
     async (feedRoomKey: string) => {
@@ -3203,31 +3227,6 @@ export default function WatchingContent() {
     },
     [partyId, queryClient, setFeedRoomFocusInUrl]
   );
-
-  useWatchPartyMembership(partyId, currentUser?.id, queryClient, {
-    onJoined: (data) => {
-      if (data.status === "ENDED") {
-        toast.error("This watch party has ended.");
-        return;
-      }
-      if (!data.feedRoomKey) return;
-      const storageKey = `w2w:watch-party:landed:${data.id}`;
-      const already = typeof window !== "undefined" && sessionStorage.getItem(storageKey);
-      if (!already) {
-        toast.success(`Joined · ${data.title ?? "watch party"}`);
-        sessionStorage.setItem(storageKey, "1");
-      }
-      setFocusedRoomInUrl(data.feedRoomKey);
-      void queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
-    },
-    onError: (error) => {
-      if (error instanceof WatchPartyJoinError) {
-        toast.error(error.message);
-        return;
-      }
-      toast.error("Could not join watch party.");
-    },
-  });
 
   const effectiveAlsoWatchingContext = useMemo(() => {
     if (activeCardContext) return activeCardContext;
@@ -3993,7 +3992,9 @@ export default function WatchingContent() {
           {visibleWatchingNow.map((room) => {
             const partySummaryLoading =
               Boolean(partyId) &&
-              (isPartySummaryPending || (isPartySummaryFetching && partyRoomSummary === undefined));
+              (isJoiningWatchParty ||
+                isPartySummaryPending ||
+                (isPartySummaryFetching && partyRoomSummary === undefined));
             let watchPartyCue: { label: string; variant: "loading" | "live" | "ended" } | null = null;
             if (partyId && partyRoomSummary?.feedRoomKey === room.key) {
               if (partyRoomSummary.status === "ENDED") {

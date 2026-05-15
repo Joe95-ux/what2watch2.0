@@ -105,7 +105,7 @@ export function WatchPartyRoomPanel({
               variant={active ? "secondary" : "outline"}
               size="sm"
               className={cn(
-                "h-7 gap-1 rounded-full px-2 text-xs",
+                "h-7 gap-1 rounded-full px-2 text-xs cursor-pointer",
                 active && "border-sky-500/40 bg-sky-500/10"
               )}
               disabled={disabled}
@@ -121,9 +121,13 @@ export function WatchPartyRoomPanel({
       <div ref={scrollRef} className="rounded-lg border border-border/60 bg-background/50">
         <ScrollArea className="h-[min(200px,40vh)] px-2 py-2">
           {chatLoading ? (
-            <p className="py-4 text-center text-[11px] text-muted-foreground">Loading chat…</p>
+            <div className="flex min-h-[min(200px,40vh)] items-center justify-center">
+              <p className="text-center text-[11px] text-muted-foreground">Loading chat…</p>
+            </div>
           ) : messages.length === 0 ? (
-            <p className="py-4 text-center text-[11px] text-muted-foreground">No party messages yet.</p>
+            <div className="flex min-h-[min(200px,40vh)] items-center justify-center">
+              <p className="text-center text-[11px] text-muted-foreground">No party messages yet.</p>
+            </div>
           ) : (
             <ul className="space-y-2 pr-2">
               {messages.map((m) => (
