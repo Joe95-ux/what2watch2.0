@@ -43,7 +43,7 @@ export function MemberCardList({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border p-4 transition-colors bg-card text-card-foreground",
+        "rounded-xl border border-border p-4 transition-colors bg-muted dark:bg-card text-card-foreground",
         "hover:border-primary/50"
       )}
     >

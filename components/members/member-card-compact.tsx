@@ -71,7 +71,7 @@ export function MemberCardCompact({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border overflow-hidden transition-colors bg-card text-card-foreground",
+        "rounded-xl border border-border overflow-hidden transition-colors bg-muted dark:bg-card text-card-foreground",
         "hover:border-primary/50"
       )}
     >
