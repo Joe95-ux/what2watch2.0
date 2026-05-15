@@ -88,8 +88,8 @@ export default function MembersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [sort, setSort] = useState<SortOption>("newest");
-  const [filter, setFilter] = useState<FilterOption>("hasLists");
+  const [sort, setSort] = useState<SortOption>("lists");
+  const [filter, setFilter] = useState<FilterOption>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("compact");
 
   const { data, isLoading, isError } = useQuery<UsersResponse>({
@@ -153,7 +153,7 @@ export default function MembersPage() {
   // When signed out, "following" and "favorites" filters are invalid; reset to default
   useEffect(() => {
     if (!isSignedIn && (filter === "following" || filter === "favorites")) {
-      setFilter("hasLists");
+      setFilter("all");
       setPage(1);
     }
   }, [isSignedIn, filter]);
@@ -204,7 +204,7 @@ export default function MembersPage() {
                   size="icon"
                   className={cn(
                     "h-7 w-7 cursor-pointer",
-                    sort !== "newest" && "text-primary"
+                    sort !== "lists" && "text-primary"
                   )}
                   aria-label="Sort by"
                 >
@@ -236,7 +236,7 @@ export default function MembersPage() {
                   size="icon"
                   className={cn(
                     "h-7 w-7 cursor-pointer",
-                    filter !== "hasLists" && "text-primary"
+                    filter !== "all" && "text-primary"
                   )}
                   aria-label="Filter"
                 >

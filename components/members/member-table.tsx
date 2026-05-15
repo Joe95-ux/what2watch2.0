@@ -46,25 +46,6 @@ function memberInitials(name: string) {
     .slice(0, 2);
 }
 
-function StatHeader({
-  icon: Icon,
-  iconClassName,
-  label,
-}: {
-  icon: typeof List;
-  iconClassName: string;
-  label: string;
-}) {
-  return (
-    <TableHead className="text-right whitespace-nowrap w-[4.5rem]">
-      <span className="inline-flex items-center justify-end gap-1 w-full" title={label}>
-        <Icon className={cn("h-4 w-4 shrink-0", iconClassName)} aria-hidden />
-        <span className="sr-only">{label}</span>
-      </span>
-    </TableHead>
-  );
-}
-
 function StatCell({
   icon: Icon,
   iconClassName,
@@ -77,9 +58,9 @@ function StatCell({
   label: string;
 }) {
   return (
-    <TableCell className="text-right whitespace-nowrap">
+    <TableCell className="text-left whitespace-nowrap">
       <span
-        className="inline-flex items-center justify-end gap-1.5 tabular-nums"
+        className="inline-flex items-center gap-1.5 tabular-nums"
         title={label}
       >
         <Icon className={cn("h-4 w-4 shrink-0", iconClassName)} aria-hidden />
@@ -102,13 +83,13 @@ export function MemberTable({
         <TableHeader>
           <TableRow>
             <TableHead className="min-w-[10rem]">Member</TableHead>
-            <TableHead className="text-right whitespace-nowrap">Followers</TableHead>
-            <TableHead className="text-right whitespace-nowrap">Following</TableHead>
-            <StatHeader icon={List} iconClassName="text-blue-500" label="Lists & playlists" />
-            <StatHeader icon={Eye} iconClassName="text-green-500" label="Movies & TV marked as seen" />
-            <StatHeader icon={Heart} iconClassName="fill-rose-500 text-rose-500" label="Movies liked" />
-            <StatHeader icon={FileText} iconClassName="text-amber-500" label="Reviews" />
-            <TableHead className="w-[8.75rem] text-right whitespace-nowrap">Actions</TableHead>
+            <TableHead className="text-left whitespace-nowrap">Followers</TableHead>
+            <TableHead className="text-left whitespace-nowrap">Following</TableHead>
+            <TableHead className="text-left whitespace-nowrap">Lists</TableHead>
+            <TableHead className="text-left whitespace-nowrap">Watched</TableHead>
+            <TableHead className="text-left whitespace-nowrap">Liked</TableHead>
+            <TableHead className="text-left whitespace-nowrap">Reviews</TableHead>
+            <TableHead className="w-[8.75rem] text-left whitespace-nowrap">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -147,18 +128,18 @@ export function MemberTable({
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right tabular-nums whitespace-nowrap">
+                  <TableCell className="text-left tabular-nums whitespace-nowrap">
                     {user.followersCount}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums whitespace-nowrap">
+                  <TableCell className="text-left tabular-nums whitespace-nowrap">
                     {user.followingCount ?? 0}
                   </TableCell>
                   <StatCell icon={List} iconClassName="text-blue-500" value={listsDisplay} label="Lists & playlists" />
                   <StatCell icon={Eye} iconClassName="text-green-500" value={user.watchedCount ?? 0} label="Movies & TV marked as seen" />
                   <StatCell icon={Heart} iconClassName="fill-rose-500 text-rose-500" value={user.likedCount ?? 0} label="Movies liked" />
                   <StatCell icon={FileText} iconClassName="text-amber-500" value={user.reviewsCount ?? 0} label="Reviews" />
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-1">
+                  <TableCell className="text-left">
+                    <div className="flex items-center justify-start gap-1">
                       {isSignedIn && currentUserId !== user.id ? (
                         <>
                           <Button
@@ -218,21 +199,13 @@ export function MemberTableSkeleton({ rows = 12 }: { rows?: number }) {
         <TableHeader>
           <TableRow>
             <TableHead>Member</TableHead>
-            <TableHead className="text-right">Followers</TableHead>
-            <TableHead className="text-right">Following</TableHead>
-            <TableHead className="text-right w-[4.5rem]">
-              <List className="h-4 w-4 text-blue-500 ml-auto" aria-hidden />
-            </TableHead>
-            <TableHead className="text-right w-[4.5rem]">
-              <Eye className="h-4 w-4 text-green-500 ml-auto" aria-hidden />
-            </TableHead>
-            <TableHead className="text-right w-[4.5rem]">
-              <Heart className="h-4 w-4 fill-rose-500 text-rose-500 ml-auto" aria-hidden />
-            </TableHead>
-            <TableHead className="text-right w-[4.5rem]">
-              <FileText className="h-4 w-4 text-amber-500 ml-auto" aria-hidden />
-            </TableHead>
-            <TableHead className="w-[8.75rem] text-right">Actions</TableHead>
+            <TableHead className="text-left">Followers</TableHead>
+            <TableHead className="text-left">Following</TableHead>
+            <TableHead className="text-left">Lists</TableHead>
+            <TableHead className="text-left">Watched</TableHead>
+            <TableHead className="text-left">Liked</TableHead>
+            <TableHead className="text-left">Reviews</TableHead>
+            <TableHead className="w-[8.75rem] text-left">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -254,19 +227,19 @@ export function MemberTableSkeleton({ rows = 12 }: { rows?: number }) {
                 <Skeleton className="h-4 w-8 ml-auto" />
               </TableCell>
               <TableCell>
-                <Skeleton className="h-4 w-10 ml-auto" />
+                <Skeleton className="h-4 w-10" />
               </TableCell>
               <TableCell>
-                <Skeleton className="h-4 w-10 ml-auto" />
+                <Skeleton className="h-4 w-10" />
               </TableCell>
               <TableCell>
-                <Skeleton className="h-4 w-10 ml-auto" />
+                <Skeleton className="h-4 w-10" />
               </TableCell>
               <TableCell>
-                <Skeleton className="h-4 w-10 ml-auto" />
+                <Skeleton className="h-4 w-10" />
               </TableCell>
               <TableCell>
-                <div className="flex justify-end gap-1">
+                <div className="flex justify-start gap-1">
                   <Skeleton className="h-8 w-8" />
                   <Skeleton className="h-8 w-8" />
                 </div>
