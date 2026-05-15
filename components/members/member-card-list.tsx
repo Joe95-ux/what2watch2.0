@@ -43,8 +43,7 @@ export function MemberCardList({
   return (
     <div
       className={cn(
-        "border rounded-xl p-4 transition-colors",
-        "bg-sky-50/90 dark:bg-zinc-900/80",
+        "rounded-xl border border-border p-4 transition-colors bg-card text-card-foreground",
         "hover:border-primary/50"
       )}
     >
@@ -93,7 +92,7 @@ export function MemberCardList({
           <span className="font-medium text-foreground">{watchedCount}</span>
         </span>
         <span className="flex items-center gap-1.5 text-sm text-muted-foreground" title="Movies liked">
-          <Heart className="h-4 w-4 shrink-0 text-rose-500" />
+          <Heart className="h-4 w-4 shrink-0 fill-rose-500 text-rose-500" />
           <span className="font-medium text-foreground">{likedCount}</span>
         </span>
         <span className="flex items-center gap-1.5 text-sm text-muted-foreground" title="Reviews">

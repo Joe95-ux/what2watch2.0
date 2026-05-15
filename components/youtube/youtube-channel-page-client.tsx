@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Heart, ExternalLink, Loader2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, PanelLeft, Search, ArrowLeft } from "lucide-react";
+import { Heart, ExternalLink, Loader2, ChevronDown, ChevronUp, PanelLeft, Search, ArrowLeft } from "lucide-react";
 import {
   useYouTubeChannel,
   useYouTubeChannelVideos,
@@ -40,7 +40,10 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { YouTubeChannelReviews } from "@/components/youtube/youtube-channel-reviews";
+import { YouTubeTabPagination } from "@/components/youtube/youtube-tab-pagination";
 import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
+
+const SIDEBAR_TAB_PAGE_SIZE = 20;
 
 type SidebarTab = "channel" | "favorites" | "watchlater" | "recommendations";
 
@@ -124,6 +127,8 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [recommendationsPage, setRecommendationsPage] = useState(1);
+  const [favoritesPage, setFavoritesPage] = useState(1);
+  const [watchlaterPage, setWatchlaterPage] = useState(1);
   const heroRef = useRef<HTMLDivElement>(null);
   const hasLoggedEmptyVideosRef = useRef(false);
   const isMobile = useIsMobile();
@@ -273,6 +278,28 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   };
   const recommendationVideos = extractRecommendedVideos(recommendations);
 
+  const favoritesPagination = useMemo(() => {
+    const totalPages = Math.max(1, Math.ceil(favoriteVideos.length / SIDEBAR_TAB_PAGE_SIZE));
+    const page = Math.min(favoritesPage, totalPages);
+    const start = (page - 1) * SIDEBAR_TAB_PAGE_SIZE;
+    return {
+      page,
+      totalPages,
+      items: favoriteVideos.slice(start, start + SIDEBAR_TAB_PAGE_SIZE),
+    };
+  }, [favoriteVideos, favoritesPage]);
+
+  const watchlaterPagination = useMemo(() => {
+    const totalPages = Math.max(1, Math.ceil(watchlistVideos.length / SIDEBAR_TAB_PAGE_SIZE));
+    const page = Math.min(watchlaterPage, totalPages);
+    const start = (page - 1) * SIDEBAR_TAB_PAGE_SIZE;
+    return {
+      page,
+      totalPages,
+      items: watchlistVideos.slice(start, start + SIDEBAR_TAB_PAGE_SIZE),
+    };
+  }, [watchlistVideos, watchlaterPage]);
+
   const {
     data: videosData,
     isLoading: isLoadingVideos,
@@ -289,33 +316,47 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
 
+  // Reset pagination when switching channels (do not clear accumulated videos here — that races with the sync effect below).
   useEffect(() => {
-    if (videosData?.videos) {
-      if (pageToken) {
-        setAccumulatedVideos((prev) => [...prev, ...videosData.videos]);
-      } else {
-        setAccumulatedVideos(videosData.videos);
-      }
-    }
-  }, [videosData, pageToken]);
-
-  useEffect(() => {
-    if (postsData?.posts) {
-      if (postsPageToken) {
-        setAccumulatedPosts((prev) => [...prev, ...postsData.posts]);
-      } else {
-        setAccumulatedPosts(postsData.posts);
-      }
-    }
-  }, [postsData, postsPageToken]);
-
-  useEffect(() => {
-    setAccumulatedVideos([]);
-    setAccumulatedPosts([]);
     setPageToken(undefined);
     setPostsPageToken(undefined);
+    setPlaylistsPageToken(undefined);
     setRecommendationsPage(1);
+    setAccumulatedPosts([]);
+    hasLoggedEmptyVideosRef.current = false;
   }, [channelId]);
+
+  useEffect(() => {
+    if (!videosData) {
+      if (!pageToken) setAccumulatedVideos([]);
+      return;
+    }
+    const list = videosData.videos ?? [];
+    if (pageToken) {
+      setAccumulatedVideos((prev) => [...prev, ...list]);
+    } else {
+      setAccumulatedVideos(list);
+    }
+  }, [channelId, videosData, pageToken]);
+
+  useEffect(() => {
+    if (!postsData) {
+      if (!postsPageToken) setAccumulatedPosts([]);
+      return;
+    }
+    const list = postsData.posts ?? [];
+    if (postsPageToken) {
+      setAccumulatedPosts((prev) => [...prev, ...list]);
+    } else {
+      setAccumulatedPosts(list);
+    }
+  }, [channelId, postsData, postsPageToken]);
+
+  useEffect(() => {
+    setFavoritesPage(1);
+    setWatchlaterPage(1);
+    if (sidebarTab === "recommendations") setRecommendationsPage(1);
+  }, [sidebarTab]);
 
   const hasMore = videosData?.hasMore || false;
   const nextPageToken = videosData?.nextPageToken;
@@ -473,24 +514,31 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
         );
       }
       return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {favoriteVideos.map((video) => (
-            <YouTubeVideoCard
-              key={video.videoId}
-              video={{
-                id: video.videoId,
-                title: video.title,
-                description: video.description || "",
-                thumbnail: video.thumbnail || undefined,
-                channelId: video.channelId,
-                channelTitle: video.channelTitle || "",
-                publishedAt: video.publishedAt || new Date().toISOString(),
-                duration: video.duration || undefined,
-                videoUrl: video.videoUrl || `https://www.youtube.com/watch?v=${video.videoId}`,
-              }}
-              channelId={video.channelId}
-            />
-          ))}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {favoritesPagination.items.map((video) => (
+              <YouTubeVideoCard
+                key={video.videoId}
+                video={{
+                  id: video.videoId,
+                  title: video.title,
+                  description: video.description || "",
+                  thumbnail: video.thumbnail || undefined,
+                  channelId: video.channelId,
+                  channelTitle: video.channelTitle || "",
+                  publishedAt: video.publishedAt || new Date().toISOString(),
+                  duration: video.duration || undefined,
+                  videoUrl: video.videoUrl || `https://www.youtube.com/watch?v=${video.videoId}`,
+                }}
+                channelId={video.channelId}
+              />
+            ))}
+          </div>
+          <YouTubeTabPagination
+            currentPage={favoritesPagination.page}
+            totalPages={favoritesPagination.totalPages}
+            onPageChange={setFavoritesPage}
+          />
         </div>
       );
     }
@@ -513,24 +561,31 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
         );
       }
       return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {watchlistVideos.map((video) => (
-            <YouTubeVideoCard
-              key={video.videoId}
-              video={{
-                id: video.videoId,
-                title: video.title,
-                description: video.description || "",
-                thumbnail: video.thumbnail || undefined,
-                channelId: video.channelId,
-                channelTitle: video.channelTitle || "",
-                publishedAt: video.publishedAt || new Date().toISOString(),
-                duration: video.duration || undefined,
-                videoUrl: video.videoUrl || `https://www.youtube.com/watch?v=${video.videoId}`,
-              }}
-              channelId={video.channelId}
-            />
-          ))}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {watchlaterPagination.items.map((video) => (
+              <YouTubeVideoCard
+                key={video.videoId}
+                video={{
+                  id: video.videoId,
+                  title: video.title,
+                  description: video.description || "",
+                  thumbnail: video.thumbnail || undefined,
+                  channelId: video.channelId,
+                  channelTitle: video.channelTitle || "",
+                  publishedAt: video.publishedAt || new Date().toISOString(),
+                  duration: video.duration || undefined,
+                  videoUrl: video.videoUrl || `https://www.youtube.com/watch?v=${video.videoId}`,
+                }}
+                channelId={video.channelId}
+              />
+            ))}
+          </div>
+          <YouTubeTabPagination
+            currentPage={watchlaterPagination.page}
+            totalPages={watchlaterPagination.totalPages}
+            onPageChange={setWatchlaterPage}
+          />
         </div>
       );
     }
@@ -555,9 +610,6 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
       const pagination = recommendations?.pagination;
       const currentPage = pagination?.page ?? recommendationsPage;
       const totalPages = pagination?.totalPages ?? 1;
-      const hasNextPage = pagination?.hasNextPage ?? false;
-      const hasPreviousPage = pagination?.hasPreviousPage ?? false;
-
       return (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -570,35 +622,11 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
               />
             ))}
           </div>
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setRecommendationsPage((p) => Math.max(1, p - 1))}
-                  disabled={!hasPreviousPage || isLoadingRecommendations}
-                  className="cursor-pointer"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setRecommendationsPage((p) => p + 1)}
-                  disabled={!hasNextPage || isLoadingRecommendations}
-                  className="cursor-pointer"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <YouTubeTabPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setRecommendationsPage}
+          />
         </div>
       );
     }

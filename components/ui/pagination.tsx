@@ -23,7 +23,7 @@ export function GroupedPagination({
   totalPages,
   onPageChange,
   className,
-  showLabels = true,
+  showLabels = false,
 }: SimplePaginationProps & { className?: string; showLabels?: boolean }) {
   if (totalPages <= 1) return null;
 
@@ -39,7 +39,7 @@ export function GroupedPagination({
       aria-label="Pagination"
     >
       <div
-        className="inline-flex items-stretch overflow-hidden rounded-md border border-border bg-background"
+        className="inline-flex items-stretch overflow-hidden rounded-[10px] border border-border bg-background"
         role="group"
       >
         <Button
@@ -48,11 +48,15 @@ export function GroupedPagination({
           size="sm"
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage === 1}
-          className={cn(groupedPageButtonClass, "rounded-l-md pr-3 pl-2.5")}
+          className={cn(
+            groupedPageButtonClass,
+            "rounded-l-[10px]",
+            showLabels ? "pr-3 pl-2.5" : "px-2.5"
+          )}
           aria-label="Previous page"
         >
           <ChevronLeft className="h-4 w-4 shrink-0" />
-          {showLabels ? <span className="ml-1 hidden sm:inline">Previous</span> : null}
+          {showLabels ? <span className="ml-1">Previous</span> : null}
         </Button>
         {pageNumbers.map((page, index) => {
           if (page === "ellipsis") {
@@ -91,10 +95,14 @@ export function GroupedPagination({
           size="sm"
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages}
-          className={cn(groupedPageButtonClass, "rounded-r-md border-r-0 pl-2.5 pr-3")}
+          className={cn(
+            groupedPageButtonClass,
+            "rounded-r-[10px] border-r-0",
+            showLabels ? "pl-2.5 pr-3" : "px-2.5"
+          )}
           aria-label="Next page"
         >
-          {showLabels ? <span className="mr-1 hidden sm:inline">Next</span> : null}
+          {showLabels ? <span className="mr-1">Next</span> : null}
           <ChevronRight className="h-4 w-4 shrink-0" />
         </Button>
       </div>

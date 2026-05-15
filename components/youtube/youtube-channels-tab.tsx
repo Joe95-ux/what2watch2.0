@@ -95,7 +95,7 @@ export function YouTubeChannelsTab() {
             className="pl-10 h-10"
           />
         </div>
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
         <div
           className="flex items-center gap-1 border border-border rounded-md p-1 bg-background h-10 shrink-0"
           role="group"

@@ -7,8 +7,7 @@ export function MemberCardCompactSkeleton() {
   return (
     <div
       className={cn(
-        "rounded-xl border overflow-hidden",
-        "bg-sky-50/90 dark:bg-zinc-900/80"
+        "rounded-xl border border-border overflow-hidden bg-card"
       )}
     >
       {/* Banner */}
@@ -44,8 +43,7 @@ export function MemberCardListSkeleton() {
   return (
     <div
       className={cn(
-        "border rounded-xl p-4",
-        "bg-sky-50/90 dark:bg-zinc-900/80"
+        "rounded-xl border border-border p-4 bg-card"
       )}
     >
       <div className="flex items-start gap-3 mb-3">

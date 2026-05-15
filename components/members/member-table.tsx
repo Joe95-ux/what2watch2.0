@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bookmark, ExternalLink } from "lucide-react";
+import { Bookmark, ExternalLink, Eye, FileText, Heart, List } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -46,6 +46,49 @@ function memberInitials(name: string) {
     .slice(0, 2);
 }
 
+function StatHeader({
+  icon: Icon,
+  iconClassName,
+  label,
+}: {
+  icon: typeof List;
+  iconClassName: string;
+  label: string;
+}) {
+  return (
+    <TableHead className="text-right whitespace-nowrap w-[4.5rem]">
+      <span className="inline-flex items-center justify-end gap-1 w-full" title={label}>
+        <Icon className={cn("h-4 w-4 shrink-0", iconClassName)} aria-hidden />
+        <span className="sr-only">{label}</span>
+      </span>
+    </TableHead>
+  );
+}
+
+function StatCell({
+  icon: Icon,
+  iconClassName,
+  value,
+  label,
+}: {
+  icon: typeof List;
+  iconClassName: string;
+  value: number;
+  label: string;
+}) {
+  return (
+    <TableCell className="text-right whitespace-nowrap">
+      <span
+        className="inline-flex items-center justify-end gap-1.5 tabular-nums"
+        title={label}
+      >
+        <Icon className={cn("h-4 w-4 shrink-0", iconClassName)} aria-hidden />
+        <span className="font-medium text-foreground text-sm">{value}</span>
+      </span>
+    </TableCell>
+  );
+}
+
 export function MemberTable({
   users,
   currentUserId,
@@ -54,18 +97,18 @@ export function MemberTable({
   bookmarkPendingId,
 }: MemberTableProps) {
   return (
-    <div className="border rounded-lg overflow-hidden mb-6">
-      <Table>
+    <div className="border rounded-lg overflow-x-auto mb-6">
+      <Table className="min-w-[52rem]">
         <TableHeader>
           <TableRow>
-            <TableHead>Member</TableHead>
-            <TableHead className="text-right hidden sm:table-cell">Followers</TableHead>
-            <TableHead className="text-right hidden md:table-cell">Following</TableHead>
-            <TableHead className="text-right">Lists</TableHead>
-            <TableHead className="text-right hidden lg:table-cell">Watched</TableHead>
-            <TableHead className="text-right hidden lg:table-cell">Liked</TableHead>
-            <TableHead className="text-right hidden xl:table-cell">Reviews</TableHead>
-            <TableHead className="w-[140px] text-right">Actions</TableHead>
+            <TableHead className="min-w-[10rem]">Member</TableHead>
+            <TableHead className="text-right whitespace-nowrap">Followers</TableHead>
+            <TableHead className="text-right whitespace-nowrap">Following</TableHead>
+            <StatHeader icon={List} iconClassName="text-blue-500" label="Lists & playlists" />
+            <StatHeader icon={Eye} iconClassName="text-green-500" label="Movies & TV marked as seen" />
+            <StatHeader icon={Heart} iconClassName="fill-rose-500 text-rose-500" label="Movies liked" />
+            <StatHeader icon={FileText} iconClassName="text-amber-500" label="Reviews" />
+            <TableHead className="w-[8.75rem] text-right whitespace-nowrap">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -104,22 +147,16 @@ export function MemberTable({
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right hidden sm:table-cell tabular-nums">
+                  <TableCell className="text-right tabular-nums whitespace-nowrap">
                     {user.followersCount}
                   </TableCell>
-                  <TableCell className="text-right hidden md:table-cell tabular-nums">
+                  <TableCell className="text-right tabular-nums whitespace-nowrap">
                     {user.followingCount ?? 0}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{listsDisplay}</TableCell>
-                  <TableCell className="text-right hidden lg:table-cell tabular-nums">
-                    {user.watchedCount ?? 0}
-                  </TableCell>
-                  <TableCell className="text-right hidden lg:table-cell tabular-nums">
-                    {user.likedCount ?? 0}
-                  </TableCell>
-                  <TableCell className="text-right hidden xl:table-cell tabular-nums">
-                    {user.reviewsCount ?? 0}
-                  </TableCell>
+                  <StatCell icon={List} iconClassName="text-blue-500" value={listsDisplay} label="Lists & playlists" />
+                  <StatCell icon={Eye} iconClassName="text-green-500" value={user.watchedCount ?? 0} label="Movies & TV marked as seen" />
+                  <StatCell icon={Heart} iconClassName="fill-rose-500 text-rose-500" value={user.likedCount ?? 0} label="Movies liked" />
+                  <StatCell icon={FileText} iconClassName="text-amber-500" value={user.reviewsCount ?? 0} label="Reviews" />
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
                       {isSignedIn && currentUserId !== user.id ? (
@@ -176,18 +213,26 @@ export function MemberTable({
 
 export function MemberTableSkeleton({ rows = 12 }: { rows?: number }) {
   return (
-    <div className="border rounded-lg overflow-hidden mb-6">
-      <Table>
+    <div className="border rounded-lg overflow-x-auto mb-6">
+      <Table className="min-w-[52rem]">
         <TableHeader>
           <TableRow>
             <TableHead>Member</TableHead>
-            <TableHead className="text-right hidden sm:table-cell">Followers</TableHead>
-            <TableHead className="text-right hidden md:table-cell">Following</TableHead>
-            <TableHead className="text-right">Lists</TableHead>
-            <TableHead className="text-right hidden lg:table-cell">Watched</TableHead>
-            <TableHead className="text-right hidden lg:table-cell">Liked</TableHead>
-            <TableHead className="text-right hidden xl:table-cell">Reviews</TableHead>
-            <TableHead className="w-[140px] text-right">Actions</TableHead>
+            <TableHead className="text-right">Followers</TableHead>
+            <TableHead className="text-right">Following</TableHead>
+            <TableHead className="text-right w-[4.5rem]">
+              <List className="h-4 w-4 text-blue-500 ml-auto" aria-hidden />
+            </TableHead>
+            <TableHead className="text-right w-[4.5rem]">
+              <Eye className="h-4 w-4 text-green-500 ml-auto" aria-hidden />
+            </TableHead>
+            <TableHead className="text-right w-[4.5rem]">
+              <Heart className="h-4 w-4 fill-rose-500 text-rose-500 ml-auto" aria-hidden />
+            </TableHead>
+            <TableHead className="text-right w-[4.5rem]">
+              <FileText className="h-4 w-4 text-amber-500 ml-auto" aria-hidden />
+            </TableHead>
+            <TableHead className="w-[8.75rem] text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -202,23 +247,23 @@ export function MemberTableSkeleton({ rows = 12 }: { rows?: number }) {
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="hidden sm:table-cell">
-                <Skeleton className="h-4 w-8 ml-auto" />
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
+              <TableCell>
                 <Skeleton className="h-4 w-8 ml-auto" />
               </TableCell>
               <TableCell>
                 <Skeleton className="h-4 w-8 ml-auto" />
               </TableCell>
-              <TableCell className="hidden lg:table-cell">
-                <Skeleton className="h-4 w-8 ml-auto" />
+              <TableCell>
+                <Skeleton className="h-4 w-10 ml-auto" />
               </TableCell>
-              <TableCell className="hidden lg:table-cell">
-                <Skeleton className="h-4 w-8 ml-auto" />
+              <TableCell>
+                <Skeleton className="h-4 w-10 ml-auto" />
               </TableCell>
-              <TableCell className="hidden xl:table-cell">
-                <Skeleton className="h-4 w-8 ml-auto" />
+              <TableCell>
+                <Skeleton className="h-4 w-10 ml-auto" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-4 w-10 ml-auto" />
               </TableCell>
               <TableCell>
                 <div className="flex justify-end gap-1">

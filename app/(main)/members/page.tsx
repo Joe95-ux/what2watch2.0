@@ -89,7 +89,7 @@ export default function MembersPage() {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [sort, setSort] = useState<SortOption>("newest");
-  const [filter, setFilter] = useState<FilterOption>("all");
+  const [filter, setFilter] = useState<FilterOption>("hasLists");
   const [viewMode, setViewMode] = useState<ViewMode>("compact");
 
   const { data, isLoading, isError } = useQuery<UsersResponse>({
@@ -150,10 +150,10 @@ export default function MembersPage() {
     setPage(1);
   };
 
-  // When signed out, "following" and "favorites" filters are invalid; reset to "all"
+  // When signed out, "following" and "favorites" filters are invalid; reset to default
   useEffect(() => {
     if (!isSignedIn && (filter === "following" || filter === "favorites")) {
-      setFilter("all");
+      setFilter("hasLists");
       setPage(1);
     }
   }, [isSignedIn, filter]);
@@ -174,15 +174,15 @@ export default function MembersPage() {
       </div>
 
       {/* Search bar (input + sort + filter only) and view toggle outside */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-3 sm:items-center">
-        <form onSubmit={handleSearch} className="relative w-full sm:w-80 sm:max-w-md">
+      <div className="mb-6 flex flex-row items-center gap-3">
+        <form onSubmit={handleSearch} className="relative min-w-0 flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none shrink-0" />
           <Input
             type="text"
             placeholder="Search members..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-9 pr-24 h-10 w-full border rounded-lg bg-background"
+            className="pl-9 pr-24 h-9 w-full border rounded-lg bg-background"
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0">
             {searchInput && (
@@ -236,7 +236,7 @@ export default function MembersPage() {
                   size="icon"
                   className={cn(
                     "h-7 w-7 cursor-pointer",
-                    filter !== "all" && "text-primary"
+                    filter !== "hasLists" && "text-primary"
                   )}
                   aria-label="Filter"
                 >
@@ -267,7 +267,7 @@ export default function MembersPage() {
           </div>
         </form>
         <div
-          className="flex items-center gap-1 border border-border rounded-md p-1 bg-background h-9 shrink-0"
+          className="flex items-center gap-1 border border-border rounded-[10px] p-1 bg-background h-9 shrink-0"
           role="group"
           aria-label="Member card layout"
         >

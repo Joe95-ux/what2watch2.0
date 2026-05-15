@@ -71,8 +71,7 @@ export function MemberCardCompact({
   return (
     <div
       className={cn(
-        "rounded-xl border overflow-hidden transition-colors",
-        "bg-sky-50/90 dark:bg-zinc-900/80",
+        "rounded-xl border border-border overflow-hidden transition-colors bg-card text-card-foreground",
         "hover:border-primary/50"
       )}
     >
@@ -163,7 +162,7 @@ export function MemberCardCompact({
             className="flex items-center gap-1.5 text-sm text-muted-foreground"
             title="Movies liked"
           >
-            <Heart className="h-4 w-4 shrink-0 text-rose-500" />
+            <Heart className="h-4 w-4 shrink-0 fill-rose-500 text-rose-500" />
             <span className="font-medium text-foreground">{likedCount}</span>
           </span>
           <span
