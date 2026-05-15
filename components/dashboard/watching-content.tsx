@@ -48,11 +48,12 @@ import { useSearch } from "@/hooks/use-search";
 import { useViewingLogsByContent } from "@/hooks/use-viewing-logs";
 import { useWatchingRoomDeepLink } from "@/hooks/use-watching-room-deep-link";
 import { useWatchPartyRoomPusher } from "@/hooks/use-watch-party-room-pusher";
+import { useWatchPartyRoomSummary } from "@/hooks/use-watch-party-room-summary";
 import {
-  fetchWatchPartyRoomSummary,
-  useWatchPartyRoomSummary,
-  type WatchPartyRoomSummary,
-} from "@/hooks/use-watch-party-room-summary";
+  ensureWatchPartyMembership,
+  useWatchPartyMembership,
+  WatchPartyJoinError,
+} from "@/hooks/use-watch-party-membership";
 import { useWatchingPulseStats } from "@/hooks/use-watching-pulse-stats";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { WatchingSessionDTO } from "@/lib/watching-types";
@@ -3140,6 +3141,12 @@ export default function WatchingContent() {
     partyRoomSummary?.status === "OPEN" &&
     !watchingNowRooms.some((r) => r.key === partyRoomSummary.feedRoomKey);
 
+  const isJoiningWatchParty =
+    Boolean(partyId) &&
+    Boolean(currentUser?.id) &&
+    !partyRoomSummary?.isParticipant &&
+    (isPartySummaryPending || isPartySummaryFetching);
+
   const endWatchPartyForFeedRoom = useCallback(
     async (feedRoomKey: string) => {
       if (!partyId) return;
@@ -3197,78 +3204,30 @@ export default function WatchingContent() {
     [partyId, queryClient, setFeedRoomFocusInUrl]
   );
 
-  // Auto-join watch party: POST /join is idempotent. Do not depend on `partyRoomSummary` here — when the
-  // summary query resolves with `isParticipant: true`, re-running this effect would cancel the in-flight
-  // join handler and skip URL focus + dashboard invalidation (host after "copy link" and guests were affected).
-  useEffect(() => {
-    if (!partyId || !currentUser?.id) return;
-
-    let cancelled = false;
-    const storageKey = `w2w:watch-party:landed:${partyId}`;
-
-    const finishAfterJoin = async (data: WatchPartyRoomSummary) => {
+  useWatchPartyMembership(partyId, currentUser?.id, queryClient, {
+    onJoined: (data) => {
       if (data.status === "ENDED") {
         toast.error("This watch party has ended.");
         return;
       }
       if (!data.feedRoomKey) return;
+      const storageKey = `w2w:watch-party:landed:${data.id}`;
       const already = typeof window !== "undefined" && sessionStorage.getItem(storageKey);
       if (!already) {
         toast.success(`Joined · ${data.title ?? "watch party"}`);
         sessionStorage.setItem(storageKey, "1");
       }
       setFocusedRoomInUrl(data.feedRoomKey);
-      if (!cancelled) {
-        await queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+    },
+    onError: (error) => {
+      if (error instanceof WatchPartyJoinError) {
+        toast.error(error.message);
+        return;
       }
-    };
-
-    const run = async () => {
-      try {
-        const cached = queryClient.getQueryData<WatchPartyRoomSummary>(["watch-party-room", partyId]);
-        if (cached?.isParticipant) {
-          if (cancelled) return;
-          await finishAfterJoin(cached);
-          return;
-        }
-
-        const joinRes = await fetch(`/api/watch-party/rooms/${encodeURIComponent(partyId)}/join`, {
-          method: "POST",
-        });
-        if (cancelled) return;
-
-        if (joinRes.status === 401) {
-          toast.error("Sign in to join this watch party.");
-          return;
-        }
-        if (joinRes.status === 410) {
-          toast.error("This watch party has ended.");
-          return;
-        }
-        if (!joinRes.ok) {
-          const err = (await joinRes.json().catch(() => ({}))) as { error?: string };
-          if (cancelled) return;
-          toast.error(typeof err.error === "string" ? err.error : "Could not join watch party.");
-          return;
-        }
-
-        const data = await queryClient.fetchQuery({
-          queryKey: ["watch-party-room", partyId],
-          queryFn: () => fetchWatchPartyRoomSummary(partyId),
-        });
-        if (cancelled) return;
-
-        await finishAfterJoin(data);
-      } catch {
-        if (!cancelled) toast.error("Could not join watch party.");
-      }
-    };
-
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [partyId, currentUser?.id, queryClient, setFocusedRoomInUrl]);
+      toast.error("Could not join watch party.");
+    },
+  });
 
   const effectiveAlsoWatchingContext = useMemo(() => {
     if (activeCardContext) return activeCardContext;
@@ -4025,6 +3984,7 @@ export default function WatchingContent() {
                 partyId={partyId}
                 partyOpen={partyRoomSummary.status === "OPEN"}
                 isParticipant={partyRoomSummary.isParticipant}
+                isJoining={isJoiningWatchParty}
                 partyParticipants={partyRoomSummary.participants}
               />
             </div>
@@ -4116,8 +4076,9 @@ export default function WatchingContent() {
                     return;
                   }
                   setPartyAndRoomInUrl(payload.id, payload.feedRoomKey);
+                  await ensureWatchPartyMembership(queryClient, payload.id);
                   await navigator.clipboard.writeText(inviteUrl);
-                  toast.success("Invite link copied.");
+                  toast.success("Invite link copied — you're in the party.");
                 } catch {
                   toast.error("Could not create invite link.");
                 }
@@ -4158,6 +4119,7 @@ export default function WatchingContent() {
                     partyId={partyId}
                     partyOpen={partyRoomSummary.status === "OPEN"}
                     isParticipant={partyRoomSummary.isParticipant}
+                    isJoining={isJoiningWatchParty}
                     partyParticipants={partyRoomSummary.participants}
                   />
                 ) : null

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
-import { Search, UsersRound, ArrowUpDown, Filter, LayoutTemplate, LayoutList, X } from "lucide-react";
+import { Search, UsersRound, ArrowUpDown, Filter, LayoutTemplate, LayoutList, Table2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -20,13 +20,15 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { MemberCardCompact } from "@/components/members/member-card-compact";
 import { MemberCardList } from "@/components/members/member-card-list";
+import { MemberTable, MemberTableSkeleton } from "@/components/members/member-table";
 import { MemberCardCompactSkeleton, MemberCardListSkeleton } from "@/components/members/member-card-skeletons";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 
 type SortOption = "newest" | "followers" | "lists" | "name";
 type FilterOption = "all" | "hasLists" | "following" | "favorites";
 
-type ViewMode = "compact" | "list";
+type ViewMode = "compact" | "list" | "table";
 
 interface User {
   id: string;
@@ -299,20 +301,39 @@ export default function MembersPage() {
           >
             <LayoutList className="h-4 w-4" />
           </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setViewMode("table")}
+            title="Table layout"
+            aria-label="Table layout"
+            aria-pressed={viewMode === "table"}
+            className={cn(
+              "h-7 cursor-pointer has-[>svg]:px-2",
+              viewMode === "table" ? "bg-muted text-foreground" : "hover:bg-muted/50"
+            )}
+          >
+            <Table2 className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
       {/* Users Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {Array.from({ length: 12 }).map((_, i) =>
-            viewMode === "compact" ? (
-              <MemberCardCompactSkeleton key={i} />
-            ) : (
-              <MemberCardListSkeleton key={i} />
-            )
-          )}
-        </div>
+        viewMode === "table" ? (
+          <MemberTableSkeleton rows={12} />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {Array.from({ length: 12 }).map((_, i) =>
+              viewMode === "compact" ? (
+                <MemberCardCompactSkeleton key={i} />
+              ) : (
+                <MemberCardListSkeleton key={i} />
+              )
+            )}
+          </div>
+        )
       ) : isError ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">Failed to load members. Please try again.</p>
@@ -327,14 +348,16 @@ export default function MembersPage() {
         </div>
       ) : (
         <>
-          <div
-            className={cn(
-              "mb-6",
-              viewMode === "compact"
-                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-                : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-            )}
-          >
+          {viewMode === "table" ? (
+            <MemberTable
+              users={users.map((user) => ({ ...user, isBookmarked: user.isBookmarked ?? false }))}
+              currentUserId={currentUser?.id}
+              isSignedIn={!!isSignedIn}
+              onBookmarkClick={handleBookmarkClick}
+              bookmarkPendingId={bookmarkPendingId}
+            />
+          ) : (
+            <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {users.map((user) =>
               viewMode === "compact" ? (
                 <MemberCardCompact
@@ -359,33 +382,22 @@ export default function MembersPage() {
               )
             )}
           </div>
-
-          {/* Pagination */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="cursor-pointer"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1 || isLoading}
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {pagination.page} of {pagination.totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="cursor-pointer"
-                onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-                disabled={page === pagination.totalPages || isLoading}
-              >
-                Next
-              </Button>
-            </div>
           )}
+
+          {pagination && pagination.totalPages > 1 ? (
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground text-center sm:text-left">
+                Showing {(pagination.page - 1) * pagination.limit + 1}–
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} members
+              </p>
+              <GroupedPagination
+                currentPage={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={setPage}
+                className="mt-0"
+              />
+            </div>
+          ) : null}
         </>
       )}
     </div>

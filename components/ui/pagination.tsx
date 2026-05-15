@@ -14,6 +14,94 @@ interface SimplePaginationProps {
   onPageChange: (page: number) => void;
 }
 
+const groupedPageButtonClass =
+  "h-9 min-w-9 rounded-none border-0 border-r border-border px-3 shadow-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50";
+
+/** Full page-number pagination with connected (grouped) buttons. */
+export function GroupedPagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+  className,
+  showLabels = true,
+}: SimplePaginationProps & { className?: string; showLabels?: boolean }) {
+  if (totalPages <= 1) return null;
+
+  const pageNumbers = generatePageNumbers(currentPage, totalPages);
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col items-center gap-3 sm:flex-row sm:justify-center w-full overflow-auto px-2 py-1",
+        className
+      )}
+      role="navigation"
+      aria-label="Pagination"
+    >
+      <div
+        className="inline-flex items-stretch overflow-hidden rounded-md border border-border bg-background"
+        role="group"
+      >
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+          className={cn(groupedPageButtonClass, "rounded-l-md pr-3 pl-2.5")}
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="h-4 w-4 shrink-0" />
+          {showLabels ? <span className="ml-1 hidden sm:inline">Previous</span> : null}
+        </Button>
+        {pageNumbers.map((page, index) => {
+          if (page === "ellipsis") {
+            return (
+              <span
+                key={`ellipsis-${index}`}
+                className="inline-flex h-9 min-w-9 items-center justify-center border-r border-border px-2 text-sm text-muted-foreground"
+                aria-hidden
+              >
+                …
+              </span>
+            );
+          }
+          const isActive = currentPage === page;
+          return (
+            <Button
+              key={page}
+              type="button"
+              variant={isActive ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => onPageChange(page)}
+              className={cn(
+                groupedPageButtonClass,
+                isActive && "bg-muted font-semibold text-foreground hover:bg-muted"
+              )}
+              aria-label={`Page ${page}`}
+              aria-current={isActive ? "page" : undefined}
+            >
+              {page}
+            </Button>
+          );
+        })}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage === totalPages}
+          className={cn(groupedPageButtonClass, "rounded-r-md border-r-0 pl-2.5 pr-3")}
+          aria-label="Next page"
+        >
+          {showLabels ? <span className="mr-1 hidden sm:inline">Next</span> : null}
+          <ChevronRight className="h-4 w-4 shrink-0" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function SimplePagination({ currentPage, totalPages, onPageChange, origin}: SimplePaginationProps) {
   if (totalPages <= 1) return null;
 

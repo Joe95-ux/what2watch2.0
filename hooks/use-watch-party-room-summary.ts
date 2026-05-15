@@ -49,6 +49,6 @@ export function useWatchPartyRoomSummary(partyId: string | null) {
     queryKey: ["watch-party-room", partyId],
     queryFn: ({ queryKey }) => fetchWatchPartyRoomSummary(queryKey[1] as string),
     enabled: Boolean(partyId),
-    staleTime: 60_000,
+    staleTime: 0,
   });
 }

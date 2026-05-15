@@ -21,6 +21,8 @@ type WatchPartyRoomPanelProps = {
   partyId: string;
   partyOpen: boolean;
   isParticipant: boolean;
+  /** True while membership is being confirmed after landing or copying an invite link. */
+  isJoining?: boolean;
   partyParticipants: WatchPartyRoomParticipant[];
 };
 
@@ -28,6 +30,7 @@ export function WatchPartyRoomPanel({
   partyId,
   partyOpen,
   isParticipant,
+  isJoining = false,
   partyParticipants,
 }: WatchPartyRoomPanelProps) {
   const members = partyParticipants ?? [];
@@ -68,7 +71,7 @@ export function WatchPartyRoomPanel({
   if (!isParticipant) {
     return (
       <div className="mt-3 rounded-lg border border-dashed border-border/70 bg-muted/10 px-3 py-2 text-center text-[11px] text-muted-foreground">
-        Join this watch room to see party chat and reactions.
+        {isJoining ? "Joining watch party…" : "Join this watch party to use chat and reactions."}
       </div>
     );
   }
