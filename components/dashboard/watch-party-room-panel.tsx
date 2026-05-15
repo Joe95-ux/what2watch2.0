@@ -77,7 +77,12 @@ export function WatchPartyRoomPanel({
   }
 
   return (
-    <div className="mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="mt-3 space-y-2"
+      data-watch-party-panel
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
       {members.length > 0 ? (
         <div className="flex flex-wrap items-center gap-1">
           <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Party</span>
@@ -163,11 +168,13 @@ export function WatchPartyRoomPanel({
             className="min-h-[52px] resize-none text-xs"
             disabled={sendChat.isPending}
             onKeyDown={(e) => {
+              e.stopPropagation();
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 void handleSend();
               }
             }}
+            onClick={(e) => e.stopPropagation()}
           />
           <div className="flex justify-end">
             <Button

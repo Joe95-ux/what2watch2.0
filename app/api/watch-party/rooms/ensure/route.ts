@@ -34,7 +34,14 @@ type EnsureBody = {
   watchingSessionId?: string | null;
 };
 
+function parseWatchingSessionId(value: unknown): string | null {
+  if (value == null) return null;
+  const id = String(value).trim();
+  return /^[a-f\d]{24}$/i.test(id) ? id : null;
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  try {
   const authResult = await requireUser();
   if (!authResult.ok) return authResult.response;
 
@@ -51,6 +58,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const seasonNumber = body.mediaType === "tv" ? body.seasonNumber ?? null : null;
   const episodeNumber = body.mediaType === "tv" ? body.episodeNumber ?? null : null;
+  const watchingSessionId = parseWatchingSessionId(body.watchingSessionId);
 
   const existing = await db.watchPartyRoom.findFirst({
     where: {
@@ -97,7 +105,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       backdropPath: body.backdropPath ?? null,
       seasonNumber,
       episodeNumber,
-      watchingSessionId: body.watchingSessionId?.trim() || null,
+      watchingSessionId,
       participants: {
         create: {
           userId: authResult.user.id,
@@ -117,4 +125,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   ]);
 
   return NextResponse.json({ id: room.id, feedRoomKey, created: true });
+  } catch (error) {
+    console.error("[watch-party ensure] error:", error);
+    return NextResponse.json({ error: "Failed to create watch party" }, { status: 500 });
+  }
 }

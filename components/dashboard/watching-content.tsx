@@ -54,6 +54,7 @@ import {
   useWatchPartyMembership,
   WatchPartyJoinError,
 } from "@/hooks/use-watch-party-membership";
+import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { useWatchingPulseStats } from "@/hooks/use-watching-pulse-stats";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { WatchingSessionDTO } from "@/lib/watching-types";
@@ -1395,8 +1396,13 @@ function WatchingNowGroupCard({
       )}
       role="button"
       tabIndex={0}
-      onClick={() => onSelect?.(room)}
+      onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest("input, textarea, button, a, [data-watch-party-panel]")) return;
+        onSelect?.(room);
+      }}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onSelect?.(room);
@@ -4050,6 +4056,7 @@ export default function WatchingContent() {
                 }
               }}
               onInviteRoom={async (selectedRoom) => {
+                let payload: { id: string; feedRoomKey: string } | null = null;
                 try {
                   const res = await fetch("/api/watch-party/rooms/ensure", {
                     method: "POST",
@@ -4070,18 +4077,39 @@ export default function WatchingContent() {
                     toast.error(typeof err.error === "string" ? err.error : "Could not create invite link.");
                     return;
                   }
-                  const payload = (await res.json()) as { id: string; feedRoomKey: string };
-                  const inviteUrl = buildPartyInviteUrl(payload.id, payload.feedRoomKey);
-                  if (!inviteUrl) {
-                    toast.error("Failed to build invite link.");
-                    return;
-                  }
-                  setPartyAndRoomInUrl(payload.id, payload.feedRoomKey);
-                  await ensureWatchPartyMembership(queryClient, payload.id);
-                  await navigator.clipboard.writeText(inviteUrl);
-                  toast.success("Invite link copied — you're in the party.");
+                  payload = (await res.json()) as { id: string; feedRoomKey: string };
                 } catch {
                   toast.error("Could not create invite link.");
+                  return;
+                }
+
+                const inviteUrl = buildPartyInviteUrl(payload.id, payload.feedRoomKey);
+                if (!inviteUrl) {
+                  toast.error("Failed to build invite link.");
+                  return;
+                }
+
+                try {
+                  await ensureWatchPartyMembership(queryClient, payload.id);
+                } catch (error) {
+                  if (error instanceof WatchPartyJoinError) {
+                    toast.error(error.message);
+                  } else {
+                    toast.error("Could not join watch party after creating the invite.");
+                  }
+                  return;
+                }
+
+                setPartyAndRoomInUrl(payload.id, payload.feedRoomKey);
+
+                const copied = await copyTextToClipboard(inviteUrl);
+                if (copied) {
+                  toast.success("Invite link copied — you're in the party.");
+                } else {
+                  toast.success("Watch party is ready. Copy the link from your browser address bar.", {
+                    description: inviteUrl,
+                    duration: 10_000,
+                  });
                 }
               }}
               onSelect={(selectedRoom) =>
