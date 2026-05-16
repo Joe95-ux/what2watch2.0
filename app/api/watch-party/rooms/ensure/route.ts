@@ -3,6 +3,10 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { watchPartyFeedRoomKey } from "@/lib/watch-party-feed-key";
 import {
+  getWatchPartyRoomSummaryForUser,
+  upsertWatchPartyParticipant,
+} from "@/lib/watch-party/room-summary-server";
+import {
   triggerWatchPartyParticipantsUpdated,
   triggerWatchPartyRoomUpdated,
   triggerWatchingDashboardUpdated,
@@ -42,89 +46,84 @@ function parseWatchingSessionId(value: unknown): string | null {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-  const authResult = await requireUser();
-  if (!authResult.ok) return authResult.response;
+    const authResult = await requireUser();
+    if (!authResult.ok) return authResult.response;
 
-  let body: EnsureBody;
-  try {
-    body = (await request.json()) as EnsureBody;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+    let body: EnsureBody;
+    try {
+      body = (await request.json()) as EnsureBody;
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
 
-  if (!body.tmdbId || body.tmdbId <= 0 || (body.mediaType !== "movie" && body.mediaType !== "tv") || !body.title?.trim()) {
-    return NextResponse.json({ error: "tmdbId, mediaType, and title are required" }, { status: 400 });
-  }
+    if (!body.tmdbId || body.tmdbId <= 0 || (body.mediaType !== "movie" && body.mediaType !== "tv") || !body.title?.trim()) {
+      return NextResponse.json({ error: "tmdbId, mediaType, and title are required" }, { status: 400 });
+    }
 
-  const seasonNumber = body.mediaType === "tv" ? body.seasonNumber ?? null : null;
-  const episodeNumber = body.mediaType === "tv" ? body.episodeNumber ?? null : null;
-  const watchingSessionId = parseWatchingSessionId(body.watchingSessionId);
+    const seasonNumber = body.mediaType === "tv" ? body.seasonNumber ?? null : null;
+    const episodeNumber = body.mediaType === "tv" ? body.episodeNumber ?? null : null;
+    const watchingSessionId = parseWatchingSessionId(body.watchingSessionId);
 
-  const existing = await db.watchPartyRoom.findFirst({
-    where: {
-      hostUserId: authResult.user.id,
-      status: "OPEN",
-      tmdbId: body.tmdbId,
-      mediaType: body.mediaType,
-      seasonNumber,
-      episodeNumber,
-    },
-    select: { id: true },
-  });
-
-  if (existing) {
-    const feedRoomKey = watchPartyFeedRoomKey(body.tmdbId, body.mediaType, seasonNumber, episodeNumber);
-    await db.watchPartyParticipant.upsert({
+    const existing = await db.watchPartyRoom.findFirst({
       where: {
-        roomId_userId: { roomId: existing.id, userId: authResult.user.id },
+        hostUserId: authResult.user.id,
+        status: "OPEN",
+        tmdbId: body.tmdbId,
+        mediaType: body.mediaType,
+        seasonNumber,
+        episodeNumber,
       },
-      create: {
-        roomId: existing.id,
-        userId: authResult.user.id,
-        role: "HOST",
-      },
-      update: {
-        leftAt: null,
-        role: "HOST",
-      },
+      select: { id: true, hostUserId: true },
     });
-    await Promise.all([
-      triggerWatchPartyParticipantsUpdated(existing.id, { action: "joined", userId: authResult.user.id }),
-      triggerWatchingDashboardUpdated({ action: "watch_party_join", userId: authResult.user.id }),
-    ]);
-    return NextResponse.json({ id: existing.id, feedRoomKey, created: false });
-  }
 
-  const room = await db.watchPartyRoom.create({
-    data: {
-      hostUserId: authResult.user.id,
-      tmdbId: body.tmdbId,
-      mediaType: body.mediaType,
-      title: body.title.trim(),
-      posterPath: body.posterPath ?? null,
-      backdropPath: body.backdropPath ?? null,
-      seasonNumber,
-      episodeNumber,
-      watchingSessionId,
-      participants: {
-        create: {
-          userId: authResult.user.id,
-          role: "HOST",
+    let roomId: string;
+
+    if (existing) {
+      roomId = existing.id;
+      await upsertWatchPartyParticipant(roomId, authResult.user.id, existing.hostUserId);
+      await Promise.all([
+        triggerWatchPartyParticipantsUpdated(roomId, { action: "joined", userId: authResult.user.id }),
+        triggerWatchingDashboardUpdated({ action: "watch_party_join", userId: authResult.user.id }),
+      ]);
+    } else {
+      const room = await db.watchPartyRoom.create({
+        data: {
+          hostUserId: authResult.user.id,
+          tmdbId: body.tmdbId,
+          mediaType: body.mediaType,
+          title: body.title.trim(),
+          posterPath: body.posterPath ?? null,
+          backdropPath: body.backdropPath ?? null,
+          seasonNumber,
+          episodeNumber,
+          watchingSessionId,
+          participants: {
+            create: {
+              userId: authResult.user.id,
+              role: "HOST",
+            },
+          },
         },
-      },
-    },
-    select: { id: true },
-  });
+        select: { id: true },
+      });
+      roomId = room.id;
 
-  const feedRoomKey = watchPartyFeedRoomKey(body.tmdbId, body.mediaType, seasonNumber, episodeNumber);
+      await Promise.all([
+        triggerWatchPartyRoomUpdated(roomId, { action: "created", hostUserId: authResult.user.id }),
+        triggerWatchPartyParticipantsUpdated(roomId, { action: "joined", userId: authResult.user.id }),
+        triggerWatchingDashboardUpdated({ action: "watch_party_created", userId: authResult.user.id }),
+      ]);
+    }
 
-  await Promise.all([
-    triggerWatchPartyRoomUpdated(room.id, { action: "created", hostUserId: authResult.user.id }),
-    triggerWatchPartyParticipantsUpdated(room.id, { action: "joined", userId: authResult.user.id }),
-    triggerWatchingDashboardUpdated({ action: "watch_party_created", userId: authResult.user.id }),
-  ]);
+    const feedRoomKey = watchPartyFeedRoomKey(body.tmdbId, body.mediaType, seasonNumber, episodeNumber);
+    const summary = await getWatchPartyRoomSummaryForUser(roomId, authResult.user.id);
 
-  return NextResponse.json({ id: room.id, feedRoomKey, created: true });
+    return NextResponse.json({
+      id: roomId,
+      feedRoomKey,
+      created: !existing,
+      summary,
+    });
   } catch (error) {
     console.error("[watch-party ensure] error:", error);
     return NextResponse.json({ error: "Failed to create watch party" }, { status: 500 });

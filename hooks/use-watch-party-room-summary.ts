@@ -21,13 +21,9 @@ export type WatchPartyRoomSummary = {
   status: "OPEN" | "ENDED";
 };
 
-export async function fetchWatchPartyRoomSummary(partyId: string): Promise<WatchPartyRoomSummary> {
-  const res = await fetch(`/api/watch-party/rooms/${encodeURIComponent(partyId)}`);
-  if (!res.ok) {
-    const err = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(typeof err.error === "string" ? err.error : "Failed to load watch party");
-  }
-  const raw = (await res.json()) as Partial<WatchPartyRoomSummary> & { id: string; title: string; feedRoomKey: string };
+export function parseWatchPartyRoomSummary(
+  raw: Partial<WatchPartyRoomSummary> & { id: string }
+): WatchPartyRoomSummary {
   const mediaType = raw.mediaType === "tv" ? "tv" : "movie";
   return {
     id: raw.id,
@@ -39,8 +35,18 @@ export async function fetchWatchPartyRoomSummary(partyId: string): Promise<Watch
     isHost: Boolean(raw.isHost),
     isParticipant: Boolean(raw.isParticipant),
     participants: Array.isArray(raw.participants) ? raw.participants : [],
-    status: raw.status === "ENDED" ? "ENDED" : "OPEN",
+    status: String(raw.status ?? "OPEN").toUpperCase() === "ENDED" ? "ENDED" : "OPEN",
   };
+}
+
+export async function fetchWatchPartyRoomSummary(partyId: string): Promise<WatchPartyRoomSummary> {
+  const res = await fetch(`/api/watch-party/rooms/${encodeURIComponent(partyId)}`);
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(typeof err.error === "string" ? err.error : "Failed to load watch party");
+  }
+  const raw = (await res.json()) as Partial<WatchPartyRoomSummary> & { id: string };
+  return parseWatchPartyRoomSummary(raw);
 }
 
 /** Cached GET for the party in the URL (`?party=`): menus, participant line, empty-feed banner. */

@@ -49,12 +49,11 @@ import { useSearch } from "@/hooks/use-search";
 import { useViewingLogsByContent } from "@/hooks/use-viewing-logs";
 import { useWatchingRoomDeepLink } from "@/hooks/use-watching-room-deep-link";
 import { useWatchPartyRoomPusher } from "@/hooks/use-watch-party-room-pusher";
-import { useWatchPartyRoomSummary } from "@/hooks/use-watch-party-room-summary";
 import {
-  ensureWatchPartyMembership,
-  useWatchPartyMembership,
-  WatchPartyJoinError,
-} from "@/hooks/use-watch-party-membership";
+  parseWatchPartyRoomSummary,
+  useWatchPartyRoomSummary,
+} from "@/hooks/use-watch-party-room-summary";
+import { useWatchPartyMembership, WatchPartyJoinError } from "@/hooks/use-watch-party-membership";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { useWatchingPulseStats } from "@/hooks/use-watching-pulse-stats";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
@@ -3152,16 +3151,12 @@ export default function WatchingContent() {
     onFocusedRoomResolved: handleFocusedRoomResolved,
   });
 
-  const { membershipSettled } = useWatchPartyMembership(
+  const { isJoining: isJoiningWatchParty } = useWatchPartyMembership(
     partyId,
     currentUser?.id,
     queryClient,
     {
       onJoined: (data) => {
-        if (data.status === "ENDED") {
-          toast.error("This watch party has ended.");
-          return;
-        }
         if (!data.feedRoomKey) return;
         const storageKey = `w2w:watch-party:landed:${data.id}`;
         const already = typeof window !== "undefined" && sessionStorage.getItem(storageKey);
@@ -3183,7 +3178,10 @@ export default function WatchingContent() {
     { authReady: watchPartyAuthReady }
   );
 
-  const summaryQueryEnabled = Boolean(partyId && currentUser?.id && membershipSettled);
+  // Wait for POST /join (or ensure cache) before GET — avoids a stale summary overwriting count/membership.
+  const summaryQueryEnabled = Boolean(
+    partyId && currentUser?.id && watchPartyAuthReady && !isJoiningWatchParty
+  );
 
   const {
     data: partyRoomSummary,
@@ -3195,9 +3193,6 @@ export default function WatchingContent() {
     Boolean(partyId) &&
     partyRoomSummary?.status === "OPEN" &&
     !watchingNowRooms.some((r) => r.key === partyRoomSummary.feedRoomKey);
-
-  const isJoiningWatchParty =
-    Boolean(partyId) && Boolean(currentUser?.id) && !membershipSettled;
 
   const endWatchPartyForFeedRoom = useCallback(
     async (feedRoomKey: string) => {
@@ -4084,7 +4079,6 @@ export default function WatchingContent() {
                 }
               }}
               onInviteRoom={async (selectedRoom) => {
-                let payload: { id: string; feedRoomKey: string } | null = null;
                 try {
                   const res = await fetch("/api/watch-party/rooms/ensure", {
                     method: "POST",
@@ -4105,36 +4099,35 @@ export default function WatchingContent() {
                     toast.error(typeof err.error === "string" ? err.error : "Could not create invite link.");
                     return;
                   }
-                  payload = (await res.json()) as { id: string; feedRoomKey: string };
+                  const payload = (await res.json()) as {
+                    id: string;
+                    feedRoomKey: string;
+                    summary?: Parameters<typeof parseWatchPartyRoomSummary>[0];
+                  };
+                  await queryClient.cancelQueries({ queryKey: ["watch-party-room", payload.id] });
+                  if (payload.summary) {
+                    queryClient.setQueryData(
+                      ["watch-party-room", payload.id],
+                      parseWatchPartyRoomSummary(payload.summary)
+                    );
+                  }
+
+                  const inviteUrl = buildPartyInviteUrl(payload.id, payload.feedRoomKey);
+                  if (!inviteUrl) {
+                    toast.error("Failed to build invite link.");
+                    return;
+                  }
+
+                  setPartyAndRoomInUrl(payload.id, payload.feedRoomKey);
+
+                  const copied = await copyTextToClipboard(inviteUrl);
+                  if (copied) {
+                    toast.success("Invite link copied — you're in the party.");
+                  } else {
+                    toast.success("Watch party is ready — copy the link from your address bar.");
+                  }
                 } catch {
                   toast.error("Could not create invite link.");
-                  return;
-                }
-
-                const inviteUrl = buildPartyInviteUrl(payload.id, payload.feedRoomKey);
-                if (!inviteUrl) {
-                  toast.error("Failed to build invite link.");
-                  return;
-                }
-
-                try {
-                  await ensureWatchPartyMembership(queryClient, payload.id);
-                } catch (error) {
-                  if (error instanceof WatchPartyJoinError) {
-                    toast.error(error.message);
-                  } else {
-                    toast.error("Could not join watch party after creating the invite.");
-                  }
-                  return;
-                }
-
-                setPartyAndRoomInUrl(payload.id, payload.feedRoomKey);
-
-                const copied = await copyTextToClipboard(inviteUrl);
-                if (copied) {
-                  toast.success("Invite link copied — you're in the party.");
-                } else {
-                  toast.success("Watch party is ready — copy the link from your address bar.");
                 }
               }}
               onSelect={(selectedRoom) =>

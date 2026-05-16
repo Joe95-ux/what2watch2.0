@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import {
+  getWatchPartyRoomSummaryForUser,
+  isValidWatchPartyRoomId,
+  normalizeWatchPartyStatus,
+  upsertWatchPartyParticipant,
+} from "@/lib/watch-party/room-summary-server";
 import { triggerWatchPartyParticipantsUpdated, triggerWatchingDashboardUpdated } from "@/lib/pusher/server";
 
 async function requireUser() {
@@ -26,8 +32,8 @@ export async function POST(
   if (!authResult.ok) return authResult.response;
 
   const { id: roomId } = await context.params;
-  if (!roomId?.trim()) {
-    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  if (!roomId?.trim() || !isValidWatchPartyRoomId(roomId)) {
+    return NextResponse.json({ error: "Invalid party id" }, { status: 400 });
   }
 
   const room = await db.watchPartyRoom.findFirst({
@@ -38,31 +44,17 @@ export async function POST(
   if (!room) {
     return NextResponse.json({ error: "Party not found" }, { status: 404 });
   }
-  if (room.status !== "OPEN") {
-    return NextResponse.json({ error: "Party has ended" }, { status: 410 });
+
+  const status = normalizeWatchPartyStatus(room.status);
+  if (status !== "OPEN") {
+    return NextResponse.json({ error: "Party has ended", status }, { status: 410 });
   }
 
-  const existing = await db.watchPartyParticipant.findUnique({
-    where: {
-      roomId_userId: { roomId, userId: authResult.user.id },
-    },
-  });
+  await upsertWatchPartyParticipant(room.id, authResult.user.id, room.hostUserId);
 
-  if (existing) {
-    if (existing.leftAt != null) {
-      await db.watchPartyParticipant.update({
-        where: { id: existing.id },
-        data: { leftAt: null, joinedAt: new Date() },
-      });
-    }
-  } else {
-    await db.watchPartyParticipant.create({
-      data: {
-        roomId,
-        userId: authResult.user.id,
-        role: authResult.user.id === room.hostUserId ? "HOST" : "GUEST",
-      },
-    });
+  const summary = await getWatchPartyRoomSummaryForUser(room.id, authResult.user.id);
+  if (!summary) {
+    return NextResponse.json({ error: "Party not found" }, { status: 404 });
   }
 
   await Promise.all([
@@ -70,5 +62,5 @@ export async function POST(
     triggerWatchingDashboardUpdated({ action: "watch_party_join", userId: authResult.user.id }),
   ]);
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, summary });
 }

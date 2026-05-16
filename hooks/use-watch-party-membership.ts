@@ -2,7 +2,11 @@
 
 import type { QueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { fetchWatchPartyRoomSummary, type WatchPartyRoomSummary } from "@/hooks/use-watch-party-room-summary";
+import {
+  fetchWatchPartyRoomSummary,
+  parseWatchPartyRoomSummary,
+  type WatchPartyRoomSummary,
+} from "@/hooks/use-watch-party-room-summary";
 
 export class WatchPartyJoinError extends Error {
   constructor(
@@ -17,8 +21,7 @@ export class WatchPartyJoinError extends Error {
 const joinFlightByPartyId = new Map<string, Promise<WatchPartyRoomSummary>>();
 
 /**
- * Idempotent: POST /join then refresh the room summary in the query cache.
- * Dedupes concurrent calls for the same party (copy link + auto-join + strict mode).
+ * POST /join then use the summary returned by the server (same request, no stale read).
  */
 export async function ensureWatchPartyMembership(
   queryClient: QueryClient,
@@ -48,9 +51,12 @@ export async function ensureWatchPartyMembership(
       );
     }
 
-    const summary = await fetchWatchPartyRoomSummary(partyId);
+    const body = (await joinRes.json()) as { summary?: Partial<WatchPartyRoomSummary> & { id: string } };
+    const summary = body.summary
+      ? parseWatchPartyRoomSummary(body.summary)
+      : await fetchWatchPartyRoomSummary(partyId);
+
     queryClient.setQueryData(["watch-party-room", partyId], summary);
-    await queryClient.invalidateQueries({ queryKey: ["watch-party-room", partyId] });
     return summary;
   })().finally(() => {
     joinFlightByPartyId.delete(partyId);
@@ -66,8 +72,7 @@ type WatchPartyMembershipCallbacks = {
 };
 
 /**
- * When `?party=` is present, join the current user and keep the summary cache in sync.
- * Returns `membershipSettled` once join + summary refresh finished for the current party id.
+ * When `?party=` is in the URL, auto-join and refresh the summary cache.
  */
 export function useWatchPartyMembership(
   partyId: string | null,
@@ -79,35 +84,29 @@ export function useWatchPartyMembership(
   const callbacksRef = useRef(callbacks);
   callbacksRef.current = callbacks;
   const authReady = options?.authReady ?? true;
-  const [settledPartyId, setSettledPartyId] = useState<string | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
 
   useEffect(() => {
-    if (!partyId) {
-      setSettledPartyId(null);
-      return;
-    }
-    if (!authReady) {
-      return;
-    }
-    if (!userId) {
-      setSettledPartyId(null);
+    if (!partyId || !authReady || !userId) {
+      setIsJoining(false);
       return;
     }
 
     let cancelled = false;
-    setSettledPartyId(null);
+    setIsJoining(true);
 
     void ensureWatchPartyMembership(queryClient, partyId)
       .then((summary) => {
         if (cancelled) return;
         callbacksRef.current?.onJoined?.(summary);
-        setSettledPartyId(partyId);
       })
       .catch((error: unknown) => {
         if (cancelled) return;
-        setSettledPartyId(null);
         const err = error instanceof Error ? error : new Error("Could not join watch party.");
         callbacksRef.current?.onError?.(err);
+      })
+      .finally(() => {
+        if (!cancelled) setIsJoining(false);
       });
 
     return () => {
@@ -115,7 +114,5 @@ export function useWatchPartyMembership(
     };
   }, [partyId, userId, queryClient, authReady]);
 
-  const membershipSettled = Boolean(partyId && userId && settledPartyId === partyId);
-
-  return { membershipSettled };
+  return { isJoining };
 }
