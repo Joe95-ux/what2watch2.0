@@ -97,16 +97,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           seasonNumber,
           episodeNumber,
           watchingSessionId,
-          participants: {
-            create: {
-              userId: authResult.user.id,
-              role: "HOST",
-            },
-          },
         },
-        select: { id: true },
+        select: { id: true, hostUserId: true },
       });
       roomId = room.id;
+      await upsertWatchPartyParticipant(roomId, authResult.user.id, room.hostUserId);
 
       await Promise.all([
         triggerWatchPartyRoomUpdated(roomId, { action: "created", hostUserId: authResult.user.id }),

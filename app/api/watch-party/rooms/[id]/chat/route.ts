@@ -3,6 +3,8 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { moderateContent } from "@/lib/moderation";
 import { triggerWatchPartyChatUpdated } from "@/lib/pusher/server";
+import { findActiveWatchPartyParticipant } from "@/lib/watch-party/room-summary-server";
+import { isActiveWatchPartyParticipant } from "@/lib/watch-party/participant-active";
 
 async function requireUser() {
   const { userId: clerkUserId } = await auth();
@@ -47,10 +49,7 @@ async function requireOpenPartyMember(roomId: string, userId: string) {
   if (room.status !== "OPEN") {
     return { ok: false as const, response: NextResponse.json({ error: "Party has ended" }, { status: 410 }) };
   }
-  const member = await db.watchPartyParticipant.findFirst({
-    where: { roomId, userId, leftAt: null },
-    select: { id: true },
-  });
+  const member = await findActiveWatchPartyParticipant(roomId, userId);
   if (!member) {
     return { ok: false as const, response: NextResponse.json({ error: "Join the party to use chat" }, { status: 403 }) };
   }

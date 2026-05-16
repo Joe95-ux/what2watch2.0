@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { watchPartyFeedRoomKey } from "@/lib/watch-party-feed-key";
+import { isActiveWatchPartyParticipant } from "@/lib/watch-party/participant-active";
 
 export type WatchPartyRoomStatus = "OPEN" | "ENDED";
 
@@ -39,7 +40,7 @@ export async function upsertWatchPartyParticipant(
   });
 
   if (existing) {
-    if (existing.leftAt != null) {
+    if (!isActiveWatchPartyParticipant(existing.leftAt)) {
       await db.watchPartyParticipant.update({
         where: { id: existing.id },
         data: { leftAt: null, joinedAt: new Date() },
@@ -55,6 +56,28 @@ export async function upsertWatchPartyParticipant(
       role: userId === hostUserId ? "HOST" : "GUEST",
     },
   });
+}
+
+export async function findActiveWatchPartyParticipant(roomId: string, userId: string) {
+  const row = await db.watchPartyParticipant.findUnique({
+    where: { roomId_userId: { roomId, userId } },
+    select: { id: true, leftAt: true },
+  });
+  if (!row || !isActiveWatchPartyParticipant(row.leftAt)) return null;
+  return row;
+}
+
+/** Load active party members (Prisma `leftAt: null` misses unset fields on Mongo). */
+export async function listActiveWatchPartyParticipants(roomId: string) {
+  const rows = await db.watchPartyParticipant.findMany({
+    where: { roomId },
+    orderBy: { joinedAt: "asc" },
+    take: 48,
+    include: {
+      user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+    },
+  });
+  return rows.filter((p) => isActiveWatchPartyParticipant(p.leftAt));
 }
 
 export async function getWatchPartyRoomSummaryForUser(
@@ -77,28 +100,31 @@ export async function getWatchPartyRoomSummaryForUser(
 
   if (!room) return null;
 
+  // Host should always have a row after ensure; heal legacy rooms on read.
+  if (room.hostUserId === userId) {
+    const hostRow = await db.watchPartyParticipant.findUnique({
+      where: { roomId_userId: { roomId: room.id, userId } },
+      select: { leftAt: true },
+    });
+    if (!hostRow || !isActiveWatchPartyParticipant(hostRow.leftAt)) {
+      await upsertWatchPartyParticipant(room.id, userId, room.hostUserId);
+    }
+  }
+
   const status = normalizeWatchPartyStatus(room.status);
-  const activeCount = await db.watchPartyParticipant.count({
-    where: { roomId: room.id, leftAt: null },
-  });
+  const activeRows = await listActiveWatchPartyParticipants(room.id);
+  const activeCount = activeRows.length;
 
   const myParticipation = await db.watchPartyParticipant.findUnique({
     where: { roomId_userId: { roomId: room.id, userId } },
     select: { leftAt: true },
   });
-  const isParticipant = Boolean(myParticipation && myParticipation.leftAt == null);
+  const isParticipant = Boolean(
+    myParticipation && isActiveWatchPartyParticipant(myParticipation.leftAt)
+  );
 
   const participants = isParticipant
-    ? (
-        await db.watchPartyParticipant.findMany({
-          where: { roomId: room.id, leftAt: null },
-          orderBy: { joinedAt: "asc" },
-          take: 24,
-          include: {
-            user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
-          },
-        })
-      ).map((p) => ({
+    ? activeRows.slice(0, 24).map((p) => ({
         userId: p.userId,
         name: p.user.displayName || p.user.username || "Unknown",
         avatarUrl: p.user.avatarUrl,

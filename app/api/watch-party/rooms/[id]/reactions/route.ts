@@ -8,6 +8,8 @@ import {
   type WatchPartyReactionKind,
 } from "@/lib/watch-party-reaction-kinds";
 import { triggerWatchPartyReactionsUpdated } from "@/lib/pusher/server";
+import { findActiveWatchPartyParticipant } from "@/lib/watch-party/room-summary-server";
+import { isActiveWatchPartyParticipant } from "@/lib/watch-party/participant-active";
 
 async function requireUser() {
   const { userId: clerkUserId } = await auth();
@@ -37,7 +39,7 @@ async function requirePartyReactionRead(roomId: string, userId: string) {
   if (!row) {
     return { ok: false as const, response: NextResponse.json({ error: "Join the party to view reactions" }, { status: 403 }) };
   }
-  if (room.status === "OPEN" && row.leftAt != null) {
+  if (room.status === "OPEN" && !isActiveWatchPartyParticipant(row.leftAt)) {
     return { ok: false as const, response: NextResponse.json({ error: "Rejoin the party to view reactions" }, { status: 403 }) };
   }
   return { ok: true as const };
@@ -52,10 +54,7 @@ async function requireOpenPartyMember(roomId: string, userId: string) {
   if (room.status !== "OPEN") {
     return { ok: false as const, response: NextResponse.json({ error: "Party has ended" }, { status: 410 }) };
   }
-  const member = await db.watchPartyParticipant.findFirst({
-    where: { roomId, userId, leftAt: null },
-    select: { id: true },
-  });
+  const member = await findActiveWatchPartyParticipant(roomId, userId);
   if (!member) {
     return { ok: false as const, response: NextResponse.json({ error: "Join the party to react" }, { status: 403 }) };
   }

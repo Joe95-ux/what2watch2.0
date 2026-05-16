@@ -53,7 +53,11 @@ import {
   parseWatchPartyRoomSummary,
   useWatchPartyRoomSummary,
 } from "@/hooks/use-watch-party-room-summary";
-import { useWatchPartyMembership, WatchPartyJoinError } from "@/hooks/use-watch-party-membership";
+import {
+  ensureWatchPartyMembership,
+  useWatchPartyMembership,
+  WatchPartyJoinError,
+} from "@/hooks/use-watch-party-membership";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { useWatchingPulseStats } from "@/hooks/use-watching-pulse-stats";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
@@ -3169,6 +3173,10 @@ export default function WatchingContent() {
       },
       onError: (error) => {
         if (error instanceof WatchPartyJoinError) {
+          if (error.status === 410 && partyId) {
+            setFeedRoomFocusInUrl(focusedRoomKey);
+            queryClient.removeQueries({ queryKey: ["watch-party-room", partyId] });
+          }
           toast.error(error.message);
           return;
         }
@@ -3193,6 +3201,26 @@ export default function WatchingContent() {
     Boolean(partyId) &&
     partyRoomSummary?.status === "OPEN" &&
     !watchingNowRooms.some((r) => r.key === partyRoomSummary.feedRoomKey);
+
+  const partyUiActive =
+    Boolean(partyId) && partyRoomSummary?.status === "OPEN";
+
+  // When host ends the party, drop ?party= for everyone so the inline panel / banner goes away.
+  useEffect(() => {
+    if (!partyId || partyRoomSummary?.status !== "ENDED") return;
+    const roomKey = partyRoomSummary.feedRoomKey || focusedRoomKey;
+    setFeedRoomFocusInUrl(roomKey ?? null);
+    queryClient.removeQueries({ queryKey: ["watch-party-room", partyId] });
+    queryClient.removeQueries({ queryKey: ["watch-party-chat", partyId] });
+    queryClient.removeQueries({ queryKey: ["watch-party-reactions", partyId] });
+  }, [
+    partyId,
+    partyRoomSummary?.status,
+    partyRoomSummary?.feedRoomKey,
+    focusedRoomKey,
+    setFeedRoomFocusInUrl,
+    queryClient,
+  ]);
 
   const endWatchPartyForFeedRoom = useCallback(
     async (feedRoomKey: string) => {
@@ -3983,7 +4011,7 @@ export default function WatchingContent() {
             </Button>
           </div>
 
-          {partyFeedMissing && partyId && partyRoomSummary ? (
+          {partyFeedMissing && partyUiActive && partyRoomSummary ? (
             <div className="mb-3 space-y-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-3">
               <p className="text-sm text-muted-foreground">
                 {"You're in "}
@@ -4019,29 +4047,29 @@ export default function WatchingContent() {
                 isPartySummaryPending ||
                 (isPartySummaryFetching && partyRoomSummary === undefined));
             let watchPartyCue: { label: string; variant: "loading" | "live" | "ended" } | null = null;
-            if (partyId && partyRoomSummary?.feedRoomKey === room.key) {
-              if (partyRoomSummary.status === "ENDED") {
-                watchPartyCue = { label: "Watch party ended", variant: "ended" };
-              } else {
-                const n = partyRoomSummary.participantCount;
-                watchPartyCue = {
-                  label: `${n} ${n === 1 ? "person" : "people"} in watch party`,
-                  variant: "live",
-                };
-              }
+            if (
+              partyUiActive &&
+              partyRoomSummary?.feedRoomKey === room.key
+            ) {
+              const n = Math.max(
+                partyRoomSummary.participantCount,
+                partyRoomSummary.participants.length
+              );
+              watchPartyCue = {
+                label: `${n} ${n === 1 ? "person" : "people"} in watch party`,
+                variant: "live",
+              };
             } else if (partySummaryLoading && focusedRoomKey === room.key) {
               watchPartyCue = { label: "Watch party…", variant: "loading" };
             }
             const canEndThisParty =
-              Boolean(partyId) &&
+              partyUiActive &&
               partyRoomSummary?.feedRoomKey === room.key &&
-              partyRoomSummary.isHost &&
-              partyRoomSummary.status === "OPEN";
+              partyRoomSummary.isHost;
             const canLeaveThisParty =
-              Boolean(partyId) &&
+              partyUiActive &&
               partyRoomSummary?.feedRoomKey === room.key &&
-              !partyRoomSummary.isHost &&
-              partyRoomSummary.status === "OPEN";
+              !partyRoomSummary.isHost;
             return (
             <WatchingNowGroupCard
               key={room.key}
@@ -4049,10 +4077,16 @@ export default function WatchingContent() {
               matchPercent={roomMatchScores[room.key]}
               currentUserId={currentUser?.id ?? null}
               isInWatchParty={
-                Boolean(partyId && partyRoomSummary?.feedRoomKey === room.key && partyRoomSummary.isParticipant)
+                Boolean(
+                  partyUiActive &&
+                    partyRoomSummary?.feedRoomKey === room.key &&
+                    partyRoomSummary.isParticipant
+                )
               }
               isJoiningWatchParty={Boolean(
-                partyId && partyRoomSummary?.feedRoomKey === room.key && isJoiningWatchParty
+                partyUiActive &&
+                  partyRoomSummary?.feedRoomKey === room.key &&
+                  isJoiningWatchParty
               )}
               isJoiningRoom={joiningRoomKey === room.key}
               onWatchNow={(selectedRoom) => {
@@ -4105,12 +4139,8 @@ export default function WatchingContent() {
                     summary?: Parameters<typeof parseWatchPartyRoomSummary>[0];
                   };
                   await queryClient.cancelQueries({ queryKey: ["watch-party-room", payload.id] });
-                  if (payload.summary) {
-                    queryClient.setQueryData(
-                      ["watch-party-room", payload.id],
-                      parseWatchPartyRoomSummary(payload.summary)
-                    );
-                  }
+                  const membershipSummary = await ensureWatchPartyMembership(queryClient, payload.id);
+                  queryClient.setQueryData(["watch-party-room", payload.id], membershipSummary);
 
                   const inviteUrl = buildPartyInviteUrl(payload.id, payload.feedRoomKey);
                   if (!inviteUrl) {
@@ -4161,7 +4191,10 @@ export default function WatchingContent() {
               isLeavingWatchParty={leavingWatchPartyRoomKey === room.key}
               watchPartyCue={watchPartyCue}
               partyInlineSlot={
-                !partyFeedMissing && partyId && partyRoomSummary && room.key === partyRoomSummary.feedRoomKey ? (
+                !partyFeedMissing &&
+                partyUiActive &&
+                partyRoomSummary &&
+                room.key === partyRoomSummary.feedRoomKey ? (
                   <WatchPartyRoomPanel
                     partyId={partyId}
                     partyOpen={partyRoomSummary.status === "OPEN"}

@@ -25,16 +25,19 @@ export function parseWatchPartyRoomSummary(
   raw: Partial<WatchPartyRoomSummary> & { id: string }
 ): WatchPartyRoomSummary {
   const mediaType = raw.mediaType === "tv" ? "tv" : "movie";
+  const participants = Array.isArray(raw.participants) ? raw.participants : [];
+  const parsedCount =
+    typeof raw.participantCount === "number" ? raw.participantCount : participants.length;
   return {
     id: raw.id,
     title: raw.title ?? "Watch party",
     tmdbId: typeof raw.tmdbId === "number" ? raw.tmdbId : 0,
     mediaType,
     feedRoomKey: raw.feedRoomKey ?? "",
-    participantCount: typeof raw.participantCount === "number" ? raw.participantCount : 0,
+    participantCount: Math.max(parsedCount, participants.length),
     isHost: Boolean(raw.isHost),
     isParticipant: Boolean(raw.isParticipant),
-    participants: Array.isArray(raw.participants) ? raw.participants : [],
+    participants,
     status: String(raw.status ?? "OPEN").toUpperCase() === "ENDED" ? "ENDED" : "OPEN",
   };
 }
