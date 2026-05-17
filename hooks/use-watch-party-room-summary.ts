@@ -13,6 +13,10 @@ export type WatchPartyRoomSummary = {
   title: string;
   tmdbId: number;
   mediaType: "movie" | "tv";
+  posterPath: string | null;
+  backdropPath: string | null;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
   feedRoomKey: string;
   participantCount: number;
   isHost: boolean;
@@ -33,6 +37,10 @@ export function parseWatchPartyRoomSummary(
     title: raw.title ?? "Watch party",
     tmdbId: typeof raw.tmdbId === "number" ? raw.tmdbId : 0,
     mediaType,
+    posterPath: typeof raw.posterPath === "string" ? raw.posterPath : null,
+    backdropPath: typeof raw.backdropPath === "string" ? raw.backdropPath : null,
+    seasonNumber: typeof raw.seasonNumber === "number" ? raw.seasonNumber : null,
+    episodeNumber: typeof raw.episodeNumber === "number" ? raw.episodeNumber : null,
     feedRoomKey: raw.feedRoomKey ?? "",
     participantCount: Math.max(parsedCount, participants.length),
     isHost: Boolean(raw.isHost),

@@ -9,6 +9,10 @@ export type WatchPartyRoomSummaryPayload = {
   title: string;
   tmdbId: number;
   mediaType: "movie" | "tv";
+  posterPath: string | null;
+  backdropPath: string | null;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
   feedRoomKey: string;
   participantCount: number;
   isHost: boolean;
@@ -93,6 +97,8 @@ export async function getWatchPartyRoomSummaryForUser(
       tmdbId: true,
       mediaType: true,
       title: true,
+      posterPath: true,
+      backdropPath: true,
       seasonNumber: true,
       episodeNumber: true,
     },
@@ -144,6 +150,10 @@ export async function getWatchPartyRoomSummaryForUser(
     title: room.title,
     tmdbId: room.tmdbId,
     mediaType,
+    posterPath: room.posterPath,
+    backdropPath: room.backdropPath,
+    seasonNumber: room.seasonNumber,
+    episodeNumber: room.episodeNumber,
     feedRoomKey,
     participantCount: activeCount,
     isHost: room.hostUserId === userId,

@@ -5,7 +5,12 @@ import type { WatchingSessionDTO } from "@/lib/watching-types";
 
 export function useWatchingPulseStats(sessions: WatchingSessionDTO[] | undefined, currentUserId: string | null | undefined) {
   const activeWatchingPeopleCount = useMemo(
-    () => (sessions ?? []).filter((session) => session.status === "WATCHING_NOW").length,
+    () =>
+      new Set(
+        (sessions ?? [])
+          .filter((session) => session.status === "WATCHING_NOW")
+          .map((session) => session.userId)
+      ).size,
     [sessions]
   );
 

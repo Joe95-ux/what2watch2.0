@@ -10,6 +10,10 @@ import {
   syncEpisodeViewingFromSessions,
   type WatchedUpsertSession,
 } from "@/lib/watching-finish-sync";
+import {
+  getActiveWatchPartyPeerUserIds,
+  mergeNetworkUserIds,
+} from "@/lib/watch-party/peer-user-ids";
 
 const WATCHING_AUTO_TIMEOUT_MS = 1000 * 60 * 60 * 4; // 4 hours
 
@@ -344,7 +348,20 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
       const signedIn = await requireSignedInUser();
       const currentUserId = signedIn.ok ? signedIn.user.id : null;
 
-      await autoTimeoutWatchingSessions(currentUserId ? [currentUserId] : []);
+      let followingIds: string[] = [];
+      let partyPeerIds: string[] = [];
+      if (currentUserId) {
+        const followRows = await db.follow.findMany({
+          where: { followerId: currentUserId },
+          select: { followingId: true },
+        });
+        followingIds = followRows.map((f) => f.followingId);
+        partyPeerIds = await getActiveWatchPartyPeerUserIds(currentUserId);
+      }
+
+      await autoTimeoutWatchingSessions(
+        currentUserId ? mergeNetworkUserIds(currentUserId, followingIds, partyPeerIds) : []
+      );
       const sessions = await db.watchingSession.findMany({
         where: {
           tmdbId,
@@ -352,7 +369,13 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
           status: "WATCHING_NOW",
           OR: [
             { visibility: "PUBLIC" },
-            ...(currentUserId ? [{ userId: currentUserId }] : []),
+            ...(currentUserId
+              ? [
+                  { userId: currentUserId },
+                  { visibility: "FOLLOWERS_ONLY" as const, userId: { in: followingIds } },
+                  { userId: { in: partyPeerIds } },
+                ]
+              : []),
           ],
         },
         include: {
@@ -415,10 +438,12 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
         myReactionsMap.set(row.thoughtId, list);
       }
 
+      const watcherCount = new Set(sessions.map((session) => session.userId)).size;
+
       return NextResponse.json({
         tmdbId,
         mediaType: mediaTypeParam,
-        watcherCount: sessions.length,
+        watcherCount,
         isCurrentUserWatching: currentUserId ? sessions.some((session) => session.userId === currentUserId) : false,
         watchers: sessions.slice(0, 7).map((session) => ({
           sessionId: session.id,
@@ -473,7 +498,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
       select: { followingId: true },
     });
     const followingIds = followRows.map((f) => f.followingId);
-    const networkIds = [currentUser.id, ...followingIds];
+    const partyPeerIds = await getActiveWatchPartyPeerUserIds(currentUser.id);
+    const networkIds = mergeNetworkUserIds(currentUser.id, followingIds, partyPeerIds);
     await autoTimeoutWatchingSessions(networkIds);
     const justFinishedWindowStart = new Date(Date.now() - 1000 * 60 * 60 * 48);
 
@@ -500,6 +526,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
                 { visibility: "PUBLIC" },
                 { visibility: "FOLLOWERS_ONLY", userId: { in: followingIds } },
                 { userId: currentUser.id },
+                { userId: { in: partyPeerIds } },
               ],
             },
             { status: "STOPPED", userId: currentUser.id, endedAt: null },
@@ -525,6 +552,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
             { visibility: "PUBLIC" },
             { visibility: "FOLLOWERS_ONLY", userId: { in: followingIds } },
             { userId: currentUser.id },
+            { userId: { in: partyPeerIds } },
           ],
         },
         include: {
@@ -700,12 +728,17 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
     );
 
     const alsoWatchingCurrent = currentSession
-      ? watchingNow.filter(
-          (s) =>
-            s.id !== currentSession.id &&
-            s.tmdbId === currentSession.tmdbId &&
-            s.mediaType === currentSession.mediaType
-        )
+      ? watchingNow.filter((s) => {
+          if (s.id === currentSession.id) return false;
+          if (s.tmdbId !== currentSession.tmdbId || s.mediaType !== currentSession.mediaType) return false;
+          if (currentSession.mediaType === "tv") {
+            return (
+              (s.seasonNumber ?? null) === (currentSession.seasonNumber ?? null) &&
+              (s.episodeNumber ?? null) === (currentSession.episodeNumber ?? null)
+            );
+          }
+          return true;
+        })
       : [];
 
     const startOfToday = new Date();

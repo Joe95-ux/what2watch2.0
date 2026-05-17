@@ -59,6 +59,10 @@ import {
   WatchPartyJoinError,
 } from "@/hooks/use-watch-party-membership";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
+import {
+  watchPartyMatchesSession,
+  watchPartyStartPayload,
+} from "@/lib/watch-party/session-match";
 import { useWatchingPulseStats } from "@/hooks/use-watching-pulse-stats";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { WatchingSessionDTO } from "@/lib/watching-types";
@@ -2141,6 +2145,7 @@ function JustFinishedGroupCard({
 
 function RightRail({
   currentSession,
+  partyWatchPrompt,
   alsoWatchingCurrent,
   alsoWatchingTitle,
   watchingNow,
@@ -2158,6 +2163,12 @@ function RightRail({
   watchMomentLabel,
 }: {
   currentSession: WatchingSessionDTO | null;
+  /** In a watch party but no matching watching session — prompt to start. */
+  partyWatchPrompt?: {
+    title: string;
+    onStartWatching: () => void;
+    isStarting: boolean;
+  } | null;
   alsoWatchingCurrent: WatchingSessionDTO[];
   alsoWatchingTitle?: string | null;
   watchingNow: WatchingSessionDTO[];
@@ -2376,6 +2387,23 @@ function RightRail({
                 </label>
               </div>
             </div>
+          </div>
+        ) : partyWatchPrompt ? (
+          <div className="rounded-[15px] border border-border/60 bg-muted/45 px-[13px] py-[12px] dark:bg-muted/25">
+            <p className="text-[13px] text-muted-foreground">
+              You&apos;re in a watch party for{" "}
+              <span className="font-medium text-foreground">{partyWatchPrompt.title}</span>. Start watching to
+              share thoughts in your feed (party chat is on the card).
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              className="mt-3 h-8 cursor-pointer rounded-[20px] px-4 text-[13px]"
+              disabled={partyWatchPrompt.isStarting}
+              onClick={partyWatchPrompt.onStartWatching}
+            >
+              {partyWatchPrompt.isStarting ? "Starting…" : "Start watching"}
+            </Button>
           </div>
         ) : (
           <p className="text-[13px] text-muted-foreground">No active session yet.</p>
@@ -3348,7 +3376,8 @@ export default function WatchingContent() {
       backdropPath: string | null;
       seasonNumber?: number | null;
       episodeNumber?: number | null;
-    }
+    },
+    options?: { quiet?: boolean }
   ): Promise<boolean> => {
     const pick = overridePick ?? selectedPick;
     if (!pick) {
@@ -3395,7 +3424,9 @@ export default function WatchingContent() {
         seasonNumber: finalPick.mediaType === "tv" ? finalPick.seasonNumber ?? null : null,
         episodeNumber: finalPick.mediaType === "tv" ? finalPick.episodeNumber ?? null : null,
       });
-      toast.success("Watching session started.");
+      if (!options?.quiet) {
+        toast.success("Watching session started.");
+      }
       setWatchSearchQuery("");
       setSelectedPick(null);
       setThoughtText("");
@@ -3407,6 +3438,32 @@ export default function WatchingContent() {
       return false;
     }
   };
+
+  const partyWatchPrompt = useMemo(() => {
+    if (!partyUiActive || !partyRoomSummary?.isParticipant) return null;
+    const session = watchingData?.currentSession;
+    if (session && watchPartyMatchesSession(partyRoomSummary, session)) return null;
+    return {
+      title: partyRoomSummary.title,
+      onStartWatching: () => {
+        void submitStartWatching(watchPartyStartPayload(partyRoomSummary));
+      },
+      isStarting: watchingMutation.isPending,
+    };
+  }, [partyUiActive, partyRoomSummary, watchingData?.currentSession, watchingMutation.isPending]);
+
+  // Invitees join the party room but need a watching session for the right-rail thought form.
+  useEffect(() => {
+    if (!partyUiActive || !partyRoomSummary?.isParticipant || !partyId) return;
+    const session = watchingData?.currentSession;
+    if (session && watchPartyMatchesSession(partyRoomSummary, session)) return;
+
+    const storageKey = `w2w:watch-party:auto-session:${partyId}`;
+    if (typeof window !== "undefined" && sessionStorage.getItem(storageKey)) return;
+    if (typeof window !== "undefined") sessionStorage.setItem(storageKey, "1");
+
+    void submitStartWatching(watchPartyStartPayload(partyRoomSummary), { quiet: true });
+  }, [partyUiActive, partyRoomSummary, partyId, watchingData?.currentSession]);
 
   const clearActiveWatching = async () => {
     const activeSession = watchingData?.currentSession;
@@ -4338,6 +4395,7 @@ export default function WatchingContent() {
           <div className="min-h-0 flex-1 overflow-y-auto watching-page-scroll">
             <RightRail
               currentSession={watchingData?.currentSession ?? null}
+              partyWatchPrompt={partyWatchPrompt}
               alsoWatchingCurrent={contextualAlsoWatching}
               alsoWatchingTitle={effectiveAlsoWatchingContext?.title ?? null}
               watchingNow={watchingData?.watchingNow ?? []}
@@ -4387,6 +4445,7 @@ export default function WatchingContent() {
           </SheetHeader>
           <RightRail
             currentSession={watchingData?.currentSession ?? null}
+            partyWatchPrompt={partyWatchPrompt}
             alsoWatchingCurrent={contextualAlsoWatching}
             alsoWatchingTitle={effectiveAlsoWatchingContext?.title ?? null}
             watchingNow={watchingData?.watchingNow ?? []}
