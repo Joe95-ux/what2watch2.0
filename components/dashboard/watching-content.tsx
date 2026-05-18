@@ -59,6 +59,8 @@ import {
   WatchPartyJoinError,
 } from "@/hooks/use-watch-party-membership";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
+import { removeWatchPartyQueries } from "@/lib/watch-party/clear-party-queries";
+import { clearWatchPartySessionStorage } from "@/lib/watch-party/client-storage";
 import {
   watchPartyMatchesSession,
   watchPartyStartPayload,
@@ -3183,6 +3185,15 @@ export default function WatchingContent() {
     onFocusedRoomResolved: handleFocusedRoomResolved,
   });
 
+  const dismissEndedWatchParty = useCallback(
+    (endedPartyId: string, feedRoomKey?: string | null) => {
+      clearWatchPartySessionStorage(endedPartyId);
+      removeWatchPartyQueries(queryClient, endedPartyId);
+      setFeedRoomFocusInUrl(feedRoomKey ?? focusedRoomKey ?? null);
+    },
+    [queryClient, setFeedRoomFocusInUrl, focusedRoomKey]
+  );
+
   const { isJoining: isJoiningWatchParty } = useWatchPartyMembership(
     partyId,
     currentUser?.id,
@@ -3199,12 +3210,11 @@ export default function WatchingContent() {
         setFocusedRoomInUrl(data.feedRoomKey);
         void queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
       },
+      onPartyEnded: (feedRoomKey) => {
+        if (partyId) dismissEndedWatchParty(partyId, feedRoomKey);
+      },
       onError: (error) => {
         if (error instanceof WatchPartyJoinError) {
-          if (error.status === 410 && partyId) {
-            setFeedRoomFocusInUrl(focusedRoomKey);
-            queryClient.removeQueries({ queryKey: ["watch-party-room", partyId] });
-          }
           toast.error(error.message);
           return;
         }
@@ -3233,22 +3243,10 @@ export default function WatchingContent() {
   const partyUiActive =
     Boolean(partyId) && partyRoomSummary?.status === "OPEN";
 
-  // When host ends the party, drop ?party= for everyone so the inline panel / banner goes away.
   useEffect(() => {
     if (!partyId || partyRoomSummary?.status !== "ENDED") return;
-    const roomKey = partyRoomSummary.feedRoomKey || focusedRoomKey;
-    setFeedRoomFocusInUrl(roomKey ?? null);
-    queryClient.removeQueries({ queryKey: ["watch-party-room", partyId] });
-    queryClient.removeQueries({ queryKey: ["watch-party-chat", partyId] });
-    queryClient.removeQueries({ queryKey: ["watch-party-reactions", partyId] });
-  }, [
-    partyId,
-    partyRoomSummary?.status,
-    partyRoomSummary?.feedRoomKey,
-    focusedRoomKey,
-    setFeedRoomFocusInUrl,
-    queryClient,
-  ]);
+    dismissEndedWatchParty(partyId, partyRoomSummary.feedRoomKey);
+  }, [partyId, partyRoomSummary?.status, partyRoomSummary?.feedRoomKey, dismissEndedWatchParty]);
 
   const endWatchPartyForFeedRoom = useCallback(
     async (feedRoomKey: string) => {
@@ -3265,9 +3263,8 @@ export default function WatchingContent() {
           toast.error(typeof err.error === "string" ? err.error : "Could not end watch party.");
           return;
         }
-        await queryClient.invalidateQueries({ queryKey: ["watch-party-room", partyId] });
-        queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
-        setFeedRoomFocusInUrl(feedRoomKey);
+        dismissEndedWatchParty(partyId, feedRoomKey);
+        void queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
         toast.success("Watch party ended.");
       } catch {
         toast.error("Could not end watch party.");
@@ -3275,7 +3272,7 @@ export default function WatchingContent() {
         setEndingWatchPartyRoomKey(null);
       }
     },
-    [partyId, queryClient, setFeedRoomFocusInUrl]
+    [partyId, dismissEndedWatchParty, queryClient]
   );
 
   const leaveWatchPartyForFeedRoom = useCallback(
@@ -3440,7 +3437,13 @@ export default function WatchingContent() {
   };
 
   const partyWatchPrompt = useMemo(() => {
-    if (!partyUiActive || !partyRoomSummary?.isParticipant) return null;
+    if (
+      !partyId ||
+      partyRoomSummary?.status !== "OPEN" ||
+      !partyRoomSummary?.isParticipant
+    ) {
+      return null;
+    }
     const session = watchingData?.currentSession;
     if (session && watchPartyMatchesSession(partyRoomSummary, session)) return null;
     return {
@@ -3450,7 +3453,7 @@ export default function WatchingContent() {
       },
       isStarting: watchingMutation.isPending,
     };
-  }, [partyUiActive, partyRoomSummary, watchingData?.currentSession, watchingMutation.isPending]);
+  }, [partyId, partyRoomSummary, watchingData?.currentSession, watchingMutation.isPending]);
 
   // Invitees join the party room but need a watching session for the right-rail thought form.
   useEffect(() => {
@@ -3483,7 +3486,11 @@ export default function WatchingContent() {
   };
 
   const activeSession = watchingData?.currentSession ?? null;
-  useWatchPartyRoomPusher(partyId, Boolean(partyId));
+  useWatchPartyRoomPusher(partyId, Boolean(partyId), {
+    onPartyEnded: (feedRoomKey) => {
+      if (partyId) dismissEndedWatchParty(partyId, feedRoomKey);
+    },
+  });
   const isWatchingActive = Boolean(activeSession) && !isChangingTitle;
   const composeInputValue = isWatchingActive ? activeSession?.title ?? "" : watchSearchQuery;
 

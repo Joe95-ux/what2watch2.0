@@ -1,12 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getPusherClient } from "@/lib/pusher/client";
 import { getWatchPartyRoomChannelName, PUSHER_EVENTS } from "@/lib/pusher/channels";
 
-export function useWatchPartyRoomPusher(roomId: string | null, enabled = true) {
+export function useWatchPartyRoomPusher(
+  roomId: string | null,
+  enabled = true,
+  options?: {
+    /** Called when host ends the party — clear URL and party UI immediately. */
+    onPartyEnded?: (feedRoomKey: string | null) => void;
+  }
+) {
   const queryClient = useQueryClient();
+  const onPartyEndedRef = useRef(options?.onPartyEnded);
+  onPartyEndedRef.current = options?.onPartyEnded;
 
   useEffect(() => {
     if (!enabled || !roomId) return;
@@ -26,11 +35,18 @@ export function useWatchPartyRoomPusher(roomId: string | null, enabled = true) {
 
     const handleRoomUpdated = (payload: { action?: string }) => {
       if (payload?.action === "ended") {
+        const current = queryClient.getQueryData<{ status?: string; feedRoomKey?: string }>([
+          "watch-party-room",
+          roomId,
+        ]);
         queryClient.setQueryData(
           ["watch-party-room", roomId],
-          (current: { status?: string } | undefined) =>
-            current ? { ...current, status: "ENDED" } : current
+          (prev: { status?: string; feedRoomKey?: string } | undefined) =>
+            prev ? { ...prev, status: "ENDED" } : prev
         );
+        onPartyEndedRef.current?.(current?.feedRoomKey ?? null);
+        queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+        return;
       }
       handleUpdate();
     };

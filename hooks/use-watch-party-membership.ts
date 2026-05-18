@@ -69,6 +69,8 @@ export async function ensureWatchPartyMembership(
 type WatchPartyMembershipCallbacks = {
   onJoined?: (summary: WatchPartyRoomSummary) => void;
   onError?: (error: WatchPartyJoinError | Error) => void;
+  /** Party already ended (cached or join 410) — parent should clear ?party= from URL. */
+  onPartyEnded?: (feedRoomKey: string | null) => void;
 };
 
 /**
@@ -92,6 +94,13 @@ export function useWatchPartyMembership(
       return;
     }
 
+    const cached = queryClient.getQueryData<WatchPartyRoomSummary>(["watch-party-room", partyId]);
+    if (cached?.status === "ENDED") {
+      setIsJoining(false);
+      callbacksRef.current?.onPartyEnded?.(cached.feedRoomKey ?? null);
+      return;
+    }
+
     let cancelled = false;
     setIsJoining(true);
 
@@ -102,6 +111,13 @@ export function useWatchPartyMembership(
       })
       .catch((error: unknown) => {
         if (cancelled) return;
+        if (error instanceof WatchPartyJoinError && error.status === 410) {
+          const endedSummary = queryClient.getQueryData<WatchPartyRoomSummary>([
+            "watch-party-room",
+            partyId,
+          ]);
+          callbacksRef.current?.onPartyEnded?.(endedSummary?.feedRoomKey ?? null);
+        }
         const err = error instanceof Error ? error : new Error("Could not join watch party.");
         callbacksRef.current?.onError?.(err);
       })
