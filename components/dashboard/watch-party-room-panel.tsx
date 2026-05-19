@@ -71,7 +71,9 @@ export function WatchPartyRoomPanel({
   if (!isParticipant) {
     return (
       <div className="mt-3 rounded-lg border border-dashed border-border/70 bg-muted/10 px-3 py-2 text-center text-[11px] text-muted-foreground">
-        {isJoining ? "Joining watch party…" : "Join this watch party to use chat and reactions."}
+        {isJoining
+          ? "Joining watch party…"
+          : "Join this watch party to use chat and reactions. If the host ended it, ask for a new invite link."}
       </div>
     );
   }

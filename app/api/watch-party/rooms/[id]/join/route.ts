@@ -47,7 +47,10 @@ export async function POST(
 
   const status = normalizeWatchPartyStatus(room.status);
   if (status !== "OPEN") {
-    return NextResponse.json({ error: "Party has ended", status }, { status: 410 });
+    return NextResponse.json(
+      { error: "This watch party has ended. Ask the host for a new invite link.", status },
+      { status: 410 }
+    );
   }
 
   await upsertWatchPartyParticipant(room.id, authResult.user.id, room.hostUserId);

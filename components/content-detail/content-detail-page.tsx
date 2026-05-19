@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { TMDBMovie, TMDBSeries, TMDBVideo } from "@/lib/tmdb";
 import {
@@ -113,7 +113,26 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     watchCountry
   );
   const { data: justwatchCountries = [] } = useJustWatchCountries();
-  const { data: watchingTitleData, isLoading: isWatchingTitleLoading } = useWatchingForTitle(item.id, type, true);
+  const watchingTitleScope = useMemo(() => {
+    if (type !== "tv") return undefined;
+    if (selectedEpisode) {
+      return {
+        seasonNumber: selectedEpisode.season_number,
+        episodeNumber: selectedEpisode.episode_number,
+      };
+    }
+    if (selectedSeason != null) {
+      return { seasonNumber: selectedSeason, episodeNumber: null };
+    }
+    return undefined;
+  }, [type, selectedEpisode, selectedSeason]);
+
+  const { data: watchingTitleData, isLoading: isWatchingTitleLoading } = useWatchingForTitle(
+    item.id,
+    type,
+    true,
+    watchingTitleScope
+  );
 
   // Get collection ID from movie details
   const collectionId = type === "movie" && movieDetails?.belongs_to_collection?.id 

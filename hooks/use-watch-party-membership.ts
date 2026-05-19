@@ -41,7 +41,7 @@ export async function ensureWatchPartyMembership(
       throw new WatchPartyJoinError("Sign in to join this watch party.", 401);
     }
     if (joinRes.status === 410) {
-      throw new WatchPartyJoinError("This watch party has ended.", 410);
+      throw new WatchPartyJoinError("This watch party has ended. Ask the host for a new invite link.", 410);
     }
     if (!joinRes.ok) {
       const err = (await joinRes.json().catch(() => ({}))) as { error?: string };

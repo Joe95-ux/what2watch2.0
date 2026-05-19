@@ -61,11 +61,26 @@ async function fetchWatchingDashboard(): Promise<WatchingDashboardResponse> {
   return res.json();
 }
 
-async function fetchWatchingForTitle(tmdbId: number, mediaType: "movie" | "tv"): Promise<WatchingTitlePresenceResponse> {
+export type WatchingTitleScope = {
+  seasonNumber?: number | null;
+  episodeNumber?: number | null;
+};
+
+async function fetchWatchingForTitle(
+  tmdbId: number,
+  mediaType: "movie" | "tv",
+  scope?: WatchingTitleScope
+): Promise<WatchingTitlePresenceResponse> {
   const params = new URLSearchParams({
     tmdbId: String(tmdbId),
     mediaType,
   });
+  if (mediaType === "tv" && scope?.seasonNumber != null && scope.seasonNumber > 0) {
+    params.set("seasonNumber", String(scope.seasonNumber));
+    if (scope.episodeNumber != null && scope.episodeNumber > 0) {
+      params.set("episodeNumber", String(scope.episodeNumber));
+    }
+  }
   const res = await fetch(`/api/watching?${params.toString()}`);
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
@@ -264,15 +279,22 @@ export function useWatchingDashboard(enabled = true) {
   });
 }
 
-export function useWatchingForTitle(tmdbId: number, mediaType: "movie" | "tv", enabled = true) {
+export function useWatchingForTitle(
+  tmdbId: number,
+  mediaType: "movie" | "tv",
+  enabled = true,
+  scope?: WatchingTitleScope
+) {
   const pusherRealtime = isPusherClientConfigured();
   const queryEnabled = enabled && tmdbId > 0;
+  const seasonKey = scope?.seasonNumber ?? null;
+  const episodeKey = scope?.episodeNumber ?? null;
 
   useWatchingTitlePusher(tmdbId, mediaType, queryEnabled && pusherRealtime);
 
   return useQuery({
-    queryKey: ["watching-title", tmdbId, mediaType],
-    queryFn: () => fetchWatchingForTitle(tmdbId, mediaType),
+    queryKey: ["watching-title", tmdbId, mediaType, seasonKey, episodeKey],
+    queryFn: () => fetchWatchingForTitle(tmdbId, mediaType, scope),
     enabled: queryEnabled,
     staleTime: pusherRealtime ? 1000 * 60 * 5 : 30 * 1000,
     refetchInterval: false,

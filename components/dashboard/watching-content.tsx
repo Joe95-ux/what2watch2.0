@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -59,8 +60,13 @@ import {
   WatchPartyJoinError,
 } from "@/hooks/use-watch-party-membership";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
+import { buildSignInHref } from "@/lib/auth/sign-in-href";
 import { removeWatchPartyQueries } from "@/lib/watch-party/clear-party-queries";
 import { clearWatchPartySessionStorage } from "@/lib/watch-party/client-storage";
+import {
+  consumeWatchPartyReturnPath,
+  saveWatchPartyReturnPath,
+} from "@/lib/watch-party/pending-return-path";
 import {
   watchPartyMatchesSession,
   watchPartyStartPayload,
@@ -2701,9 +2707,19 @@ function RightRail({
 
 export default function WatchingContent() {
   const isMobile = useIsMobile();
+  const router = useRouter();
+  const pathname = usePathname();
+  const urlSearchParams = useSearchParams();
   const { isLoaded: clerkLoaded } = useUser();
   const { data: currentUser, isLoading, isFetched: currentUserFetched } = useCurrentUser();
   const watchPartyAuthReady = clerkLoaded && currentUserFetched;
+
+  const authReturnPath = useMemo(() => {
+    const q = urlSearchParams.toString();
+    return q ? `${pathname}?${q}` : pathname;
+  }, [pathname, urlSearchParams]);
+
+  const signInHref = useMemo(() => buildSignInHref(authReturnPath), [authReturnPath]);
   const { data: watchingData, isLoading: isWatchingLoading } = useWatchingDashboard(true);
   const queryClient = useQueryClient();
   const watchingMutation = useWatchingMutation();
@@ -3172,6 +3188,19 @@ export default function WatchingContent() {
     },
     []
   );
+  const partyIdFromUrl = urlSearchParams.get("party");
+
+  useEffect(() => {
+    if (partyIdFromUrl) saveWatchPartyReturnPath(authReturnPath);
+  }, [partyIdFromUrl, authReturnPath]);
+
+  useEffect(() => {
+    if (!clerkLoaded || !currentUserFetched || !currentUser) return;
+    const pending = consumeWatchPartyReturnPath();
+    if (!pending || pending === authReturnPath || !pending.includes("party=")) return;
+    router.replace(pending);
+  }, [clerkLoaded, currentUserFetched, currentUser, authReturnPath, router]);
+
   const {
     focusedRoomKey,
     partyId,
@@ -3681,7 +3710,7 @@ export default function WatchingContent() {
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline" className="cursor-pointer">
-              <Link href="/sign-in">Go to sign in</Link>
+              <Link href={signInHref}>Go to sign in</Link>
             </Button>
           </CardContent>
         </Card>

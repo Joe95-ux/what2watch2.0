@@ -345,6 +345,15 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
         return NextResponse.json({ error: "Invalid tmdbId" }, { status: 400 });
       }
 
+      const seasonParam = searchParams.get("seasonNumber");
+      const episodeParam = searchParams.get("episodeNumber");
+      const parsedSeason = seasonParam != null ? Number.parseInt(seasonParam, 10) : NaN;
+      const parsedEpisode = episodeParam != null ? Number.parseInt(episodeParam, 10) : NaN;
+      const scopeSeason =
+        mediaTypeParam === "tv" && Number.isInteger(parsedSeason) && parsedSeason > 0 ? parsedSeason : null;
+      const scopeEpisode =
+        mediaTypeParam === "tv" && Number.isInteger(parsedEpisode) && parsedEpisode > 0 ? parsedEpisode : null;
+
       const signedIn = await requireSignedInUser();
       const currentUserId = signedIn.ok ? signedIn.user.id : null;
 
@@ -362,11 +371,19 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
       await autoTimeoutWatchingSessions(
         currentUserId ? mergeNetworkUserIds(currentUserId, followingIds, partyPeerIds) : []
       );
+      const episodeScopeWhere =
+        scopeSeason != null
+          ? scopeEpisode != null
+            ? { seasonNumber: scopeSeason, episodeNumber: scopeEpisode }
+            : { seasonNumber: scopeSeason }
+          : {};
+
       const sessions = await db.watchingSession.findMany({
         where: {
           tmdbId,
           mediaType: mediaTypeParam,
           status: "WATCHING_NOW",
+          ...episodeScopeWhere,
           OR: [
             { visibility: "PUBLIC" },
             ...(currentUserId
@@ -390,6 +407,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
           session: {
             tmdbId,
             mediaType: mediaTypeParam,
+            ...episodeScopeWhere,
             status: {
               in: ["WATCHING_NOW", "JUST_FINISHED", "STOPPED"],
             },
