@@ -1347,6 +1347,12 @@ model WatchPartyRoom {
   seasonNumber      Int?
   episodeNumber     Int?
   watchingSessionId String?  @db.ObjectId
+  /// Host-published playback position for guests (percent + minutes; not true DRM sync).
+  hostSyncProgressPercent Int?
+  hostSyncElapsedMinutes  Int?
+  hostSyncRuntimeMinutes  Int?
+  hostSyncPaused          Boolean  @default(false)
+  hostSyncUpdatedAt       DateTime?
   createdAt         DateTime @default(now())
   endedAt           DateTime?
   participants      WatchPartyParticipant[]

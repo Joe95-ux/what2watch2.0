@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getPusherClient } from "@/lib/pusher/client";
 import { getWatchPartyRoomChannelName, PUSHER_EVENTS } from "@/lib/pusher/channels";
+import type { WatchPartyHostControls } from "@/lib/watch-party/host-controls";
+import type { WatchPartyRoomSummary } from "@/hooks/use-watch-party-room-summary";
 
 export function useWatchPartyRoomPusher(
   roomId: string | null,
@@ -51,18 +53,29 @@ export function useWatchPartyRoomPusher(
       handleUpdate();
     };
 
+    const handleHostControlsUpdated = (payload: WatchPartyHostControls | Record<string, unknown>) => {
+      if (payload && typeof payload === "object" && "updatedAt" in payload) {
+        queryClient.setQueryData(
+          ["watch-party-room", roomId],
+          (prev: WatchPartyRoomSummary | undefined) =>
+            prev ? { ...prev, hostControls: payload as WatchPartyHostControls } : prev
+        );
+      }
+      handleUpdate();
+    };
+
     channel.bind(PUSHER_EVENTS.WATCH_PARTY_ROOM_UPDATED, handleRoomUpdated);
     channel.bind(PUSHER_EVENTS.WATCH_PARTY_PARTICIPANTS_UPDATED, handleUpdate);
     channel.bind(PUSHER_EVENTS.WATCH_PARTY_CHAT_UPDATED, handleUpdate);
     channel.bind(PUSHER_EVENTS.WATCH_PARTY_REACTIONS_UPDATED, handleUpdate);
-    channel.bind(PUSHER_EVENTS.WATCH_PARTY_HOST_CONTROLS_UPDATED, handleUpdate);
+    channel.bind(PUSHER_EVENTS.WATCH_PARTY_HOST_CONTROLS_UPDATED, handleHostControlsUpdated);
 
     return () => {
       channel.unbind(PUSHER_EVENTS.WATCH_PARTY_ROOM_UPDATED, handleRoomUpdated);
       channel.unbind(PUSHER_EVENTS.WATCH_PARTY_PARTICIPANTS_UPDATED, handleUpdate);
       channel.unbind(PUSHER_EVENTS.WATCH_PARTY_CHAT_UPDATED, handleUpdate);
       channel.unbind(PUSHER_EVENTS.WATCH_PARTY_REACTIONS_UPDATED, handleUpdate);
-      channel.unbind(PUSHER_EVENTS.WATCH_PARTY_HOST_CONTROLS_UPDATED, handleUpdate);
+      channel.unbind(PUSHER_EVENTS.WATCH_PARTY_HOST_CONTROLS_UPDATED, handleHostControlsUpdated);
       pusher.unsubscribe(channelName);
     };
   }, [enabled, roomId, queryClient]);

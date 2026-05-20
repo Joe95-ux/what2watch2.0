@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import type { WatchPartyHostControls } from "@/lib/watch-party/host-controls";
 
 export type WatchPartyRoomParticipant = {
   userId: string;
@@ -24,6 +25,7 @@ export type WatchPartyRoomSummary = {
   isParticipant: boolean;
   participants: WatchPartyRoomParticipant[];
   status: "OPEN" | "ENDED";
+  hostControls: WatchPartyHostControls | null;
 };
 
 export function parseWatchPartyRoomSummary(
@@ -55,6 +57,26 @@ export function parseWatchPartyRoomSummary(
     isParticipant: Boolean(raw.isParticipant),
     participants,
     status: String(raw.status ?? "OPEN").toUpperCase() === "ENDED" ? "ENDED" : "OPEN",
+    hostControls: parseHostControls(raw.hostControls),
+  };
+}
+
+function parseHostControls(raw: unknown): WatchPartyHostControls | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  if (typeof o.updatedAt !== "string" || !o.updatedAt) return null;
+  const progressPercent = typeof o.progressPercent === "number" ? o.progressPercent : null;
+  const elapsedMinutes = typeof o.elapsedMinutes === "number" ? o.elapsedMinutes : null;
+  if (progressPercent == null || elapsedMinutes == null) return null;
+  return {
+    progressPercent: Math.max(0, Math.min(100, Math.round(progressPercent))),
+    elapsedMinutes: Math.max(1, Math.round(elapsedMinutes)),
+    runtimeMinutes:
+      typeof o.runtimeMinutes === "number" && o.runtimeMinutes > 0
+        ? Math.round(o.runtimeMinutes)
+        : null,
+    paused: Boolean(o.paused),
+    updatedAt: o.updatedAt,
   };
 }
 

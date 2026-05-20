@@ -12,16 +12,27 @@ import {
   type WatchPartyReactionKind,
 } from "@/lib/watch-party-reaction-kinds";
 import { WatchPartyParticipantsRow } from "@/components/dashboard/watch-party-participants-row";
+import { WatchPartyHostControlsBar } from "@/components/dashboard/watch-party-host-controls-bar";
+import type { WatchPartyHostControls } from "@/lib/watch-party/host-controls";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
+type HostPlaybackSnapshot = {
+  progressPercent: number;
+  elapsedMinutes: number;
+  runtimeMinutes: number | null;
+};
+
 type WatchPartyRoomPanelProps = {
   partyId: string;
   partyOpen: boolean;
   isParticipant: boolean;
+  isHost?: boolean;
+  hostControls?: WatchPartyHostControls | null;
+  hostPlaybackSnapshot?: HostPlaybackSnapshot | null;
   /** True while membership is being confirmed after landing or copying an invite link. */
   isJoining?: boolean;
   partyParticipants: WatchPartyRoomParticipant[];
@@ -31,6 +42,9 @@ export function WatchPartyRoomPanel({
   partyId,
   partyOpen,
   isParticipant,
+  isHost = false,
+  hostControls = null,
+  hostPlaybackSnapshot = null,
   isJoining = false,
   partyParticipants,
 }: WatchPartyRoomPanelProps) {
@@ -87,6 +101,14 @@ export function WatchPartyRoomPanel({
       onKeyDown={(e) => e.stopPropagation()}
     >
       <WatchPartyParticipantsRow participants={members} variant="panel" />
+
+      <WatchPartyHostControlsBar
+        partyId={partyId}
+        partyOpen={partyOpen}
+        isHost={isHost}
+        hostControls={hostControls}
+        hostPlaybackSnapshot={hostPlaybackSnapshot}
+      />
 
       <div className="flex flex-wrap gap-1">
         {WATCH_PARTY_REACTION_KINDS.map((kind) => {

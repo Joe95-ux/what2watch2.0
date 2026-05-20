@@ -80,6 +80,7 @@ import WatchBreakdownSection from "@/components/content-detail/watch-breakdown-s
 import { JoinDiscussionComposer } from "@/components/content-detail/join-discussion-composer";
 import { WatchPartyParticipantsRow } from "@/components/dashboard/watch-party-participants-row";
 import { WatchPartyRoomPanel } from "@/components/dashboard/watch-party-room-panel";
+import { watchPartyHostPlaybackSnapshot } from "@/components/dashboard/watch-party-host-controls-bar";
 import { WatchRoomActionsMenu } from "@/components/dashboard/watch-room-actions-menu";
 import { WatchingPulseSubtitle } from "@/components/dashboard/watching-pulse-subtitle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -3287,6 +3288,59 @@ export default function WatchingContent() {
   const partyUiActive =
     Boolean(partyId) && partyRoomSummary?.status === "OPEN";
 
+  const partyHostPlaybackSnapshot = useMemo(() => {
+    if (!partyRoomSummary?.isHost || !partyUiActive) return null;
+
+    const matchesParty = (tmdbId: number, mediaType: string, season?: number | null, episode?: number | null) => {
+      if (tmdbId !== partyRoomSummary.tmdbId) return false;
+      const mt = mediaType === "tv" ? "tv" : "movie";
+      if (mt !== partyRoomSummary.mediaType) return false;
+      if (partyRoomSummary.mediaType === "tv") {
+        if ((season ?? null) !== (partyRoomSummary.seasonNumber ?? null)) return false;
+        if ((episode ?? null) !== (partyRoomSummary.episodeNumber ?? null)) return false;
+      }
+      return true;
+    };
+
+    const currentSession = watchingData?.currentSession;
+    if (
+      currentSession &&
+      currentSession.userId === currentUser?.id &&
+      matchesParty(
+        currentSession.tmdbId,
+        currentSession.mediaType,
+        currentSession.seasonNumber,
+        currentSession.episodeNumber
+      )
+    ) {
+      return watchPartyHostPlaybackSnapshot({
+        progressPercent: currentSession.progressPercent,
+        runtimeMinutes: currentSession.runtimeMinutes,
+        startedAt: currentSession.startedAt,
+        status: currentSession.status,
+      });
+    }
+
+    const feedRoom = watchingNowRooms.find((r) => r.key === partyRoomSummary.feedRoomKey);
+    const cardSession = feedRoom?.currentUserSession;
+    if (cardSession) {
+      return watchPartyHostPlaybackSnapshot({
+        progressPercent: cardSession.progressPercent,
+        runtimeMinutes: cardSession.runtimeMinutes,
+        startedAt: cardSession.startedAt,
+        status: cardSession.status,
+      });
+    }
+
+    return null;
+  }, [
+    partyRoomSummary,
+    partyUiActive,
+    watchingData?.currentSession,
+    watchingNowRooms,
+    currentUser?.id,
+  ]);
+
   const copyWatchPartyInviteForRoom = useCallback(
     async (room: WatchingNowRoomCard) => {
       if (
@@ -4270,6 +4324,9 @@ export default function WatchingContent() {
                 partyId={partyId}
                 partyOpen={partyRoomSummary.status === "OPEN"}
                 isParticipant={partyRoomSummary.isParticipant}
+                isHost={partyRoomSummary.isHost}
+                hostControls={partyRoomSummary.hostControls}
+                hostPlaybackSnapshot={partyHostPlaybackSnapshot}
                 isJoining={isJoiningWatchParty}
                 partyParticipants={partyRoomSummary.participants}
               />
@@ -4392,6 +4449,9 @@ export default function WatchingContent() {
                     partyId={partyId}
                     partyOpen={partyRoomSummary.status === "OPEN"}
                     isParticipant={partyRoomSummary.isParticipant}
+                    isHost={partyRoomSummary.isHost}
+                    hostControls={partyRoomSummary.hostControls}
+                    hostPlaybackSnapshot={partyHostPlaybackSnapshot}
                     isJoining={isJoiningWatchParty}
                     partyParticipants={partyRoomSummary.participants}
                   />

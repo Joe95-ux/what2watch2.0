@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { watchPartyFeedRoomKey } from "@/lib/watch-party-feed-key";
+import { hostControlsFromRoom, type WatchPartyHostControls } from "@/lib/watch-party/host-controls";
 import { isActiveWatchPartyParticipant } from "@/lib/watch-party/participant-active";
 
 export type WatchPartyRoomStatus = "OPEN" | "ENDED";
@@ -24,6 +25,7 @@ export type WatchPartyRoomSummaryPayload = {
     role: "HOST" | "GUEST";
   }>;
   status: WatchPartyRoomStatus;
+  hostControls: WatchPartyHostControls | null;
 };
 
 export function isValidWatchPartyRoomId(id: string): boolean {
@@ -102,6 +104,11 @@ export async function getWatchPartyRoomSummaryForUser(
       backdropPath: true,
       seasonNumber: true,
       episodeNumber: true,
+      hostSyncProgressPercent: true,
+      hostSyncElapsedMinutes: true,
+      hostSyncRuntimeMinutes: true,
+      hostSyncPaused: true,
+      hostSyncUpdatedAt: true,
     },
   });
 
@@ -162,5 +169,6 @@ export async function getWatchPartyRoomSummaryForUser(
     isParticipant,
     participants,
     status,
+    hostControls: hostControlsFromRoom(room),
   };
 }
