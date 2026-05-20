@@ -53,6 +53,7 @@ import { useWatchPartyRoomPusher } from "@/hooks/use-watch-party-room-pusher";
 import {
   parseWatchPartyRoomSummary,
   useWatchPartyRoomSummary,
+  type WatchPartyRoomParticipant,
 } from "@/hooks/use-watch-party-room-summary";
 import {
   ensureWatchPartyMembership,
@@ -77,6 +78,7 @@ import type { WatchingSessionDTO } from "@/lib/watching-types";
 import { getPosterUrl, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
 import WatchBreakdownSection from "@/components/content-detail/watch-breakdown-section";
 import { JoinDiscussionComposer } from "@/components/content-detail/join-discussion-composer";
+import { WatchPartyParticipantsRow } from "@/components/dashboard/watch-party-participants-row";
 import { WatchPartyRoomPanel } from "@/components/dashboard/watch-party-room-panel";
 import { WatchRoomActionsMenu } from "@/components/dashboard/watch-room-actions-menu";
 import { WatchingPulseSubtitle } from "@/components/dashboard/watching-pulse-subtitle";
@@ -1265,6 +1267,7 @@ function WatchingNowGroupCard({
   matchPercent,
   isHighlighted = false,
   watchPartyCue,
+  partyParticipants,
   partyInlineSlot,
   isInWatchParty = false,
   isJoiningWatchParty = false,
@@ -1284,6 +1287,8 @@ function WatchingNowGroupCard({
   isHighlighted?: boolean;
   /** When `?party=` matches this card: loading line, live count, or ended. */
   watchPartyCue?: { label: string; variant: "loading" | "live" | "ended" } | null;
+  /** Active watch party members for this card (names + avatars). */
+  partyParticipants?: WatchPartyRoomParticipant[];
   partyInlineSlot?: ReactNode;
   /** User joined the Mongo watch party for this card (via invite link), separate from feed "watching now". */
   isInWatchParty?: boolean;
@@ -1549,6 +1554,13 @@ function WatchingNowGroupCard({
                 {watchPartyCue.label}
               </p>
             ) : null}
+            {partyParticipants && partyParticipants.length > 0 ? (
+              <WatchPartyParticipantsRow
+                participants={partyParticipants}
+                variant="compact"
+                className="mt-2"
+              />
+            ) : null}
             {hasCurrentUserFinished ? (
               <p className="mt-1 inline-flex items-center rounded-full border border-slate-500/25 bg-slate-500/15 px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
                 You finished {timeAgo(room.currentUserFinishedAt ?? new Date().toISOString())}
@@ -1566,6 +1578,9 @@ function WatchingNowGroupCard({
             </span>
             <WatchRoomActionsMenu
               title={room.title}
+              copyInviteLabel={
+                isInWatchParty ? "Copy invite link again" : "Copy invite link"
+              }
               onCopyInviteLink={() => {
                 void onInviteRoom?.(room);
               }}
@@ -3272,6 +3287,87 @@ export default function WatchingContent() {
   const partyUiActive =
     Boolean(partyId) && partyRoomSummary?.status === "OPEN";
 
+  const copyWatchPartyInviteForRoom = useCallback(
+    async (room: WatchingNowRoomCard) => {
+      if (
+        partyUiActive &&
+        partyRoomSummary &&
+        partyRoomSummary.feedRoomKey === room.key &&
+        partyId
+      ) {
+        const inviteUrl = buildPartyInviteUrl(partyId, partyRoomSummary.feedRoomKey);
+        if (!inviteUrl) {
+          toast.error("Failed to build invite link.");
+          return;
+        }
+        const copied = await copyTextToClipboard(inviteUrl);
+        toast.success(
+          copied
+            ? "Invite link copied again."
+            : "Party is ready — copy the link from your address bar."
+        );
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/watch-party/rooms/ensure", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tmdbId: room.tmdbId,
+            mediaType: room.mediaType,
+            title: room.title,
+            posterPath: room.posterPath,
+            backdropPath: room.backdropPath,
+            seasonNumber: room.mediaType === "tv" ? room.seasonNumber : null,
+            episodeNumber: room.mediaType === "tv" ? room.episodeNumber : null,
+            watchingSessionId: room.currentUserSession?.sessionId ?? null,
+          }),
+        });
+        if (!res.ok) {
+          const err = (await res.json().catch(() => ({}))) as { error?: string };
+          toast.error(typeof err.error === "string" ? err.error : "Could not create invite link.");
+          return;
+        }
+        const payload = (await res.json()) as {
+          id: string;
+          feedRoomKey: string;
+          summary?: Parameters<typeof parseWatchPartyRoomSummary>[0];
+        };
+        await queryClient.cancelQueries({ queryKey: ["watch-party-room", payload.id] });
+        const membershipSummary = await ensureWatchPartyMembership(queryClient, payload.id);
+        queryClient.setQueryData(["watch-party-room", payload.id], membershipSummary);
+
+        const inviteUrl = buildPartyInviteUrl(payload.id, payload.feedRoomKey);
+        if (!inviteUrl) {
+          toast.error("Failed to build invite link.");
+          return;
+        }
+
+        if (payload.id !== partyId) {
+          setPartyAndRoomInUrl(payload.id, payload.feedRoomKey);
+        }
+
+        const copied = await copyTextToClipboard(inviteUrl);
+        if (copied) {
+          toast.success("Invite link copied — you're in the party.");
+        } else {
+          toast.success("Watch party is ready — copy the link from your address bar.");
+        }
+      } catch {
+        toast.error("Could not create invite link.");
+      }
+    },
+    [
+      partyUiActive,
+      partyRoomSummary,
+      partyId,
+      buildPartyInviteUrl,
+      queryClient,
+      setPartyAndRoomInUrl,
+    ]
+  );
+
   useEffect(() => {
     if (!partyId || partyRoomSummary?.status !== "ENDED") return;
     dismissEndedWatchParty(partyId, partyRoomSummary.feedRoomKey);
@@ -4106,23 +4202,70 @@ export default function WatchingContent() {
 
           {partyFeedMissing && partyUiActive && partyRoomSummary ? (
             <div className="mb-3 space-y-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-3">
+              <WatchPartyParticipantsRow
+                participants={partyRoomSummary.participants}
+                variant="compact"
+              />
               <p className="text-sm text-muted-foreground">
                 {"You're in "}
                 <span className="font-medium text-foreground">{partyRoomSummary.title}</span>
                 {" · "}
-                no one in your network appears on this title in the feed.{" "}
-                <Link
-                  href={watchTitleHref(
-                    partyRoomSummary.mediaType === "tv" ? "tv" : "movie",
-                    partyRoomSummary.tmdbId,
-                    partyRoomSummary.title
-                  )}
-                  className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
-                >
-                  Open title page
-                </Link>{" "}
-                to start watching.
+                no one in your network appears on this title in the feed yet. Open the title page to
+                start watching and show up here.
               </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 cursor-pointer rounded-[20px] text-xs"
+                  asChild
+                >
+                  <Link
+                    href={watchTitleHref(
+                      partyRoomSummary.mediaType === "tv" ? "tv" : "movie",
+                      partyRoomSummary.tmdbId,
+                      partyRoomSummary.title
+                    )}
+                  >
+                    Open title page
+                  </Link>
+                </Button>
+                {partyRoomSummary.isHost ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 cursor-pointer rounded-[20px] text-xs"
+                    onClick={() => {
+                      const roomStub: WatchingNowRoomCard = {
+                        key: partyRoomSummary.feedRoomKey,
+                        tmdbId: partyRoomSummary.tmdbId,
+                        mediaType: partyRoomSummary.mediaType,
+                        title: partyRoomSummary.title,
+                        mediaTypeLabel: partyRoomSummary.mediaType === "movie" ? "Movie" : "TV",
+                        seasonNumber: partyRoomSummary.seasonNumber,
+                        episodeNumber: partyRoomSummary.episodeNumber,
+                        posterPath: partyRoomSummary.posterPath,
+                        backdropPath: partyRoomSummary.backdropPath,
+                        releaseYear: null,
+                        creatorOrDirector: null,
+                        watchingCount: 0,
+                        participants: [],
+                        thoughts: [],
+                        thoughtCount: 0,
+                        reactionCount: 0,
+                        featuredThought: null,
+                        primaryThoughtId: null,
+                        currentUserSession: null,
+                        currentUserFinishedAt: null,
+                      };
+                      void copyWatchPartyInviteForRoom(roomStub);
+                    }}
+                  >
+                    Copy invite link again
+                  </Button>
+                ) : null}
+              </div>
               <WatchPartyRoomPanel
                 partyId={partyId}
                 partyOpen={partyRoomSummary.status === "OPEN"}
@@ -4163,19 +4306,23 @@ export default function WatchingContent() {
               partyUiActive &&
               partyRoomSummary?.feedRoomKey === room.key &&
               !partyRoomSummary.isHost;
+            const cardPartyParticipants =
+              partyUiActive && partyRoomSummary?.feedRoomKey === room.key
+                ? partyRoomSummary.participants
+                : undefined;
+            const cardInParty = Boolean(
+              partyUiActive &&
+                partyRoomSummary?.feedRoomKey === room.key &&
+                partyRoomSummary.isParticipant
+            );
             return (
             <WatchingNowGroupCard
               key={room.key}
               room={room}
               matchPercent={roomMatchScores[room.key]}
               currentUserId={currentUser?.id ?? null}
-              isInWatchParty={
-                Boolean(
-                  partyUiActive &&
-                    partyRoomSummary?.feedRoomKey === room.key &&
-                    partyRoomSummary.isParticipant
-                )
-              }
+              partyParticipants={cardPartyParticipants}
+              isInWatchParty={cardInParty}
               isJoiningWatchParty={Boolean(
                 partyUiActive &&
                   partyRoomSummary?.feedRoomKey === room.key &&
@@ -4205,54 +4352,7 @@ export default function WatchingContent() {
                   setJoiningRoomKey((current) => (current === selectedRoom.key ? null : current));
                 }
               }}
-              onInviteRoom={async (selectedRoom) => {
-                try {
-                  const res = await fetch("/api/watch-party/rooms/ensure", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      tmdbId: selectedRoom.tmdbId,
-                      mediaType: selectedRoom.mediaType,
-                      title: selectedRoom.title,
-                      posterPath: selectedRoom.posterPath,
-                      backdropPath: selectedRoom.backdropPath,
-                      seasonNumber: selectedRoom.mediaType === "tv" ? selectedRoom.seasonNumber : null,
-                      episodeNumber: selectedRoom.mediaType === "tv" ? selectedRoom.episodeNumber : null,
-                      watchingSessionId: selectedRoom.currentUserSession?.sessionId ?? null,
-                    }),
-                  });
-                  if (!res.ok) {
-                    const err = (await res.json().catch(() => ({}))) as { error?: string };
-                    toast.error(typeof err.error === "string" ? err.error : "Could not create invite link.");
-                    return;
-                  }
-                  const payload = (await res.json()) as {
-                    id: string;
-                    feedRoomKey: string;
-                    summary?: Parameters<typeof parseWatchPartyRoomSummary>[0];
-                  };
-                  await queryClient.cancelQueries({ queryKey: ["watch-party-room", payload.id] });
-                  const membershipSummary = await ensureWatchPartyMembership(queryClient, payload.id);
-                  queryClient.setQueryData(["watch-party-room", payload.id], membershipSummary);
-
-                  const inviteUrl = buildPartyInviteUrl(payload.id, payload.feedRoomKey);
-                  if (!inviteUrl) {
-                    toast.error("Failed to build invite link.");
-                    return;
-                  }
-
-                  setPartyAndRoomInUrl(payload.id, payload.feedRoomKey);
-
-                  const copied = await copyTextToClipboard(inviteUrl);
-                  if (copied) {
-                    toast.success("Invite link copied — you're in the party.");
-                  } else {
-                    toast.success("Watch party is ready — copy the link from your address bar.");
-                  }
-                } catch {
-                  toast.error("Could not create invite link.");
-                }
-              }}
+              onInviteRoom={(selectedRoom) => copyWatchPartyInviteForRoom(selectedRoom)}
               onSelect={(selectedRoom) =>
                 {
                   setFeedRoomFocusInUrl(selectedRoom.key);

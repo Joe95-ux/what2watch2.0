@@ -12,6 +12,8 @@ import {
 
 type WatchRoomActionsMenuProps = {
   title: string;
+  /** e.g. "Copy invite link" vs "Copy invite link again" when already in an open party. */
+  copyInviteLabel?: string;
   onCopyInviteLink?: () => void;
   /** Host-only: ends the Mongo watch party and clears `?party=` from the URL. */
   onEndParty?: () => void | Promise<void>;
@@ -27,6 +29,7 @@ type WatchRoomActionsMenuProps = {
  */
 export function WatchRoomActionsMenu({
   title,
+  copyInviteLabel = "Copy invite link",
   onCopyInviteLink,
   onEndParty,
   isEndingParty = false,
@@ -58,7 +61,7 @@ export function WatchRoomActionsMenu({
           }}
           disabled={partyActionBusy}
         >
-          Copy invite link
+          {copyInviteLabel}
         </DropdownMenuItem>
         {onEndParty ? (
           <>

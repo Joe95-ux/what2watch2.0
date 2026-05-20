@@ -6,6 +6,7 @@ export type WatchPartyRoomParticipant = {
   userId: string;
   name: string;
   avatarUrl: string | null;
+  role?: "HOST" | "GUEST";
 };
 
 export type WatchPartyRoomSummary = {
@@ -29,7 +30,14 @@ export function parseWatchPartyRoomSummary(
   raw: Partial<WatchPartyRoomSummary> & { id: string }
 ): WatchPartyRoomSummary {
   const mediaType = raw.mediaType === "tv" ? "tv" : "movie";
-  const participants = Array.isArray(raw.participants) ? raw.participants : [];
+  const participants: WatchPartyRoomParticipant[] = Array.isArray(raw.participants)
+    ? raw.participants.map((p) => ({
+        userId: String(p.userId ?? ""),
+        name: typeof p.name === "string" ? p.name : "Unknown",
+        avatarUrl: typeof p.avatarUrl === "string" ? p.avatarUrl : null,
+        role: p.role === "HOST" ? "HOST" : "GUEST",
+      }))
+    : [];
   const parsedCount =
     typeof raw.participantCount === "number" ? raw.participantCount : participants.length;
   return {

@@ -21,6 +21,7 @@ export type WatchPartyRoomSummaryPayload = {
     userId: string;
     name: string;
     avatarUrl: string | null;
+    role: "HOST" | "GUEST";
   }>;
   status: WatchPartyRoomStatus;
 };
@@ -134,6 +135,7 @@ export async function getWatchPartyRoomSummaryForUser(
         userId: p.userId,
         name: p.user.displayName || p.user.username || "Unknown",
         avatarUrl: p.user.avatarUrl,
+        role: p.role === "HOST" ? ("HOST" as const) : ("GUEST" as const),
       }))
     : [];
 

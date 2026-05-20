@@ -11,6 +11,7 @@ import {
   WATCH_PARTY_REACTION_LABEL,
   type WatchPartyReactionKind,
 } from "@/lib/watch-party-reaction-kinds";
+import { WatchPartyParticipantsRow } from "@/components/dashboard/watch-party-participants-row";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -85,19 +86,7 @@ export function WatchPartyRoomPanel({
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => e.stopPropagation()}
     >
-      {members.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-1">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Party</span>
-          <div className="flex -space-x-1.5 pl-1">
-            {members.slice(0, 12).map((p) => (
-              <Avatar key={p.userId} className="h-6 w-6 border border-background text-[10px]">
-                <AvatarImage src={p.avatarUrl ?? undefined} alt={p.name} />
-                <AvatarFallback>{p.name?.[0] ?? "?"}</AvatarFallback>
-              </Avatar>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      <WatchPartyParticipantsRow participants={members} variant="panel" />
 
       <div className="flex flex-wrap gap-1">
         {WATCH_PARTY_REACTION_KINDS.map((kind) => {
