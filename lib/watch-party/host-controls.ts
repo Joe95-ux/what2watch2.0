@@ -84,6 +84,12 @@ export function hostControlsFromRoom(row: {
   };
 }
 
+export function hostSyncEmptyStateCopy(mediaType: "movie" | "tv"): string {
+  return mediaType === "movie"
+    ? "Share where you are in the film so guests can catch up on their stream."
+    : "Share where you are in the episode so guests can catch up on their stream.";
+}
+
 export function formatHostSyncLabel(controls: WatchPartyHostControls): string {
   const runtime =
     controls.runtimeMinutes != null && controls.runtimeMinutes > 0

@@ -53,7 +53,6 @@ import { useWatchPartyRoomPusher } from "@/hooks/use-watch-party-room-pusher";
 import {
   parseWatchPartyRoomSummary,
   useWatchPartyRoomSummary,
-  type WatchPartyRoomParticipant,
 } from "@/hooks/use-watch-party-room-summary";
 import {
   ensureWatchPartyMembership,
@@ -78,7 +77,6 @@ import type { WatchingSessionDTO } from "@/lib/watching-types";
 import { getPosterUrl, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
 import WatchBreakdownSection from "@/components/content-detail/watch-breakdown-section";
 import { JoinDiscussionComposer } from "@/components/content-detail/join-discussion-composer";
-import { WatchPartyParticipantsRow } from "@/components/dashboard/watch-party-participants-row";
 import { WatchPartyRoomPanel } from "@/components/dashboard/watch-party-room-panel";
 import { watchPartyHostPlaybackSnapshot } from "@/components/dashboard/watch-party-host-controls-bar";
 import { WatchRoomActionsMenu } from "@/components/dashboard/watch-room-actions-menu";
@@ -1268,7 +1266,6 @@ function WatchingNowGroupCard({
   matchPercent,
   isHighlighted = false,
   watchPartyCue,
-  partyParticipants,
   partyInlineSlot,
   isInWatchParty = false,
   isJoiningWatchParty = false,
@@ -1288,8 +1285,6 @@ function WatchingNowGroupCard({
   isHighlighted?: boolean;
   /** When `?party=` matches this card: loading line, live count, or ended. */
   watchPartyCue?: { label: string; variant: "loading" | "live" | "ended" } | null;
-  /** Active watch party members for this card (names + avatars). */
-  partyParticipants?: WatchPartyRoomParticipant[];
   partyInlineSlot?: ReactNode;
   /** User joined the Mongo watch party for this card (via invite link), separate from feed "watching now". */
   isInWatchParty?: boolean;
@@ -1528,89 +1523,97 @@ function WatchingNowGroupCard({
             ) : null}
           </div>
         </div>
-        <p className="shrink-0 self-start text-[12px] font-medium text-emerald-500 sm:self-auto">• {room.watchingCount} watching</p>
+        <span
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1.5 self-start text-[12px] font-medium sm:self-center",
+            room.watchingCount > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
+          )}
+        >
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              room.watchingCount > 0 ? "bg-emerald-500" : "bg-muted-foreground/50"
+            )}
+          />
+          {room.watchingCount} watching
+        </span>
       </div>
 
       <div className="border-b border-border/60 bg-muted/30 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="mb-1 flex -space-x-2">
-              {room.participants.slice(0, 6).map((participant) => (
-                <Avatar key={participant.userId} className="h-7 w-7 border border-background">
-                  <AvatarImage src={participant.avatar ?? undefined} alt={participant.name} />
-                  <AvatarFallback>{participant.name[0]}</AvatarFallback>
-                </Avatar>
-              ))}
-            </div>
-            <p className="truncate text-[13px] text-muted-foreground">{participantLabel}</p>
-            {watchPartyCue ? (
-              <p
-                className={cn(
-                  "mt-1 text-[11px] font-medium",
-                  watchPartyCue.variant === "ended" && "text-muted-foreground",
-                  watchPartyCue.variant === "loading" && "text-muted-foreground",
-                  watchPartyCue.variant === "live" && "text-sky-600 dark:text-sky-400"
-                )}
-              >
-                {watchPartyCue.label}
-              </p>
-            ) : null}
-            {partyParticipants && partyParticipants.length > 0 ? (
-              <WatchPartyParticipantsRow
-                participants={partyParticipants}
-                variant="compact"
-                className="mt-2"
-              />
-            ) : null}
-            {hasCurrentUserFinished ? (
-              <p className="mt-1 inline-flex items-center rounded-full border border-slate-500/25 bg-slate-500/15 px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                You finished {timeAgo(room.currentUserFinishedAt ?? new Date().toISOString())}
-              </p>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <span
+        <div className="flex flex-col gap-3">
+          {watchPartyCue ? (
+            <p
               className={cn(
-                "text-[11px] font-semibold",
-                matchPercentTextTone(displayMatchPercent)
+                "text-[11px] font-medium",
+                watchPartyCue.variant === "ended" && "text-muted-foreground",
+                watchPartyCue.variant === "loading" && "text-muted-foreground",
+                watchPartyCue.variant === "live" && "text-sky-600 dark:text-sky-400"
               )}
+            >
+              {watchPartyCue.label}
+            </p>
+          ) : !partyInlineSlot && room.participants.length > 0 ? (
+            <div className="min-w-0">
+              <div className="mb-1 flex -space-x-2">
+                {room.participants.slice(0, 6).map((participant) => (
+                  <Avatar key={participant.userId} className="h-7 w-7 border border-background">
+                    <AvatarImage src={participant.avatar ?? undefined} alt={participant.name} />
+                    <AvatarFallback>{participant.name[0]}</AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+              <p className="truncate text-[13px] text-muted-foreground">{participantLabel}</p>
+            </div>
+          ) : !partyInlineSlot ? (
+            <p className="text-[13px] text-muted-foreground">No one in your network on this title yet.</p>
+          ) : null}
+          {hasCurrentUserFinished ? (
+            <p className="inline-flex w-fit items-center rounded-full border border-slate-500/25 bg-slate-500/15 px-2 py-0.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
+              You finished {timeAgo(room.currentUserFinishedAt ?? new Date().toISOString())}
+            </p>
+          ) : null}
+          <div className="flex w-full flex-wrap items-center gap-2">
+            <span
+              className={cn("text-[11px] font-semibold", matchPercentTextTone(displayMatchPercent))}
             >
               {displayMatchPercent}% match
             </span>
-            <WatchRoomActionsMenu
-              title={room.title}
-              copyInviteLabel={
-                isInWatchParty ? "Copy invite link again" : "Copy invite link"
-              }
-              onCopyInviteLink={() => {
-                void onInviteRoom?.(room);
-              }}
-              onEndParty={onEndWatchParty}
-              isEndingParty={isEndingWatchParty}
-              onLeaveParty={onLeaveWatchParty}
-              isLeavingParty={isLeavingWatchParty}
-            />
-            <Button
-              type="button"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (isCurrentUserInRoom || isInWatchParty) return;
-                void onJoinRoom(room);
-              }}
-              disabled={isCurrentUserInRoom || isInWatchParty || isJoiningWatchParty || isJoiningRoom}
-              className="h-8 shrink-0 cursor-pointer rounded-[20px] border border-emerald-500/35 bg-emerald-500/15 px-3 text-xs text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
-            >
-              {isJoiningWatchParty
-                ? "Joining party…"
-                : isInWatchParty
-                  ? "In party"
-                  : isCurrentUserInRoom
-                    ? "In room"
-                    : isJoiningRoom
-                      ? "Joining..."
-                      : "Join room"}
-            </Button>
+            <div className="flex items-center gap-2 sm:ml-auto">
+              <WatchRoomActionsMenu
+                title={room.title}
+                copyInviteLabel={
+                  isInWatchParty ? "Copy invite link again" : "Copy invite link"
+                }
+                onCopyInviteLink={() => {
+                  void onInviteRoom?.(room);
+                }}
+                onEndParty={onEndWatchParty}
+                isEndingParty={isEndingWatchParty}
+                onLeaveParty={onLeaveWatchParty}
+                isLeavingParty={isLeavingWatchParty}
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isCurrentUserInRoom || isInWatchParty) return;
+                  void onJoinRoom(room);
+                }}
+                disabled={isCurrentUserInRoom || isInWatchParty || isJoiningWatchParty || isJoiningRoom}
+                className="h-8 shrink-0 cursor-pointer rounded-[20px] border border-emerald-500/35 bg-emerald-500/15 px-3 text-xs text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+              >
+                {isJoiningWatchParty
+                  ? "Joining party…"
+                  : isInWatchParty
+                    ? "In party"
+                    : isCurrentUserInRoom
+                      ? "In room"
+                      : isJoiningRoom
+                        ? "Joining..."
+                        : "Join room"}
+              </Button>
+            </div>
           </div>
         </div>
         {partyInlineSlot}
@@ -2548,15 +2551,20 @@ function RightRail({
                   {item.releaseYear ?? "Year unknown"} · {item.mediaType === "movie" ? "Movie" : "TV"}
                 </p>
               </div>
-              <div className="inline-flex items-center gap-2 xl:hidden">
+              <div className="inline-flex shrink-0 items-center gap-2">
                 <span
                   className={cn(
-                    "inline-flex shrink-0 items-center gap-1 text-[11px] font-medium",
+                    "inline-flex items-center gap-1 text-[11px] font-medium",
                     item.watchingCount > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
                   )}
                 >
-                  <span className={cn("h-1.5 w-1.5 rounded-full", item.watchingCount > 0 ? "bg-emerald-500" : "bg-muted-foreground/50")} />
-                  .{item.watchingCount}
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      item.watchingCount > 0 ? "bg-emerald-500" : "bg-muted-foreground/50"
+                    )}
+                  />
+                  {item.watchingCount > 0 ? `${item.watchingCount} watching` : `${item.watchedCount} watched`}
                 </span>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -2564,10 +2572,10 @@ function RightRail({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 cursor-pointer rounded-full text-muted-foreground hover:bg-muted"
+                      className="h-7 w-7 shrink-0 cursor-pointer rounded-full text-muted-foreground hover:bg-muted"
                       aria-label={`More actions for ${item.title}`}
                     >
-                      <MoreHorizontal className="h-3.5 w-3.5 rotate-90" />
+                      <MoreHorizontal className="h-3.5 w-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40">
@@ -2587,37 +2595,11 @@ function RightRail({
                         })
                       }
                     >
-                      Use
+                      Use this title
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <span
-                className={cn(
-                  "hidden min-w-[4.5rem] shrink-0 items-center justify-end rounded-full border px-2 py-0.5 text-[11px] font-medium xl:inline-flex",
-                  item.watchingCount > 0
-                    ? "border-emerald-500/35 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                    : "border-slate-500/25 bg-slate-500/15 text-slate-700 dark:text-slate-300"
-                )}
-              >
-                {item.watchingCount > 0 ? `${item.watchingCount} watching` : `${item.watchedCount} watched`}
-              </span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="hidden h-7 cursor-pointer rounded-[20px] px-2 text-xs text-muted-foreground hover:bg-muted xl:inline-flex"
-                onClick={() =>
-                  onUseTrendingItem({
-                    tmdbId: item.tmdbId,
-                    mediaType: item.mediaType,
-                    title: item.title,
-                    posterPath: item.posterPath,
-                  })
-                }
-              >
-                Use
-              </Button>
             </div>
           ))}
           {!trendingTonight.length ? <p className="py-[8px] text-[12px] text-muted-foreground">No trending titles yet.</p> : null}
@@ -4256,10 +4238,6 @@ export default function WatchingContent() {
 
           {partyFeedMissing && partyUiActive && partyRoomSummary ? (
             <div className="mb-3 space-y-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-3">
-              <WatchPartyParticipantsRow
-                participants={partyRoomSummary.participants}
-                variant="compact"
-              />
               <p className="text-sm text-muted-foreground">
                 {"You're in "}
                 <span className="font-medium text-foreground">{partyRoomSummary.title}</span>
@@ -4323,6 +4301,7 @@ export default function WatchingContent() {
               <WatchPartyRoomPanel
                 partyId={partyId}
                 partyOpen={partyRoomSummary.status === "OPEN"}
+                mediaType={partyRoomSummary.mediaType}
                 isParticipant={partyRoomSummary.isParticipant}
                 isHost={partyRoomSummary.isHost}
                 hostControls={partyRoomSummary.hostControls}
@@ -4363,10 +4342,6 @@ export default function WatchingContent() {
               partyUiActive &&
               partyRoomSummary?.feedRoomKey === room.key &&
               !partyRoomSummary.isHost;
-            const cardPartyParticipants =
-              partyUiActive && partyRoomSummary?.feedRoomKey === room.key
-                ? partyRoomSummary.participants
-                : undefined;
             const cardInParty = Boolean(
               partyUiActive &&
                 partyRoomSummary?.feedRoomKey === room.key &&
@@ -4378,7 +4353,6 @@ export default function WatchingContent() {
               room={room}
               matchPercent={roomMatchScores[room.key]}
               currentUserId={currentUser?.id ?? null}
-              partyParticipants={cardPartyParticipants}
               isInWatchParty={cardInParty}
               isJoiningWatchParty={Boolean(
                 partyUiActive &&
@@ -4448,6 +4422,7 @@ export default function WatchingContent() {
                   <WatchPartyRoomPanel
                     partyId={partyId}
                     partyOpen={partyRoomSummary.status === "OPEN"}
+                    mediaType={partyRoomSummary.mediaType}
                     isParticipant={partyRoomSummary.isParticipant}
                     isHost={partyRoomSummary.isHost}
                     hostControls={partyRoomSummary.hostControls}

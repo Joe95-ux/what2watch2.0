@@ -30,6 +30,7 @@ type WatchPartyRoomPanelProps = {
   partyId: string;
   partyOpen: boolean;
   isParticipant: boolean;
+  mediaType: "movie" | "tv";
   isHost?: boolean;
   hostControls?: WatchPartyHostControls | null;
   hostPlaybackSnapshot?: HostPlaybackSnapshot | null;
@@ -42,6 +43,7 @@ export function WatchPartyRoomPanel({
   partyId,
   partyOpen,
   isParticipant,
+  mediaType,
   isHost = false,
   hostControls = null,
   hostPlaybackSnapshot = null,
@@ -106,6 +108,7 @@ export function WatchPartyRoomPanel({
         partyId={partyId}
         partyOpen={partyOpen}
         isHost={isHost}
+        mediaType={mediaType}
         hostControls={hostControls}
         hostPlaybackSnapshot={hostPlaybackSnapshot}
       />

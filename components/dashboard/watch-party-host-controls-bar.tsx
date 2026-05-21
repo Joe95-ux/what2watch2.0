@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   buildPlaybackSnapshotFromSession,
   formatHostSyncLabel,
+  hostSyncEmptyStateCopy,
   type WatchPartyHostControls,
 } from "@/lib/watch-party/host-controls";
 import { useWatchPartyHostControlsSync } from "@/hooks/use-watch-party-host-controls";
@@ -21,6 +22,7 @@ type WatchPartyHostControlsBarProps = {
   partyId: string;
   partyOpen: boolean;
   isHost: boolean;
+  mediaType: "movie" | "tv";
   hostControls: WatchPartyHostControls | null;
   /** Host's live watching session on this title — required for sync button. */
   hostPlaybackSnapshot?: HostPlaybackSnapshot | null;
@@ -30,6 +32,7 @@ export function WatchPartyHostControlsBar({
   partyId,
   partyOpen,
   isHost,
+  mediaType,
   hostControls,
   hostPlaybackSnapshot,
 }: WatchPartyHostControlsBarProps) {
@@ -93,9 +96,7 @@ export function WatchPartyHostControlsBar({
               : null}
           </p>
         ) : (
-          <p className="mt-1 text-[12px] text-muted-foreground">
-            Share where you are in the episode so guests can catch up on their stream.
-          </p>
+          <p className="mt-1 text-[12px] text-muted-foreground">{hostSyncEmptyStateCopy(mediaType)}</p>
         )}
         <div className="mt-2 flex flex-wrap gap-2">
           <Button
