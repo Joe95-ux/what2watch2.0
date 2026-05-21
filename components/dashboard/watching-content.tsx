@@ -1431,7 +1431,7 @@ function WatchingNowGroupCard({
         }
       }}
     >
-      <div className="flex flex-row items-start justify-between gap-3 border-b border-border/60 bg-muted/35 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-border/60 bg-muted/35 px-[14px] py-[13px] dark:border-border/50 dark:bg-muted/20">
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <Link
             href={watchTitleHref(room.mediaType, room.tmdbId, room.title)}
@@ -1530,7 +1530,7 @@ function WatchingNowGroupCard({
         >
           <span
             className={cn(
-              "inline-flex items-center gap-1.5 text-[12px] font-medium tabular-nums",
+              "inline-flex items-center gap-1.5 text-[14px] font-medium tabular-nums",
               room.watchingCount > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
             )}
           >
@@ -1544,7 +1544,7 @@ function WatchingNowGroupCard({
           </span>
           <span
             className={cn(
-              "text-[11px] font-semibold tabular-nums",
+              "text-[14px] font-semibold tabular-nums",
               matchPercentTextTone(displayMatchPercent)
             )}
           >
