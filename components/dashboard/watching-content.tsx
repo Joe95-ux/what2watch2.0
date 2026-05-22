@@ -3225,9 +3225,13 @@ export default function WatchingContent() {
     (endedPartyId: string, feedRoomKey?: string | null) => {
       clearWatchPartySessionStorage(endedPartyId);
       removeWatchPartyQueries(queryClient, endedPartyId);
-      setFeedRoomFocusInUrl(feedRoomKey ?? focusedRoomKey ?? null);
+      const focusKey =
+        feedRoomKey && justFinishedRooms.some((r) => r.key === feedRoomKey)
+          ? feedRoomKey
+          : feedRoomKey ?? focusedRoomKey ?? null;
+      setFeedRoomFocusInUrl(focusKey);
     },
-    [queryClient, setFeedRoomFocusInUrl, focusedRoomKey]
+    [queryClient, setFeedRoomFocusInUrl, focusedRoomKey, justFinishedRooms]
   );
 
   const { isJoining: isJoiningWatchParty } = useWatchPartyMembership(
@@ -3271,9 +3275,15 @@ export default function WatchingContent() {
     isPending: isPartySummaryPending,
   } = useWatchPartyRoomSummary(partyId, { enabled: summaryQueryEnabled });
 
+  const userFinishedPartyTitle = useMemo(() => {
+    if (!partyRoomSummary) return false;
+    return justFinishedRooms.some((r) => r.key === partyRoomSummary.feedRoomKey);
+  }, [partyRoomSummary, justFinishedRooms]);
+
   const partyFeedMissing =
     Boolean(partyId) &&
     partyRoomSummary?.status === "OPEN" &&
+    !userFinishedPartyTitle &&
     !watchingNowRooms.some((r) => r.key === partyRoomSummary.feedRoomKey);
 
   const partyUiActive =
@@ -3414,9 +3424,17 @@ export default function WatchingContent() {
   );
 
   useEffect(() => {
-    if (!partyId || partyRoomSummary?.status !== "ENDED") return;
+    if (!partyId || !partyRoomSummary) return;
+    const partyOver =
+      partyRoomSummary.status === "ENDED" || userFinishedPartyTitle;
+    if (!partyOver) return;
     dismissEndedWatchParty(partyId, partyRoomSummary.feedRoomKey);
-  }, [partyId, partyRoomSummary?.status, partyRoomSummary?.feedRoomKey, dismissEndedWatchParty]);
+  }, [
+    partyId,
+    partyRoomSummary,
+    userFinishedPartyTitle,
+    dismissEndedWatchParty,
+  ]);
 
   const endWatchPartyForFeedRoom = useCallback(
     async (feedRoomKey: string) => {
@@ -3610,7 +3628,8 @@ export default function WatchingContent() {
     if (
       !partyId ||
       partyRoomSummary?.status !== "OPEN" ||
-      !partyRoomSummary?.isParticipant
+      !partyRoomSummary?.isParticipant ||
+      userFinishedPartyTitle
     ) {
       return null;
     }
@@ -3623,11 +3642,11 @@ export default function WatchingContent() {
       },
       isStarting: watchingMutation.isPending,
     };
-  }, [partyId, partyRoomSummary, watchingData?.currentSession, watchingMutation.isPending]);
+  }, [partyId, partyRoomSummary, userFinishedPartyTitle, watchingData?.currentSession, watchingMutation.isPending]);
 
   // Invitees join the party room but need a watching session for the right-rail thought form.
   useEffect(() => {
-    if (!partyUiActive || !partyRoomSummary?.isParticipant || !partyId) return;
+    if (!partyUiActive || !partyRoomSummary?.isParticipant || !partyId || userFinishedPartyTitle) return;
     const session = watchingData?.currentSession;
     if (session && watchPartyMatchesSession(partyRoomSummary, session)) return;
 
@@ -3636,7 +3655,7 @@ export default function WatchingContent() {
     if (typeof window !== "undefined") sessionStorage.setItem(storageKey, "1");
 
     void submitStartWatching(watchPartyStartPayload(partyRoomSummary), { quiet: true });
-  }, [partyUiActive, partyRoomSummary, partyId, watchingData?.currentSession]);
+  }, [partyUiActive, partyRoomSummary, partyId, userFinishedPartyTitle, watchingData?.currentSession]);
 
   const clearActiveWatching = async () => {
     const activeSession = watchingData?.currentSession;

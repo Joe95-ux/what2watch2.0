@@ -44,7 +44,14 @@ export async function ensureWatchPartyMembership(
       throw new WatchPartyJoinError("This watch party has ended. Ask the host for a new invite link.", 410);
     }
     if (!joinRes.ok) {
-      const err = (await joinRes.json().catch(() => ({}))) as { error?: string };
+      const err = (await joinRes.json().catch(() => ({}))) as {
+        error?: string;
+        summary?: Partial<WatchPartyRoomSummary> & { id: string };
+      };
+      if (joinRes.status === 410 && err.summary?.id) {
+        const endedSummary = parseWatchPartyRoomSummary(err.summary);
+        queryClient.setQueryData(["watch-party-room", partyId], endedSummary);
+      }
       throw new WatchPartyJoinError(
         typeof err.error === "string" ? err.error : "Could not join watch party.",
         joinRes.status
@@ -112,10 +119,23 @@ export function useWatchPartyMembership(
       .catch((error: unknown) => {
         if (cancelled) return;
         if (error instanceof WatchPartyJoinError && error.status === 410) {
-          const endedSummary = queryClient.getQueryData<WatchPartyRoomSummary>([
+          let endedSummary = queryClient.getQueryData<WatchPartyRoomSummary>([
             "watch-party-room",
             partyId,
           ]);
+          if (!endedSummary || endedSummary.status !== "ENDED") {
+            try {
+              endedSummary = await fetchWatchPartyRoomSummary(partyId);
+              queryClient.setQueryData(["watch-party-room", partyId], endedSummary);
+            } catch {
+              endedSummary = endedSummary
+                ? { ...endedSummary, status: "ENDED" as const }
+                : undefined;
+              if (endedSummary) {
+                queryClient.setQueryData(["watch-party-room", partyId], endedSummary);
+              }
+            }
+          }
           callbacksRef.current?.onPartyEnded?.(endedSummary?.feedRoomKey ?? null);
         }
         const err = error instanceof Error ? error : new Error("Could not join watch party.");
