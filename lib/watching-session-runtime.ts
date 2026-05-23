@@ -4,6 +4,7 @@ export type WatchingSessionClock = {
   startedAt: string | Date;
   updatedAt?: string | Date | null;
   runtimeMinutes?: number | null;
+  progressPercent?: number | null;
 };
 
 export function getActiveWatchMs(session: WatchingSessionClock, nowMs = Date.now()): number {
@@ -41,4 +42,22 @@ export function startedAtForResume(
 ): Date {
   const priorActiveMs = Math.max(0, pausedAt.getTime() - startedAt.getTime());
   return new Date(resumeAt.getTime() - priorActiveMs);
+}
+
+/** Live progress for the thought-form bar (client clock; no API). */
+export function computeWatchProgressPercent(
+  session: WatchingSessionClock,
+  nowMs = Date.now()
+): number {
+  if (session.status === "JUST_FINISHED") return 100;
+  const cap = session.status === "WATCHING_NOW" ? 99 : 100;
+  const runtime = session.runtimeMinutes;
+  if (runtime && runtime > 0) {
+    const fromClock = Math.round((getActiveWatchMs(session, nowMs) / (runtime * 60_000)) * 100);
+    return Math.max(0, Math.min(cap, fromClock));
+  }
+  if (typeof session.progressPercent === "number") {
+    return Math.max(0, Math.min(cap, Math.round(session.progressPercent)));
+  }
+  return 0;
 }

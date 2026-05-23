@@ -75,6 +75,12 @@ import {
 import { useWatchingPulseStats } from "@/hooks/use-watching-pulse-stats";
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { WatchingSessionDTO } from "@/lib/watching-types";
+import { computeWatchProgressPercent } from "@/lib/watching-session-runtime";
+import {
+  formatRecentlyFinishedSummary,
+  isRecentlyFinished,
+  type RecentlyFinishedPerson,
+} from "@/lib/watching-recently-finished";
 import { getPosterUrl, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
 import WatchBreakdownSection from "@/components/content-detail/watch-breakdown-section";
 import { JoinDiscussionComposer } from "@/components/content-detail/join-discussion-composer";
@@ -186,6 +192,7 @@ type WatchingNowRoomCard = {
     runtimeMinutes: number | null;
   } | null;
   currentUserFinishedAt: string | null;
+  recentlyFinished: RecentlyFinishedPerson[];
 };
 
 type JustFinishedRoomCard = {
@@ -335,6 +342,7 @@ function JustFinishedComment({
   const [replyParentId, setReplyParentId] = useState<string | null>(null);
   const [localReactionCount, setLocalReactionCount] = useState(comment.reactionCount);
   const [localMyReactions, setLocalMyReactions] = useState<string[]>(comment.myReactions ?? []);
+  const [pendingReactions, setPendingReactions] = useState<Set<string>>(() => new Set());
   const [editText, setEditText] = useState(comment.content);
   const [isEditing, setIsEditing] = useState(false);
   const [replyEditState, setReplyEditState] = useState<{ id: string; content: string } | null>(null);
@@ -349,10 +357,11 @@ function JustFinishedComment({
   const deleteReplyMutation = useDeleteWatchingThoughtReply();
 
   useEffect(() => {
+    if (addMutation.isPending || removeMutation.isPending) return;
     setLocalReactionCount(comment.reactionCount);
     setLocalMyReactions(comment.myReactions ?? []);
     setEditText(comment.content);
-  }, [comment.reactionCount, comment.myReactions]);
+  }, [comment.reactionCount, comment.myReactions, comment.content, addMutation.isPending, removeMutation.isPending]);
   const canManageComment = !!currentUserId && comment.userId === currentUserId;
 
   const submitReply = async () => {
@@ -379,9 +388,11 @@ function JustFinishedComment({
   };
 
   const handleReactionToggle = async (reactionType: string) => {
+    if (pendingReactions.has(reactionType)) return;
     const previousReactions = [...localMyReactions];
     const hasReaction = previousReactions.includes(reactionType);
     const delta = hasReaction ? -1 : 1;
+    setPendingReactions((prev) => new Set(prev).add(reactionType));
     setLocalMyReactions((prev) =>
       hasReaction ? prev.filter((reaction) => reaction !== reactionType) : [...prev, reactionType]
     );
@@ -398,6 +409,12 @@ function JustFinishedComment({
       setLocalReactionCount((count) => Math.max(0, count - delta));
       onReactionDelta?.(-delta);
       toast.error(error instanceof Error ? error.message : "Failed to update reaction");
+    } finally {
+      setPendingReactions((prev) => {
+        const next = new Set(prev);
+        next.delete(reactionType);
+        return next;
+      });
     }
   };
   const repliesByParent = useMemo(() => {
@@ -588,7 +605,6 @@ function JustFinishedComment({
               variant="ghost"
               size="sm"
               onClick={() => setShowReactionPicker((v) => !v)}
-          disabled={addMutation.isPending || removeMutation.isPending}
               className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
             >
               <Smile className="h-3.5 w-3.5" />
@@ -622,8 +638,8 @@ function JustFinishedComment({
                     className={`h-7 rounded-[20px] border border-border/60 px-3 text-xs font-medium cursor-pointer ${
                       selected ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground"
                     }`}
-                    onClick={() => handleReactionToggle(reactionType)}
-                disabled={addMutation.isPending || removeMutation.isPending}
+                    onClick={() => void handleReactionToggle(reactionType)}
+                    disabled={pendingReactions.has(reactionType)}
                   >
                     {reactionType === "like" ? "👍" : reactionType}
                   </button>
@@ -1292,6 +1308,7 @@ function WatchingNowGroupCard({
   isJoiningWatchParty?: boolean;
 }) {
   const [showThoughts, setShowThoughts] = useState(false);
+  const [showRecentlyFinishedList, setShowRecentlyFinishedList] = useState(false);
   const isMobile = useIsMobile();
   const [showFinishOverrideDialog, setShowFinishOverrideDialog] = useState(false);
   const [localReactions, setLocalReactions] = useState(room.reactionCount ?? 0);
@@ -1311,6 +1328,12 @@ function WatchingNowGroupCard({
     const remaining = names.length - 3;
     return remaining > 0 ? `${first} and ${remaining} others` : first;
   }, [room.participants]);
+  const recentlyFinishedSummary = useMemo(
+    () => formatRecentlyFinishedSummary(room.recentlyFinished),
+    [room.recentlyFinished]
+  );
+  const showMixedFinishedCue =
+    room.participants.length > 0 && room.recentlyFinished.length > 0 && Boolean(recentlyFinishedSummary);
   const isCurrentUserInRoom = !!currentUserId && room.participants.some((participant) => participant.userId === currentUserId);
   const hasCurrentUserFinished = !isCurrentUserInRoom && !!room.currentUserFinishedAt;
   const displayMatchPercent = Math.max(55, Math.min(98, Math.round(matchPercent ?? 72)));
@@ -1579,6 +1602,34 @@ function WatchingNowGroupCard({
                   ))}
                 </div>
                 <p className="truncate text-[13px] text-muted-foreground">{participantLabel}</p>
+                {showMixedFinishedCue ? (
+                  <div className="mt-1.5 space-y-1">
+                    <p className="truncate text-[12px] text-muted-foreground/90">{recentlyFinishedSummary}</p>
+                    {room.recentlyFinished.length > 2 ? (
+                      <>
+                        <button
+                          type="button"
+                          className="cursor-pointer text-[11px] font-medium text-primary hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowRecentlyFinishedList((v) => !v);
+                          }}
+                        >
+                          {showRecentlyFinishedList ? "Hide finished" : "Show who finished"}
+                        </button>
+                        {showRecentlyFinishedList ? (
+                          <ul className="space-y-0.5 text-[12px] text-muted-foreground">
+                            {room.recentlyFinished.map((person) => (
+                              <li key={person.userId} className="truncate">
+                                {person.name}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             ) : !partyInlineSlot ? (
               <p className="text-[13px] text-muted-foreground">No one in your network on this title yet.</p>
@@ -2198,6 +2249,7 @@ function RightRail({
   onChangeTitle,
   isSubmitting,
   watchMomentLabel,
+  uiNowTick,
 }: {
   currentSession: WatchingSessionDTO | null;
   /** In a watch party but no matching watching session — prompt to start. */
@@ -2235,6 +2287,7 @@ function RightRail({
   }) => void;
   isSubmitting: boolean;
   watchMomentLabel: string;
+  uiNowTick: number;
 }) {
   const isMobile = useIsMobile();
   const { textareaRef: thoughtTextareaRef, resize: resizeThoughtTextarea } = useAutoGrowingTextarea(thoughtText);
@@ -2245,21 +2298,17 @@ function RightRail({
   }, [watchMomentLabel]);
   const currentProgress = useMemo(() => {
     if (!currentSession) return 0;
-    const capForActiveSession = (value: number) =>
-      currentSession.status === "WATCHING_NOW" ? Math.min(99, value) : Math.min(100, value);
-    if (typeof currentSession.progressPercent === "number") {
-      return Math.max(0, capForActiveSession(currentSession.progressPercent));
-    }
-    // Fallback to elapsed-time estimate when explicit progress isn't set yet.
-    // For active sessions, never show 100% until the session is actually finished.
-    const minutesIn = Math.max(1, Math.round((Date.now() - new Date(currentSession.startedAt).getTime()) / 60000));
-    const estimatedTotalMinutes =
-      currentSession.runtimeMinutes && currentSession.runtimeMinutes > 0
-        ? currentSession.runtimeMinutes
-        : 120;
-    const estimated = Math.round((minutesIn / estimatedTotalMinutes) * 100);
-    return Math.max(0, capForActiveSession(estimated));
-  }, [currentSession]);
+    return computeWatchProgressPercent(
+      {
+        status: currentSession.status,
+        startedAt: currentSession.startedAt,
+        updatedAt: currentSession.updatedAt,
+        runtimeMinutes: currentSession.runtimeMinutes,
+        progressPercent: currentSession.progressPercent,
+      },
+      uiNowTick
+    );
+  }, [currentSession, uiNowTick]);
   const [showAllAlsoWatching, setShowAllAlsoWatching] = useState(false);
   const [alsoWatchingPage, setAlsoWatchingPage] = useState(1);
   const [showAllRepliesToYou, setShowAllRepliesToYou] = useState(false);
@@ -2968,6 +3017,7 @@ export default function WatchingContent() {
             session.endedAt
               ? session.endedAt
               : null,
+          recentlyFinished: [],
         });
       } else {
         if (isActiveWatcher) {
@@ -3039,6 +3089,21 @@ export default function WatchingContent() {
       if (currentUser?.id && session.userId === currentUser.id && session.endedAt) {
         room.currentUserFinishedAt = session.endedAt;
       }
+      if (
+        session.endedAt &&
+        isRecentlyFinished(session.endedAt, uiNowTick) &&
+        !room.participants.some((p) => p.userId === session.userId)
+      ) {
+        const finishedName = session.user.displayName || session.user.username || "Unknown";
+        if (!room.recentlyFinished.some((p) => p.userId === session.userId)) {
+          room.recentlyFinished.push({
+            userId: session.userId,
+            name: finishedName,
+            avatar: session.user.avatarUrl ?? null,
+            finishedAt: session.endedAt,
+          });
+        }
+      }
     }
     if (currentUser?.id) {
       const myRecentFinished = (watchingData?.justFinished ?? [])
@@ -3059,8 +3124,15 @@ export default function WatchingContent() {
         room.currentUserFinishedAt = session.endedAt ?? session.updatedAt;
       }
     }
-    return Array.from(groups.values()).sort((a, b) => b.watchingCount - a.watchingCount);
-  }, [watchingData?.watchingNow, watchingData?.justFinished, currentUser?.id]);
+    return Array.from(groups.values())
+      .map((room) => ({
+        ...room,
+        recentlyFinished: [...room.recentlyFinished].sort(
+          (a, b) => new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime()
+        ),
+      }))
+      .sort((a, b) => b.watchingCount - a.watchingCount);
+  }, [watchingData?.watchingNow, watchingData?.justFinished, currentUser?.id, uiNowTick]);
   const { activeWatchingPeopleCount, friendsOnlineCount } = useWatchingPulseStats(
     watchingData?.watchingNow,
     currentUser?.id
@@ -4324,6 +4396,7 @@ export default function WatchingContent() {
                         primaryThoughtId: null,
                         currentUserSession: null,
                         currentUserFinishedAt: null,
+                        recentlyFinished: [],
                       };
                       void copyWatchPartyInviteForRoom(roomStub);
                     }}
@@ -4633,6 +4706,7 @@ export default function WatchingContent() {
               }}
               isSubmitting={watchingMutation.isPending}
               watchMomentLabel={watchMomentLabel}
+              uiNowTick={uiNowTick}
             />
           </div>
         </aside>
@@ -4684,6 +4758,7 @@ export default function WatchingContent() {
             }}
             isSubmitting={watchingMutation.isPending}
             watchMomentLabel={watchMomentLabel}
+            uiNowTick={uiNowTick}
           />
         </SheetContent>
       </Sheet>

@@ -91,6 +91,7 @@ function ThoughtCard({
   const [localReactionCount, setLocalReactionCount] = useState(thought.reactionCount);
   const [localReplyCount, setLocalReplyCount] = useState(thought.replyCount);
   const [localMyReactions, setLocalMyReactions] = useState<string[]>(thought.myReactions ?? []);
+  const [pendingReactions, setPendingReactions] = useState<Set<string>>(() => new Set());
   const { data: replies } = useWatchingThoughtReplies(thought.thoughtId, showReplies);
   const [optimisticReplies, setOptimisticReplies] = useState<
     Array<{
@@ -129,16 +130,27 @@ function ThoughtCard({
 
   // Keep local counters synced with live query updates/pusher refreshes.
   useEffect(() => {
+    if (addMutation.isPending || removeMutation.isPending) return;
     setLocalReactionCount(thought.reactionCount);
     setLocalReplyCount(thought.replyCount);
     setLocalMyReactions(thought.myReactions ?? []);
     setEditText(thought.content);
     if (!blurred) setIsSpoilerRevealed(false);
-  }, [thought.reactionCount, thought.replyCount, thought.myReactions, blurred]);
+  }, [
+    thought.reactionCount,
+    thought.replyCount,
+    thought.myReactions,
+    thought.content,
+    blurred,
+    addMutation.isPending,
+    removeMutation.isPending,
+  ]);
 
   const handleReactionToggle = async (reactionType: string) => {
+    if (pendingReactions.has(reactionType) || shouldBlurSpoiler) return;
     const previousReactions = [...localMyReactions];
     const hasReaction = previousReactions.includes(reactionType);
+    setPendingReactions((prev) => new Set(prev).add(reactionType));
     setLocalMyReactions((prev) =>
       hasReaction ? prev.filter((reaction) => reaction !== reactionType) : [...prev, reactionType]
     );
@@ -150,10 +162,15 @@ function ThoughtCard({
         await addMutation.mutateAsync({ thoughtId: thought.thoughtId, reactionType });
       }
     } catch (error) {
-      // rollback optimistic update
       setLocalMyReactions(previousReactions);
       setLocalReactionCount((count) => Math.max(0, hasReaction ? count + 1 : count - 1));
       toast.error(error instanceof Error ? error.message : "Failed to update reaction");
+    } finally {
+      setPendingReactions((prev) => {
+        const next = new Set(prev);
+        next.delete(reactionType);
+        return next;
+      });
     }
   };
 
@@ -383,7 +400,7 @@ function ThoughtCard({
                 size="sm"
                 className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
                 onClick={() => setShowReactionPicker((v) => !v)}
-                disabled={addMutation.isPending || removeMutation.isPending || shouldBlurSpoiler}
+                disabled={shouldBlurSpoiler}
               >
                 <Smile className="h-3.5 w-3.5" /> {localReactionCount}
               </Button>
@@ -416,8 +433,8 @@ function ThoughtCard({
                       className={`h-7 rounded-[20px] border border-border/60 px-3 text-xs font-medium cursor-pointer ${
                         selected ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground"
                       }`}
-                      onClick={() => handleReactionToggle(reactionType)}
-                      disabled={addMutation.isPending || removeMutation.isPending || shouldBlurSpoiler}
+                      onClick={() => void handleReactionToggle(reactionType)}
+                      disabled={pendingReactions.has(reactionType) || shouldBlurSpoiler}
                     >
                       {reactionType === "like" ? "👍" : reactionType}
                     </button>
@@ -518,7 +535,7 @@ function ThoughtCard({
                       size="sm"
                       className="h-7 cursor-pointer rounded-[20px] border border-border/60 px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
                       onClick={() => setShowReactionPicker((v) => !v)}
-                      disabled={addMutation.isPending || removeMutation.isPending || shouldBlurSpoiler}
+                      disabled={shouldBlurSpoiler}
                     >
                       <Smile className="h-3.5 w-3.5" /> {localReactionCount}
                     </Button>

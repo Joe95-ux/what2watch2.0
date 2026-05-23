@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   WatchingDashboardResponse,
   WatchingSessionDTO,
+  WatchingThoughtDTO,
   WatchingTitlePresenceResponse,
   WatchingVisibility,
 } from "@/lib/watching-types";
@@ -326,20 +327,169 @@ export function useAddWatchingThoughtReply() {
   });
 }
 
+function patchThoughtInDashboard(
+  previous: WatchingDashboardResponse,
+  thoughtId: string,
+  patch: (thought: WatchingThoughtDTO) => WatchingThoughtDTO
+): WatchingDashboardResponse {
+  const mapSession = (session: WatchingSessionDTO): WatchingSessionDTO => ({
+    ...session,
+    thoughts: session.thoughts.map((thought) => (thought.id === thoughtId ? patch(thought) : thought)),
+  });
+  return {
+    ...previous,
+    currentSession: previous.currentSession ? mapSession(previous.currentSession) : null,
+    watchingNow: previous.watchingNow.map(mapSession),
+    justFinished: previous.justFinished.map(mapSession),
+    alsoWatchingCurrent: previous.alsoWatchingCurrent.map(mapSession),
+  };
+}
+
+function applyReactionPatch(
+  thought: WatchingThoughtDTO,
+  reactionType: string,
+  add: boolean
+): WatchingThoughtDTO {
+  const has = thought.myReactions.includes(reactionType);
+  if ((add && has) || (!add && !has)) return thought;
+  const myReactions = add
+    ? [...thought.myReactions, reactionType]
+    : thought.myReactions.filter((r) => r !== reactionType);
+  return {
+    ...thought,
+    myReactions,
+    reactionCount: Math.max(0, thought.reactionCount + (add ? 1 : -1)),
+  };
+}
+
+type TitlePageThought =
+  | WatchingTitlePresenceResponse["recentThoughts"][number]
+  | WatchingTitlePresenceResponse["spoilerThoughts"][number];
+
+function patchThoughtInTitle(
+  previous: WatchingTitlePresenceResponse,
+  thoughtId: string,
+  patch: (thought: TitlePageThought) => TitlePageThought
+): WatchingTitlePresenceResponse {
+  const mapThoughts = <T extends TitlePageThought>(thoughts: T[]) =>
+    thoughts.map((thought) => (thought.thoughtId === thoughtId ? (patch(thought) as T) : thought));
+
+  return {
+    ...previous,
+    recentThoughts: mapThoughts(previous.recentThoughts),
+    spoilerThoughts: mapThoughts(previous.spoilerThoughts),
+  };
+}
+
+function applyReactionPatchToTitleThought(
+  thought: TitlePageThought,
+  reactionType: string,
+  add: boolean
+): TitlePageThought {
+  const has = thought.myReactions.includes(reactionType);
+  if ((add && has) || (!add && !has)) return thought;
+  const myReactions = add
+    ? [...thought.myReactions, reactionType]
+    : thought.myReactions.filter((r) => r !== reactionType);
+  return {
+    ...thought,
+    myReactions,
+    reactionCount: Math.max(0, thought.reactionCount + (add ? 1 : -1)),
+  };
+}
+
+type ReactionMutationContext = {
+  previousDashboard?: WatchingDashboardResponse;
+  previousTitleQueries: Array<{
+    queryKey: readonly unknown[];
+    data: WatchingTitlePresenceResponse;
+  }>;
+};
+
+function patchReactionCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  thoughtId: string,
+  reactionType: string,
+  add: boolean
+): ReactionMutationContext {
+  const previousDashboard = queryClient.getQueryData<WatchingDashboardResponse>(["watching-dashboard"]);
+  if (previousDashboard) {
+    queryClient.setQueryData(
+      ["watching-dashboard"],
+      patchThoughtInDashboard(previousDashboard, thoughtId, (thought) =>
+        applyReactionPatch(thought, reactionType, add)
+      )
+    );
+  }
+
+  const previousTitleQueries: ReactionMutationContext["previousTitleQueries"] = [];
+  for (const [queryKey, data] of queryClient.getQueriesData<WatchingTitlePresenceResponse>({
+    queryKey: ["watching-title"],
+  })) {
+    if (!data) continue;
+    previousTitleQueries.push({ queryKey, data });
+    queryClient.setQueryData(
+      queryKey,
+      patchThoughtInTitle(data, thoughtId, (thought) =>
+        applyReactionPatchToTitleThought(thought, reactionType, add)
+      )
+    );
+  }
+
+  return { previousDashboard, previousTitleQueries };
+}
+
+function rollbackReactionCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  context?: ReactionMutationContext
+) {
+  if (context?.previousDashboard) {
+    queryClient.setQueryData(["watching-dashboard"], context.previousDashboard);
+  }
+  for (const entry of context?.previousTitleQueries ?? []) {
+    queryClient.setQueryData(entry.queryKey, entry.data);
+  }
+}
+
 export function useWatchingThoughtReaction() {
   const queryClient = useQueryClient();
+
   const addMutation = useMutation({
     mutationFn: addThoughtReaction,
+    onMutate: async ({ thoughtId, reactionType }) => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: ["watching-dashboard"] }),
+        queryClient.cancelQueries({ queryKey: ["watching-title"] }),
+      ]);
+      return patchReactionCaches(queryClient, thoughtId, reactionType, true);
+    },
+    onError: (_error, _vars, context) => {
+      rollbackReactionCaches(queryClient, context);
+    },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["watching-title"] });
     },
   });
+
   const removeMutation = useMutation({
     mutationFn: removeThoughtReaction,
+    onMutate: async ({ thoughtId, reactionType }) => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: ["watching-dashboard"] }),
+        queryClient.cancelQueries({ queryKey: ["watching-title"] }),
+      ]);
+      return patchReactionCaches(queryClient, thoughtId, reactionType, false);
+    },
+    onError: (_error, _vars, context) => {
+      rollbackReactionCaches(queryClient, context);
+    },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["watching-title"] });
     },
   });
+
   return { addMutation, removeMutation };
 }
 

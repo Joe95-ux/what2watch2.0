@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import {
   triggerUserNotificationsChanged,
+  triggerWatchingDashboardUpdated,
   triggerWatchingTitleUpdated,
 } from "@/lib/pusher/server";
 import { publishUserNotification } from "@/lib/pusher/beams-server";
@@ -69,11 +70,18 @@ export async function POST(
       });
     }
 
-    await triggerWatchingTitleUpdated(thought.session.mediaType as "movie" | "tv", thought.session.tmdbId, {
-      action: "thought_reacted",
-      thoughtId,
-      actorId: authResult.userId,
-    });
+    await Promise.all([
+      triggerWatchingDashboardUpdated({
+        action: "thought_reacted",
+        thoughtId,
+        actorId: authResult.userId,
+      }),
+      triggerWatchingTitleUpdated(thought.session.mediaType as "movie" | "tv", thought.session.tmdbId, {
+        action: "thought_reacted",
+        thoughtId,
+        actorId: authResult.userId,
+      }),
+    ]);
 
     if (!existing && thought.userId !== authResult.userId) {
       const actor = await db.user.findUnique({
@@ -146,11 +154,18 @@ export async function DELETE(
       select: { session: { select: { tmdbId: true, mediaType: true } } },
     });
     if (thought) {
-      await triggerWatchingTitleUpdated(thought.session.mediaType as "movie" | "tv", thought.session.tmdbId, {
-        action: "thought_reaction_removed",
-        thoughtId,
-        actorId: authResult.userId,
-      });
+      await Promise.all([
+        triggerWatchingDashboardUpdated({
+          action: "thought_reaction_removed",
+          thoughtId,
+          actorId: authResult.userId,
+        }),
+        triggerWatchingTitleUpdated(thought.session.mediaType as "movie" | "tv", thought.session.tmdbId, {
+          action: "thought_reaction_removed",
+          thoughtId,
+          actorId: authResult.userId,
+        }),
+      ]);
     }
     return NextResponse.json({ success: true });
   } catch (error) {
