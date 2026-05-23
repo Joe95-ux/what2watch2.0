@@ -111,12 +111,12 @@ export function useWatchPartyMembership(
     let cancelled = false;
     setIsJoining(true);
 
-    void ensureWatchPartyMembership(queryClient, partyId)
-      .then((summary) => {
+    void (async () => {
+      try {
+        const summary = await ensureWatchPartyMembership(queryClient, partyId);
         if (cancelled) return;
         callbacksRef.current?.onJoined?.(summary);
-      })
-      .catch((error: unknown) => {
+      } catch (error: unknown) {
         if (cancelled) return;
         if (error instanceof WatchPartyJoinError && error.status === 410) {
           let endedSummary = queryClient.getQueryData<WatchPartyRoomSummary>([
@@ -140,10 +140,10 @@ export function useWatchPartyMembership(
         }
         const err = error instanceof Error ? error : new Error("Could not join watch party.");
         callbacksRef.current?.onError?.(err);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setIsJoining(false);
-      });
+      }
+    })();
 
     return () => {
       cancelled = true;
