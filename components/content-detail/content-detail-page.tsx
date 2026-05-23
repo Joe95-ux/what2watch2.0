@@ -34,7 +34,8 @@ import SeenAllModal from "./seen-all-modal";
 import WatchingDiscussionsSection from "./watching-discussions-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsWatched } from "@/hooks/use-viewing-logs";
-import { useWatchingForTitle } from "@/hooks/use-watching";
+import { useWatchingDashboard, useWatchingForTitle } from "@/hooks/use-watching";
+import { useWatchingSessionAutoFinish } from "@/hooks/use-watching-session-auto-finish";
 
 interface ContentDetailPageProps {
   item: TMDBMovie | TMDBSeries;
@@ -133,6 +134,20 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     true,
     watchingTitleScope
   );
+  const { data: watchingDashboard } = useWatchingDashboard(true);
+  const currentSessionForTitle = useMemo(() => {
+    const session = watchingDashboard?.currentSession;
+    if (!session) return null;
+    if (session.tmdbId !== item.id || session.mediaType !== type) return null;
+    if (type === "tv") {
+      const scopeSeason = watchingTitleScope?.seasonNumber ?? null;
+      const scopeEpisode = watchingTitleScope?.episodeNumber ?? null;
+      if (scopeSeason != null && (session.seasonNumber ?? null) !== scopeSeason) return null;
+      if (scopeEpisode != null && (session.episodeNumber ?? null) !== scopeEpisode) return null;
+    }
+    return session;
+  }, [watchingDashboard?.currentSession, item.id, type, watchingTitleScope]);
+  useWatchingSessionAutoFinish(currentSessionForTitle);
 
   // Get collection ID from movie details
   const collectionId = type === "movie" && movieDetails?.belongs_to_collection?.id 

@@ -276,6 +276,8 @@ export function useWatchingDashboard(enabled = true) {
     queryFn: fetchWatchingDashboard,
     staleTime: 30 * 1000,
     enabled,
+    refetchOnWindowFocus: (query) =>
+      query.state.data?.currentSession?.status === "WATCHING_NOW",
   });
 }
 

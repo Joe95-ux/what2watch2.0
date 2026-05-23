@@ -41,6 +41,7 @@ import {
   useWatchingThoughtReaction,
   useWatchingThoughtReplies,
 } from "@/hooks/use-watching";
+import { useWatchingSessionAutoFinish } from "@/hooks/use-watching-session-auto-finish";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAutoGrowingTextarea } from "@/hooks/use-auto-growing-textarea";
@@ -2728,6 +2729,9 @@ export default function WatchingContent() {
 
   const signInHref = useMemo(() => buildSignInHref(authReturnPath), [authReturnPath]);
   const { data: watchingData, isLoading: isWatchingLoading } = useWatchingDashboard(true);
+  useWatchingSessionAutoFinish(watchingData?.currentSession, {
+    enabled: Boolean(currentUser?.id),
+  });
   const queryClient = useQueryClient();
   const watchingMutation = useWatchingMutation();
   const [uiNowTick, setUiNowTick] = useState(() => Date.now());
@@ -4059,18 +4063,20 @@ export default function WatchingContent() {
                             : ""
                         )}
                         onClick={() => {
-                          setSelectedPick({
+                          const pick = {
                             tmdbId: item.id,
-                            mediaType,
+                            mediaType: mediaType as "movie" | "tv",
                             title,
                             posterPath: item.poster_path ?? null,
                             backdropPath: item.backdrop_path ?? null,
-                          });
+                          };
+                          setSelectedPick(pick);
                           setSelectedSeasonNumber("");
                           setSelectedEpisodeNumber("");
                           setWatchSearchQuery(title);
                           if (mediaType === "movie") {
                             setSearchModalOpen(false);
+                            void submitStartWatching(pick);
                           }
                         }}
                       >

@@ -14,6 +14,7 @@ import {
   getActiveWatchPartyPeerUserIds,
   mergeNetworkUserIds,
 } from "@/lib/watch-party/peer-user-ids";
+import { getActiveWatchMs, startedAtForResume } from "@/lib/watching-session-runtime";
 
 const WATCHING_AUTO_TIMEOUT_MS = 1000 * 60 * 60 * 4; // 4 hours
 
@@ -624,7 +625,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
             : `${session.mediaType}:${session.tmdbId}`;
         const runtimeMinutes = metadataByTitle.get(key)?.runtimeMinutes;
         if (!runtimeMinutes || runtimeMinutes <= 0) return false;
-        const elapsedMs = autoFinishNow.getTime() - new Date(session.startedAt).getTime();
+        const elapsedMs = getActiveWatchMs({
+          status: session.status,
+          startedAt: session.startedAt,
+          updatedAt: session.updatedAt,
+        }, autoFinishNow.getTime());
         return elapsedMs >= runtimeMinutes * 60 * 1000;
       })
       .map((session) => session.id);
@@ -692,6 +697,16 @@ export async function GET(request: NextRequest): Promise<NextResponse<WatchingDa
       if (currentSessionRaw && autoFinishedSet.has(currentSessionRaw.id)) {
         currentSessionRaw = null;
       }
+
+      await Promise.all(
+        autoFinishedRows.flatMap((session) => [
+          triggerWatchingDashboardUpdated({ action: "auto_finish", userId: session.userId }),
+          triggerWatchingTitleUpdated(session.mediaType as "movie" | "tv", session.tmdbId, {
+            action: "auto_finish",
+            userId: session.userId,
+          }),
+        ])
+      );
     }
 
     const allThoughtIds = [
@@ -1151,13 +1166,18 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ session
     if (body.action === "resume") {
       const owned = await db.watchingSession.findFirst({
         where: { id: body.sessionId, userId: currentUser.id, status: "STOPPED", endedAt: null },
-        select: { id: true },
+        select: { id: true, startedAt: true, updatedAt: true },
       });
       if (!owned) return NextResponse.json({ error: "Paused session not found" }, { status: 404 });
 
+      const resumedAt = new Date();
       const updated = await db.watchingSession.update({
         where: { id: body.sessionId },
-        data: { status: "WATCHING_NOW", endedAt: null },
+        data: {
+          status: "WATCHING_NOW",
+          endedAt: null,
+          startedAt: startedAtForResume(owned.startedAt, owned.updatedAt, resumedAt),
+        },
         include: {
           user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
           thoughts: {
