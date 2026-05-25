@@ -2,7 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  emptyWatchPartyReactionCounts,
+  aggregateReactionCounts,
+  type WatchPartyReactionPulseDto,
+} from "@/lib/watch-party/reaction-pulses";
+import {
   isWatchPartyReactionKind,
   WATCH_PARTY_REACTION_KINDS,
   type WatchPartyReactionKind,
@@ -10,19 +13,27 @@ import {
 
 export type WatchPartyReactionsPayload = {
   counts: Record<WatchPartyReactionKind, number>;
-  mine: WatchPartyReactionKind[];
+  recentPulses: WatchPartyReactionPulseDto[];
+};
+
+export type WatchPartyReactionPulseInput = {
+  kind: WatchPartyReactionKind;
+  timestampSec?: number | null;
 };
 
 function parseReactionsPayload(data: Partial<WatchPartyReactionsPayload>): WatchPartyReactionsPayload {
-  const counts = emptyWatchPartyReactionCounts();
-  for (const kind of WATCH_PARTY_REACTION_KINDS) {
-    if (typeof data.counts?.[kind] === "number") counts[kind] = data.counts[kind];
-  }
+  const recentPulses = Array.isArray(data.recentPulses)
+    ? data.recentPulses.filter(
+        (p): p is WatchPartyReactionPulseDto =>
+          !!p &&
+          typeof p.id === "string" &&
+          isWatchPartyReactionKind(p.kind) &&
+          typeof p.createdAt === "string"
+      )
+    : [];
   return {
-    counts,
-    mine: Array.isArray(data.mine)
-      ? data.mine.filter((k): k is WatchPartyReactionKind => isWatchPartyReactionKind(k))
-      : [],
+    counts: aggregateReactionCounts(recentPulses),
+    recentPulses,
   };
 }
 
@@ -45,19 +56,19 @@ export function useWatchPartyReactions(partyId: string | null, enabled: boolean)
   });
 }
 
-export function useWatchPartyReactionToggle(partyId: string | null) {
+export function useWatchPartyReactionPulse(partyId: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (kind: WatchPartyReactionKind) => {
+    mutationFn: async (input: WatchPartyReactionPulseInput) => {
       if (!partyId) throw new Error("No party");
       const res = await fetch(`/api/watch-party/rooms/${encodeURIComponent(partyId)}/reactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind }),
+        body: JSON.stringify(input),
       });
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(typeof err.error === "string" ? err.error : "Toggle failed");
+        throw new Error(typeof err.error === "string" ? err.error : "Reaction failed");
       }
       const raw = (await res.json()) as Partial<WatchPartyReactionsPayload>;
       return parseReactionsPayload(raw);
@@ -68,4 +79,13 @@ export function useWatchPartyReactionToggle(partyId: string | null) {
       }
     },
   });
+}
+
+/** @deprecated Use useWatchPartyReactionPulse — pulses are append-only, not toggles. */
+export function useWatchPartyReactionToggle(partyId: string | null) {
+  const pulse = useWatchPartyReactionPulse(partyId);
+  return {
+    ...pulse,
+    mutateAsync: (kind: WatchPartyReactionKind) => pulse.mutateAsync({ kind }),
+  };
 }

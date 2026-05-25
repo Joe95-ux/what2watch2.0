@@ -2,10 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatDistanceToNow, isValid } from "date-fns";
+import { Pin, X } from "lucide-react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useWatchPartyChat, useWatchPartyChatSend } from "@/hooks/use-watch-party-chat";
-import { useWatchPartyReactionToggle, useWatchPartyReactions } from "@/hooks/use-watch-party-reactions";
+import {
+  useWatchPartyMarkerPin,
+  useWatchPartyMarkerUnpin,
+  useWatchPartyMarkers,
+} from "@/hooks/use-watch-party-markers";
+import { useWatchPartyReactionPulse, useWatchPartyReactions } from "@/hooks/use-watch-party-reactions";
 import type { WatchPartyRoomParticipant } from "@/hooks/use-watch-party-room-summary";
 import {
   WATCH_PARTY_REACTION_KINDS,
@@ -19,8 +25,13 @@ import {
   formatPartyTimestampLabel,
   getPartyChatAnchorTimestampSec,
 } from "@/lib/watch-party/message-timestamp";
+import {
+  formatPulseGroupLine,
+  groupReactionPulsesByMoment,
+} from "@/lib/watch-party/reaction-pulses";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -63,6 +74,7 @@ export function WatchPartyRoomPanel({
   const { data: currentUser } = useCurrentUser();
   const { data: chatData, isLoading: chatLoading } = useWatchPartyChat(partyId, queryEnabled);
   const { data: reactionData, isLoading: reactionsLoading } = useWatchPartyReactions(partyId, queryEnabled);
+  const { data: markersData, isLoading: markersLoading } = useWatchPartyMarkers(partyId, queryEnabled);
   const sendChat = useWatchPartyChatSend(partyId, {
     currentUser: currentUser
       ? {
@@ -82,9 +94,20 @@ export function WatchPartyRoomPanel({
     [hostControls, hostPlaybackSnapshot, userPlaybackSnapshot]
   );
   const chatAnchorLabel = formatPartyTimestampLabel(chatAnchorTimestampSec);
-  const toggleReaction = useWatchPartyReactionToggle(partyId);
+  const sendPulse = useWatchPartyReactionPulse(partyId);
+  const pinMarker = useWatchPartyMarkerPin(partyId);
+  const unpinMarker = useWatchPartyMarkerUnpin(partyId);
   const [draft, setDraft] = useState("");
+  const [markerLabel, setMarkerLabel] = useState("");
+  const [pendingPulseKinds, setPendingPulseKinds] = useState<Set<WatchPartyReactionKind>>(() => new Set());
+  const [burstKinds, setBurstKinds] = useState<Set<WatchPartyReactionKind>>(() => new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const pulseGroups = useMemo(
+    () => groupReactionPulsesByMoment(reactionData?.recentPulses ?? []),
+    [reactionData?.recentPulses]
+  );
+  const markers = markersData?.markers ?? [];
 
   const messages = chatData?.messages ?? [];
 
@@ -107,11 +130,52 @@ export function WatchPartyRoomPanel({
     }
   };
 
-  const handleToggle = async (kind: WatchPartyReactionKind) => {
+  const handlePulse = async (kind: WatchPartyReactionKind) => {
+    if (pendingPulseKinds.has(kind) || !partyOpen) return;
+    setPendingPulseKinds((prev) => new Set(prev).add(kind));
+    setBurstKinds((prev) => new Set(prev).add(kind));
+    window.setTimeout(() => {
+      setBurstKinds((prev) => {
+        const next = new Set(prev);
+        next.delete(kind);
+        return next;
+      });
+    }, 700);
     try {
-      await toggleReaction.mutateAsync(kind);
+      await sendPulse.mutateAsync({ kind, timestampSec: chatAnchorTimestampSec });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not update reaction");
+      toast.error(e instanceof Error ? e.message : "Could not send reaction");
+    } finally {
+      setPendingPulseKinds((prev) => {
+        const next = new Set(prev);
+        next.delete(kind);
+        return next;
+      });
+    }
+  };
+
+  const handlePinMoment = async () => {
+    if (!chatAnchorTimestampSec) {
+      toast.error("Sync playback or start watching to pin a moment.");
+      return;
+    }
+    try {
+      await pinMarker.mutateAsync({
+        label: markerLabel.trim() || undefined,
+        timestampSec: chatAnchorTimestampSec,
+      });
+      setMarkerLabel("");
+      toast.success("Moment pinned.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not pin moment");
+    }
+  };
+
+  const handleUnpinMoment = async (markerId: string) => {
+    try {
+      await unpinMarker.mutateAsync(markerId);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not remove marker");
     }
   };
 
@@ -143,30 +207,109 @@ export function WatchPartyRoomPanel({
         hostPlaybackSnapshot={hostPlaybackSnapshot}
       />
 
-      <div className="flex flex-wrap gap-1">
-        {WATCH_PARTY_REACTION_KINDS.map((kind) => {
-          const count = reactionData?.counts?.[kind] ?? 0;
-          const mine = reactionData?.mine ?? [];
-          const active = mine.includes(kind);
-          const disabled = !partyOpen || reactionsLoading || toggleReaction.isPending;
-          return (
+      {isHost && partyOpen ? (
+        <div className="rounded-lg border border-border/60 bg-muted/15 px-2.5 py-2 space-y-2">
+          <p className="text-[10px] font-medium text-muted-foreground">Pin a moment</p>
+          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+            <Input
+              value={markerLabel}
+              onChange={(e) => setMarkerLabel(e.target.value)}
+              placeholder={chatAnchorLabel ? `Label (${chatAnchorLabel})…` : "Label optional…"}
+              maxLength={80}
+              className="h-8 flex-1 text-xs"
+              disabled={pinMarker.isPending || markersLoading}
+              onClick={(e) => e.stopPropagation()}
+            />
             <Button
-              key={kind}
               type="button"
-              variant={active ? "secondary" : "outline"}
               size="sm"
-              className={cn(
-                "h-7 gap-1 rounded-full px-2 text-xs cursor-pointer",
-                active && "border-sky-500/40 bg-sky-500/10"
-              )}
-              disabled={disabled}
-              onClick={() => void handleToggle(kind)}
+              variant="outline"
+              className="h-8 shrink-0 cursor-pointer gap-1 rounded-full text-xs"
+              disabled={pinMarker.isPending || !chatAnchorTimestampSec}
+              onClick={() => void handlePinMoment()}
             >
-              <span>{WATCH_PARTY_REACTION_LABEL[kind]}</span>
-              {count > 0 ? <span className="text-[10px] text-muted-foreground">{count}</span> : null}
+              <Pin className="h-3.5 w-3.5" />
+              {pinMarker.isPending ? "Pinning…" : "Pin moment"}
             </Button>
-          );
-        })}
+          </div>
+        </div>
+      ) : null}
+
+      {markers.length > 0 ? (
+        <ul className="space-y-1 rounded-lg border border-border/60 bg-muted/10 px-2.5 py-2">
+          <p className="text-[10px] font-medium text-muted-foreground">Pinned moments</p>
+          {markers.map((marker) => {
+            const momentLabel = formatPartyTimestampLabel(marker.timestampSec);
+            return (
+              <li
+                key={marker.id}
+                className="flex items-start justify-between gap-2 text-[11px]"
+              >
+                <div className="min-w-0">
+                  <span className="font-medium text-foreground">
+                    {momentLabel ?? "Moment"}
+                  </span>
+                  {marker.label ? (
+                    <span className="text-muted-foreground"> — {marker.label}</span>
+                  ) : null}
+                </div>
+                {isHost && partyOpen ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0 cursor-pointer rounded-full"
+                    disabled={unpinMarker.isPending}
+                    aria-label="Remove marker"
+                    onClick={() => void handleUnpinMoment(marker.id)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+
+      <div>
+        <p className="mb-1 text-[10px] text-muted-foreground">
+          Tap to send a reaction pulse{chatAnchorLabel ? ` (${chatAnchorLabel})` : ""}.
+        </p>
+        <div className="flex flex-wrap gap-1">
+          {WATCH_PARTY_REACTION_KINDS.map((kind) => {
+            const count = reactionData?.counts?.[kind] ?? 0;
+            const bursting = burstKinds.has(kind);
+            const disabled =
+              !partyOpen || reactionsLoading || pendingPulseKinds.has(kind);
+            return (
+              <Button
+                key={kind}
+                type="button"
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-7 gap-1 rounded-full px-2 text-xs cursor-pointer transition-transform",
+                  bursting && "scale-110 border-amber-500/50 bg-amber-500/15"
+                )}
+                disabled={disabled}
+                onClick={() => void handlePulse(kind)}
+              >
+                <span>{WATCH_PARTY_REACTION_LABEL[kind]}</span>
+                {count > 0 ? <span className="text-[10px] text-muted-foreground">{count}</span> : null}
+              </Button>
+            );
+          })}
+        </div>
+        {pulseGroups.length > 0 ? (
+          <ul className="mt-2 space-y-0.5">
+            {pulseGroups.map((group) => (
+              <li key={group.momentKey} className="truncate text-[10px] text-muted-foreground">
+                {formatPulseGroupLine(group)}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
 
       <div ref={scrollRef} className="rounded-lg border border-border/60 bg-background/50">

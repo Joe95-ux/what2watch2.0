@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import {
-  emptyWatchPartyReactionCounts,
+  aggregateReactionCounts,
+  mapReactionPulseRow,
+  type WatchPartyReactionPulseDto,
+} from "@/lib/watch-party/reaction-pulses";
+import { resolveWatchPartyTimelineTimestampSec } from "@/lib/watch-party/resolve-timeline-timestamp";
+import {
   isWatchPartyReactionKind,
   WATCH_PARTY_REACTION_KINDS,
   type WatchPartyReactionKind,
@@ -10,6 +15,8 @@ import {
 import { triggerWatchPartyReactionsUpdated } from "@/lib/pusher/server";
 import { findActiveWatchPartyParticipant } from "@/lib/watch-party/room-summary-server";
 import { isActiveWatchPartyParticipant } from "@/lib/watch-party/participant-active";
+
+const RECENT_PULSE_LIMIT = 80;
 
 async function requireUser() {
   const { userId: clerkUserId } = await auth();
@@ -61,6 +68,21 @@ async function requireOpenPartyMember(roomId: string, userId: string) {
   return { ok: true as const };
 }
 
+async function loadRecentPulses(roomId: string): Promise<WatchPartyReactionPulseDto[]> {
+  const rows = await db.watchPartyReaction.findMany({
+    where: { roomId },
+    orderBy: { createdAt: "desc" },
+    take: RECENT_PULSE_LIMIT,
+    include: {
+      user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+    },
+  });
+  return [...rows]
+    .reverse()
+    .map((row) => mapReactionPulseRow(row))
+    .filter((p): p is WatchPartyReactionPulseDto => p != null);
+}
+
 export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -76,22 +98,10 @@ export async function GET(
   const gate = await requirePartyReactionRead(roomId, authResult.user.id);
   if (!gate.ok) return gate.response;
 
-  const rows = await db.watchPartyReaction.findMany({
-    where: { roomId },
-    select: { userId: true, kind: true },
-  });
-
-  const counts = emptyWatchPartyReactionCounts();
-  const mine = new Set<WatchPartyReactionKind>();
-  for (const row of rows) {
-    if (!isWatchPartyReactionKind(row.kind)) continue;
-    counts[row.kind] += 1;
-    if (row.userId === authResult.user.id) mine.add(row.kind);
-  }
-
+  const recentPulses = await loadRecentPulses(roomId);
   return NextResponse.json({
-    counts,
-    mine: [...mine],
+    counts: aggregateReactionCounts(recentPulses),
+    recentPulses,
   });
 }
 
@@ -110,9 +120,9 @@ export async function POST(
   const gate = await requireOpenPartyMember(roomId, authResult.user.id);
   if (!gate.ok) return gate.response;
 
-  let body: { kind?: string };
+  let body: { kind?: string; timestampSec?: number | null };
   try {
-    body = (await request.json()) as { kind?: string };
+    body = (await request.json()) as { kind?: string; timestampSec?: number | null };
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -125,39 +135,44 @@ export async function POST(
     );
   }
 
-  const existing = await db.watchPartyReaction.findUnique({
-    where: {
-      roomId_userId_kind: {
-        roomId,
-        userId: authResult.user.id,
-        kind,
-      },
+  const clientTimestampSec =
+    typeof body.timestampSec === "number" && Number.isFinite(body.timestampSec)
+      ? body.timestampSec
+      : null;
+  const timestampSec = await resolveWatchPartyTimelineTimestampSec(
+    roomId,
+    authResult.user.id,
+    clientTimestampSec
+  );
+
+  const created = await db.watchPartyReaction.create({
+    data: {
+      roomId,
+      userId: authResult.user.id,
+      kind: kind as WatchPartyReactionKind,
+      timestampSec: timestampSec ?? undefined,
     },
-    select: { id: true },
+    include: {
+      user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
+    },
   });
 
-  if (existing) {
-    await db.watchPartyReaction.delete({ where: { id: existing.id } });
-  } else {
-    await db.watchPartyReaction.create({
-      data: { roomId, userId: authResult.user.id, kind },
-    });
+  const pulse = mapReactionPulseRow(created);
+  if (!pulse) {
+    return NextResponse.json({ error: "Invalid reaction kind" }, { status: 500 });
   }
 
-  await triggerWatchPartyReactionsUpdated(roomId, { action: existing ? "removed" : "added", kind });
-
-  const rows = await db.watchPartyReaction.findMany({
-    where: { roomId },
-    select: { userId: true, kind: true },
+  await triggerWatchPartyReactionsUpdated(roomId, {
+    action: "pulse",
+    kind,
+    pulseId: created.id,
+    timestampSec: created.timestampSec,
   });
 
-  const counts = emptyWatchPartyReactionCounts();
-  const mine = new Set<WatchPartyReactionKind>();
-  for (const row of rows) {
-    if (!isWatchPartyReactionKind(row.kind)) continue;
-    counts[row.kind] += 1;
-    if (row.userId === authResult.user.id) mine.add(row.kind);
-  }
-
-  return NextResponse.json({ counts, mine: [...mine] });
+  const recentPulses = await loadRecentPulses(roomId);
+  return NextResponse.json({
+    counts: aggregateReactionCounts(recentPulses),
+    recentPulses,
+    pulse,
+  });
 }

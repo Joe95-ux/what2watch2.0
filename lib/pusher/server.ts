@@ -245,6 +245,14 @@ export async function triggerWatchPartyReactionsUpdated(roomId: string, payload:
   );
 }
 
+export async function triggerWatchPartyMarkersUpdated(roomId: string, payload: Record<string, unknown> = {}) {
+  await triggerChannelEvent(
+    getWatchPartyRoomChannelName(roomId),
+    PUSHER_EVENTS.WATCH_PARTY_MARKERS_UPDATED,
+    { roomId, ...payload }
+  );
+}
+
 export async function triggerWatchPartyHostControlsUpdated(roomId: string, payload: Record<string, unknown> = {}) {
   await triggerChannelEvent(
     getWatchPartyRoomChannelName(roomId),

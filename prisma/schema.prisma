@@ -166,6 +166,7 @@ model User {
   watchPartyParticipations WatchPartyParticipant[]
   watchPartyMessages WatchPartyMessage[]
   watchPartyReactions WatchPartyReaction[]
+  watchPartyMarkers WatchPartyMarker[]
   watchedTitles WatchedTitle[]
   watchingThoughts WatchingThought[]
   watchingThoughtReactions WatchingThoughtReaction[]
@@ -1358,6 +1359,7 @@ model WatchPartyRoom {
   participants      WatchPartyParticipant[]
   messages            WatchPartyMessage[]
   reactions           WatchPartyReaction[]
+  markers             WatchPartyMarker[]
 
   @@map("watch_party_rooms")
   @@index([hostUserId, status])
@@ -1395,17 +1397,33 @@ model WatchPartyMessage {
 }
 
 model WatchPartyReaction {
-  id        String         @id @default(auto()) @map("_id") @db.ObjectId
-  roomId    String         @db.ObjectId
-  room      WatchPartyRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  userId    String         @db.ObjectId
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  kind      String
-  createdAt DateTime       @default(now())
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  roomId       String         @db.ObjectId
+  room         WatchPartyRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId       String         @db.ObjectId
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind         String
+  /// Playback position in seconds when the reaction pulse was sent.
+  timestampSec Int?
+  createdAt    DateTime       @default(now())
 
   @@map("watch_party_reactions")
-  @@unique([roomId, userId, kind])
-  @@index([roomId])
+  @@index([roomId, createdAt])
+}
+
+/// Host-pinned key moment on the party timeline.
+model WatchPartyMarker {
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  roomId       String         @db.ObjectId
+  room         WatchPartyRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId       String         @db.ObjectId
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timestampSec Int
+  label        String?
+  createdAt    DateTime       @default(now())
+
+  @@map("watch_party_markers")
+  @@index([roomId, timestampSec])
 }
 
 model WatchingThought {

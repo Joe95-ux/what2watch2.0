@@ -30,6 +30,7 @@ export function useWatchPartyRoomPusher(
       queryClient.invalidateQueries({ queryKey: ["watch-party-room", roomId] });
       queryClient.invalidateQueries({ queryKey: ["watch-party-chat", roomId] });
       queryClient.invalidateQueries({ queryKey: ["watch-party-reactions", roomId] });
+      queryClient.invalidateQueries({ queryKey: ["watch-party-markers", roomId] });
       queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["watching-title"] });
       queryClient.invalidateQueries({ queryKey: ["watching-replies-to-you"] });
@@ -68,6 +69,7 @@ export function useWatchPartyRoomPusher(
     channel.bind(PUSHER_EVENTS.WATCH_PARTY_PARTICIPANTS_UPDATED, handleUpdate);
     channel.bind(PUSHER_EVENTS.WATCH_PARTY_CHAT_UPDATED, handleUpdate);
     channel.bind(PUSHER_EVENTS.WATCH_PARTY_REACTIONS_UPDATED, handleUpdate);
+    channel.bind(PUSHER_EVENTS.WATCH_PARTY_MARKERS_UPDATED, handleUpdate);
     channel.bind(PUSHER_EVENTS.WATCH_PARTY_HOST_CONTROLS_UPDATED, handleHostControlsUpdated);
 
     return () => {
@@ -75,6 +77,7 @@ export function useWatchPartyRoomPusher(
       channel.unbind(PUSHER_EVENTS.WATCH_PARTY_PARTICIPANTS_UPDATED, handleUpdate);
       channel.unbind(PUSHER_EVENTS.WATCH_PARTY_CHAT_UPDATED, handleUpdate);
       channel.unbind(PUSHER_EVENTS.WATCH_PARTY_REACTIONS_UPDATED, handleUpdate);
+      channel.unbind(PUSHER_EVENTS.WATCH_PARTY_MARKERS_UPDATED, handleUpdate);
       channel.unbind(PUSHER_EVENTS.WATCH_PARTY_HOST_CONTROLS_UPDATED, handleHostControlsUpdated);
       pusher.unsubscribe(channelName);
     };

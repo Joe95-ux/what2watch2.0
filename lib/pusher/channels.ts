@@ -20,6 +20,7 @@ export const PUSHER_EVENTS = {
   WATCH_PARTY_PARTICIPANTS_UPDATED: "watch-party.participants.updated",
   WATCH_PARTY_CHAT_UPDATED: "watch-party.chat.updated",
   WATCH_PARTY_REACTIONS_UPDATED: "watch-party.reactions.updated",
+  WATCH_PARTY_MARKERS_UPDATED: "watch-party.markers.updated",
   WATCH_PARTY_HOST_CONTROLS_UPDATED: "watch-party.host-controls.updated",
 } as const;
 
