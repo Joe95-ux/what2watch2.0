@@ -1386,6 +1386,8 @@ model WatchPartyMessage {
   userId    String         @db.ObjectId
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   content   String
+  /// Playback position in seconds when the message was sent (party timeline).
+  timestampSec Int?
   createdAt DateTime       @default(now())
 
   @@map("watch_party_messages")

@@ -3418,6 +3418,59 @@ export default function WatchingContent() {
     currentUser?.id,
   ]);
 
+  const partyUserPlaybackSnapshot = useMemo(() => {
+    if (!partyUiActive || !partyRoomSummary?.isParticipant) return null;
+
+    const matchesParty = (tmdbId: number, mediaType: string, season?: number | null, episode?: number | null) => {
+      if (tmdbId !== partyRoomSummary.tmdbId) return false;
+      const mt = mediaType === "tv" ? "tv" : "movie";
+      if (mt !== partyRoomSummary.mediaType) return false;
+      if (partyRoomSummary.mediaType === "tv") {
+        if ((season ?? null) !== (partyRoomSummary.seasonNumber ?? null)) return false;
+        if ((episode ?? null) !== (partyRoomSummary.episodeNumber ?? null)) return false;
+      }
+      return true;
+    };
+
+    const currentSession = watchingData?.currentSession;
+    if (
+      currentSession &&
+      currentSession.userId === currentUser?.id &&
+      matchesParty(
+        currentSession.tmdbId,
+        currentSession.mediaType,
+        currentSession.seasonNumber,
+        currentSession.episodeNumber
+      )
+    ) {
+      return watchPartyHostPlaybackSnapshot({
+        progressPercent: currentSession.progressPercent,
+        runtimeMinutes: currentSession.runtimeMinutes,
+        startedAt: currentSession.startedAt,
+        status: currentSession.status,
+      });
+    }
+
+    const feedRoom = watchingNowRooms.find((r) => r.key === partyRoomSummary.feedRoomKey);
+    const cardSession = feedRoom?.currentUserSession;
+    if (cardSession) {
+      return watchPartyHostPlaybackSnapshot({
+        progressPercent: cardSession.progressPercent,
+        runtimeMinutes: cardSession.runtimeMinutes,
+        startedAt: cardSession.startedAt,
+        status: cardSession.status,
+      });
+    }
+
+    return null;
+  }, [
+    partyRoomSummary,
+    partyUiActive,
+    watchingData?.currentSession,
+    watchingNowRooms,
+    currentUser?.id,
+  ]);
+
   const copyWatchPartyInviteForRoom = useCallback(
     async (room: WatchingNowRoomCard) => {
       if (
@@ -4413,6 +4466,7 @@ export default function WatchingContent() {
                 isHost={partyRoomSummary.isHost}
                 hostControls={partyRoomSummary.hostControls}
                 hostPlaybackSnapshot={partyHostPlaybackSnapshot}
+                userPlaybackSnapshot={partyUserPlaybackSnapshot}
                 isJoining={isJoiningWatchParty}
                 partyParticipants={partyRoomSummary.participants}
               />
@@ -4534,6 +4588,7 @@ export default function WatchingContent() {
                     isHost={partyRoomSummary.isHost}
                     hostControls={partyRoomSummary.hostControls}
                     hostPlaybackSnapshot={partyHostPlaybackSnapshot}
+                    userPlaybackSnapshot={partyUserPlaybackSnapshot}
                     isJoining={isJoiningWatchParty}
                     partyParticipants={partyRoomSummary.participants}
                   />

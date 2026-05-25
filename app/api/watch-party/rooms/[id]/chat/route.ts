@@ -3,6 +3,8 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { moderateContent } from "@/lib/moderation";
 import { triggerWatchPartyChatUpdated } from "@/lib/pusher/server";
+import { mapWatchPartyChatMessage } from "@/lib/watch-party/map-chat-message";
+import { resolveWatchPartyMessageTimestampSec } from "@/lib/watch-party/resolve-chat-timestamp";
 import { findActiveWatchPartyParticipant } from "@/lib/watch-party/room-summary-server";
 import { isActiveWatchPartyParticipant } from "@/lib/watch-party/participant-active";
 
@@ -80,16 +82,7 @@ export async function GET(
     },
   });
 
-  const messages = [...rows].reverse().map((m) => ({
-    id: m.id,
-    content: m.content,
-    createdAt: m.createdAt.toISOString(),
-    user: {
-      id: m.user.id,
-      name: m.user.displayName || m.user.username || "Unknown",
-      avatarUrl: m.user.avatarUrl,
-    },
-  }));
+  const messages = [...rows].reverse().map((m) => mapWatchPartyChatMessage(m));
 
   return NextResponse.json({ messages });
 }
@@ -109,9 +102,9 @@ export async function POST(
   const gate = await requireOpenPartyMember(roomId, authResult.user.id);
   if (!gate.ok) return gate.response;
 
-  let body: { content?: string };
+  let body: { content?: string; timestampSec?: number | null };
   try {
-    body = (await request.json()) as { content?: string };
+    body = (await request.json()) as { content?: string; timestampSec?: number | null };
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -126,29 +119,35 @@ export async function POST(
     return NextResponse.json({ error: moderation.error || "Invalid message" }, { status: 400 });
   }
 
+  const clientTimestampSec =
+    typeof body.timestampSec === "number" && Number.isFinite(body.timestampSec)
+      ? body.timestampSec
+      : null;
+  const timestampSec = await resolveWatchPartyMessageTimestampSec(
+    roomId,
+    authResult.user.id,
+    clientTimestampSec
+  );
+
   const created = await db.watchPartyMessage.create({
     data: {
       roomId,
       userId: authResult.user.id,
       content: moderation.sanitized,
+      timestampSec: timestampSec ?? undefined,
     },
     include: {
       user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
     },
   });
 
-  await triggerWatchPartyChatUpdated(roomId, { action: "message", messageId: created.id });
+  await triggerWatchPartyChatUpdated(roomId, {
+    action: "message",
+    messageId: created.id,
+    timestampSec: created.timestampSec,
+  });
 
   return NextResponse.json({
-    message: {
-      id: created.id,
-      content: created.content,
-      createdAt: created.createdAt.toISOString(),
-      user: {
-        id: created.user.id,
-        name: created.user.displayName || created.user.username || "Unknown",
-        avatarUrl: created.user.avatarUrl,
-      },
-    },
+    message: mapWatchPartyChatMessage(created),
   });
 }

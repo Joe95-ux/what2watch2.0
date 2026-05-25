@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatDistanceToNow, isValid } from "date-fns";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { useWatchPartyChat, useWatchPartyChatSend } from "@/hooks/use-watch-party-chat";
 import { useWatchPartyReactionToggle, useWatchPartyReactions } from "@/hooks/use-watch-party-reactions";
 import type { WatchPartyRoomParticipant } from "@/hooks/use-watch-party-room-summary";
@@ -14,6 +15,10 @@ import {
 import { WatchPartyParticipantsRow } from "@/components/dashboard/watch-party-participants-row";
 import { WatchPartyHostControlsBar } from "@/components/dashboard/watch-party-host-controls-bar";
 import type { WatchPartyHostControls } from "@/lib/watch-party/host-controls";
+import {
+  formatPartyTimestampLabel,
+  getPartyChatAnchorTimestampSec,
+} from "@/lib/watch-party/message-timestamp";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -34,6 +39,8 @@ type WatchPartyRoomPanelProps = {
   isHost?: boolean;
   hostControls?: WatchPartyHostControls | null;
   hostPlaybackSnapshot?: HostPlaybackSnapshot | null;
+  /** Current user's playback on this title (guest anchor when host has not synced). */
+  userPlaybackSnapshot?: HostPlaybackSnapshot | null;
   /** True while membership is being confirmed after landing or copying an invite link. */
   isJoining?: boolean;
   partyParticipants: WatchPartyRoomParticipant[];
@@ -47,14 +54,34 @@ export function WatchPartyRoomPanel({
   isHost = false,
   hostControls = null,
   hostPlaybackSnapshot = null,
+  userPlaybackSnapshot = null,
   isJoining = false,
   partyParticipants,
 }: WatchPartyRoomPanelProps) {
   const members = partyParticipants ?? [];
   const queryEnabled = Boolean(partyId) && isParticipant;
+  const { data: currentUser } = useCurrentUser();
   const { data: chatData, isLoading: chatLoading } = useWatchPartyChat(partyId, queryEnabled);
   const { data: reactionData, isLoading: reactionsLoading } = useWatchPartyReactions(partyId, queryEnabled);
-  const sendChat = useWatchPartyChatSend(partyId);
+  const sendChat = useWatchPartyChatSend(partyId, {
+    currentUser: currentUser
+      ? {
+          id: currentUser.id,
+          name: currentUser.displayName || currentUser.username || "You",
+          avatarUrl: currentUser.avatarUrl ?? null,
+        }
+      : null,
+  });
+  const chatAnchorTimestampSec = useMemo(
+    () =>
+      getPartyChatAnchorTimestampSec({
+        hostControls,
+        selfPlaybackSnapshot: userPlaybackSnapshot,
+        hostPlaybackSnapshot,
+      }),
+    [hostControls, hostPlaybackSnapshot, userPlaybackSnapshot]
+  );
+  const chatAnchorLabel = formatPartyTimestampLabel(chatAnchorTimestampSec);
   const toggleReaction = useWatchPartyReactionToggle(partyId);
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -70,7 +97,10 @@ export function WatchPartyRoomPanel({
     const text = draft.trim();
     if (!text) return;
     try {
-      await sendChat.mutateAsync(text);
+      await sendChat.mutateAsync({
+        content: text,
+        timestampSec: chatAnchorTimestampSec,
+      });
       setDraft("");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not send");
@@ -151,23 +181,35 @@ export function WatchPartyRoomPanel({
             </div>
           ) : (
             <ul className="space-y-2 pr-2">
-              {messages.map((m) => (
-                <li key={m.id} className="flex gap-2 text-[12px]">
-                  <Avatar className="mt-0.5 h-6 w-6 shrink-0">
-                    <AvatarImage src={m.user.avatarUrl ?? undefined} alt={m.user.name} />
-                    <AvatarFallback>{m.user.name?.[0] ?? "?"}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <p className="text-[11px] text-muted-foreground">
-                      <span className="font-medium text-foreground">{m.user.name}</span> ·{" "}
-                      {isValid(new Date(m.createdAt))
-                        ? formatDistanceToNow(new Date(m.createdAt), { addSuffix: true })
-                        : "recently"}
-                    </p>
-                    <p className="whitespace-pre-wrap break-words text-foreground">{m.content}</p>
-                  </div>
-                </li>
-              ))}
+              {messages.map((m) => {
+                const momentLabel = formatPartyTimestampLabel(m.timestampSec);
+                return (
+                  <li key={m.id} className="flex gap-2 text-[12px]">
+                    <Avatar className="mt-0.5 h-6 w-6 shrink-0">
+                      <AvatarImage src={m.user.avatarUrl ?? undefined} alt={m.user.name} />
+                      <AvatarFallback>{m.user.name?.[0] ?? "?"}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="text-[11px] text-muted-foreground">
+                        <span className="font-medium text-foreground">{m.user.name}</span>
+                        {momentLabel ? (
+                          <>
+                            {" "}
+                            <span className="rounded-full bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-medium text-sky-700 dark:text-sky-300">
+                              {momentLabel}
+                            </span>
+                          </>
+                        ) : null}
+                        {" · "}
+                        {isValid(new Date(m.createdAt))
+                          ? formatDistanceToNow(new Date(m.createdAt), { addSuffix: true })
+                          : "recently"}
+                      </p>
+                      <p className="whitespace-pre-wrap break-words text-foreground">{m.content}</p>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </ScrollArea>
@@ -175,6 +217,18 @@ export function WatchPartyRoomPanel({
 
       {partyOpen ? (
         <div className="flex flex-col gap-1.5">
+          {chatAnchorLabel ? (
+            <p className="text-[10px] text-muted-foreground">
+              New messages tag the party timeline ({chatAnchorLabel}).
+              {isHost && !hostControls ? " Sync playback so guests see the same anchor." : null}
+            </p>
+          ) : (
+            <p className="text-[10px] text-muted-foreground">
+              {isHost
+                ? "Sync playback to tag messages with a watch position."
+                : "When the host syncs playback, messages will show where you are in the title."}
+            </p>
+          )}
           <Textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
