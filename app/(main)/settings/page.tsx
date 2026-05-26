@@ -39,6 +39,7 @@ export default async function SettingsPage() {
       notifyOnForumReplies: true,
       notifyOnForumMentions: true,
       notifyOnForumSubscriptions: true,
+      notifyOnWatchPartyLive: true,
       youtubeCardStyle: true,
       chatQuota: true,
       stripeCustomerId: true,
@@ -107,6 +108,7 @@ export default async function SettingsPage() {
       notifyOnForumReplies: user.notifyOnForumReplies ?? true,
       notifyOnForumMentions: user.notifyOnForumMentions ?? true,
       notifyOnForumSubscriptions: user.notifyOnForumSubscriptions ?? true,
+      notifyOnWatchPartyLive: user.notifyOnWatchPartyLive ?? true,
     }}
     youtubeCardStyle={user.youtubeCardStyle || "centered"}
     showEditorialListNotificationsSetting={showEditorialListNotificationsSetting}

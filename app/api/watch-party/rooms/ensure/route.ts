@@ -6,6 +6,7 @@ import {
   getWatchPartyRoomSummaryForUser,
   upsertWatchPartyParticipant,
 } from "@/lib/watch-party/room-summary-server";
+import { notifyWatchPartyHostLive } from "@/lib/watch-party/notify-host-live";
 import {
   triggerWatchPartyParticipantsUpdated,
   triggerWatchPartyRoomUpdated,
@@ -111,6 +112,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const feedRoomKey = watchPartyFeedRoomKey(body.tmdbId, body.mediaType, seasonNumber, episodeNumber);
+
+    if (!existing) {
+      void notifyWatchPartyHostLive({
+        hostUserId: authResult.user.id,
+        roomId,
+        title: body.title.trim(),
+        feedRoomKey,
+        mediaType: body.mediaType,
+        tmdbId: body.tmdbId,
+      }).catch((err) => console.error("[watch-party] notify followers failed", err));
+    }
     const summary = await getWatchPartyRoomSummaryForUser(roomId, authResult.user.id);
 
     return NextResponse.json({

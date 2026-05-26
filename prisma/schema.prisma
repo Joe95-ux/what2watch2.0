@@ -53,6 +53,7 @@ model User {
   notifyOnForumReplies Boolean @default(true) // NEW_REPLY, REPLY_TO_REPLY
   notifyOnForumMentions Boolean @default(true) // POST_MENTION, REPLY_MENTION
   notifyOnForumSubscriptions Boolean @default(true) // POST_SUBSCRIPTION
+  notifyOnWatchPartyLive Boolean @default(true) // When someone you follow starts a watch party
   
   // View preferences
   youtubeCardStyle String @default("centered") // "centered" (default) or "horizontal"
@@ -163,6 +164,7 @@ model User {
   activityLikes ActivityLike[]
   watchingSessions WatchingSession[]
   hostedWatchParties WatchPartyRoom[] @relation("WatchPartyHost")
+  watchPartySchedules WatchPartySchedule[]
   watchPartyParticipations WatchPartyParticipant[]
   watchPartyMessages WatchPartyMessage[]
   watchPartyReactions WatchPartyReaction[]
@@ -1424,6 +1426,27 @@ model WatchPartyMarker {
 
   @@map("watch_party_markers")
   @@index([roomId, timestampSec])
+}
+
+/// Upcoming hosted watch party (one-off or weekly).
+model WatchPartySchedule {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  hostUserId    String   @db.ObjectId
+  host          User     @relation(fields: [hostUserId], references: [id], onDelete: Cascade)
+  tmdbId        Int
+  mediaType     String
+  title         String
+  posterPath    String?
+  seasonNumber  Int?
+  episodeNumber Int?
+  scheduledAt   DateTime
+  recurrence    String   @default("NONE") // NONE | WEEKLY
+  note          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("watch_party_schedules")
+  @@index([hostUserId, scheduledAt])
 }
 
 model WatchingThought {

@@ -3418,6 +3418,23 @@ export default function WatchingContent() {
     currentUser?.id,
   ]);
 
+  const partyHostUserId = useMemo(
+    () => partyRoomSummary?.participants.find((p) => p.role === "HOST")?.userId ?? null,
+    [partyRoomSummary?.participants]
+  );
+
+  const partyScheduleTitle = useMemo(() => {
+    if (!partyRoomSummary) return null;
+    return {
+      tmdbId: partyRoomSummary.tmdbId,
+      mediaType: partyRoomSummary.mediaType,
+      title: partyRoomSummary.title,
+      posterPath: partyRoomSummary.posterPath,
+      seasonNumber: partyRoomSummary.seasonNumber,
+      episodeNumber: partyRoomSummary.episodeNumber,
+    };
+  }, [partyRoomSummary]);
+
   const partyUserPlaybackSnapshot = useMemo(() => {
     if (!partyUiActive || !partyRoomSummary?.isParticipant) return null;
 
@@ -4469,6 +4486,8 @@ export default function WatchingContent() {
                 userPlaybackSnapshot={partyUserPlaybackSnapshot}
                 isJoining={isJoiningWatchParty}
                 partyParticipants={partyRoomSummary.participants}
+                hostUserId={partyHostUserId}
+                scheduleTitle={partyScheduleTitle}
               />
             </div>
           ) : null}
@@ -4591,6 +4610,8 @@ export default function WatchingContent() {
                     userPlaybackSnapshot={partyUserPlaybackSnapshot}
                     isJoining={isJoiningWatchParty}
                     partyParticipants={partyRoomSummary.participants}
+                    hostUserId={partyHostUserId}
+                    scheduleTitle={partyScheduleTitle}
                   />
                 ) : null
               }

@@ -30,6 +30,7 @@ export async function GET(): Promise<NextResponse<{ settings: unknown } | { erro
         notifyOnForumReplies: true,
         notifyOnForumMentions: true,
         notifyOnForumSubscriptions: true,
+        notifyOnWatchPartyLive: true,
       },
     });
 
@@ -54,6 +55,7 @@ export async function GET(): Promise<NextResponse<{ settings: unknown } | { erro
         notifyOnForumReplies: user.notifyOnForumReplies ?? true,
         notifyOnForumMentions: user.notifyOnForumMentions ?? true,
         notifyOnForumSubscriptions: user.notifyOnForumSubscriptions ?? true,
+        notifyOnWatchPartyLive: user.notifyOnWatchPartyLive ?? true,
       },
     });
   } catch (error) {
@@ -91,6 +93,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
       notifyOnForumReplies,
       notifyOnForumMentions,
       notifyOnForumSubscriptions,
+      notifyOnWatchPartyLive,
     } = body;
 
     const user = await db.user.findUnique({
@@ -121,6 +124,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
         ...(notifyOnForumReplies !== undefined && { notifyOnForumReplies }),
         ...(notifyOnForumMentions !== undefined && { notifyOnForumMentions }),
         ...(notifyOnForumSubscriptions !== undefined && { notifyOnForumSubscriptions }),
+        ...(notifyOnWatchPartyLive !== undefined && { notifyOnWatchPartyLive }),
       },
     });
 

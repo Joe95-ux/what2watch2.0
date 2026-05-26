@@ -39,6 +39,7 @@ import {
   Link2,
   Youtube,
   CreditCard,
+  Tv,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -90,6 +91,7 @@ interface SettingsContentProps {
     notifyOnForumReplies: boolean;
     notifyOnForumMentions: boolean;
     notifyOnForumSubscriptions: boolean;
+    notifyOnWatchPartyLive: boolean;
   };
   youtubeCardStyle: string;
   /** Computed on the server — client bundles cannot read non-NEXT_PUBLIC allowlist env vars. */
@@ -799,6 +801,7 @@ export default function SettingsContent({
                           ? [{ key: "notifyOnEditorialLists", label: "Editorial lists (Pro)", icon: Sparkles, desc: "When a new editorial list is published" }]
                           : []),
                         { key: "notifyOnPlaylistUpdates", label: "Playlist Updates", icon: Music, desc: "When playlists you follow are updated" },
+                        { key: "notifyOnWatchPartyLive", label: "Watch parties live", icon: Tv, desc: "When someone you follow starts a watch party" },
                         { key: "notifyOnActivityLikes", label: "Activity Likes", icon: ThumbsUp, desc: "When someone likes your activity" },
                         { key: "notifyOnMentions", label: "Mentions", icon: AtSign, desc: "When someone mentions you" },
                       ].map(({ key, label, icon: Icon, desc }) => (

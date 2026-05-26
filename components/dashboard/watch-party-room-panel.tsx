@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { formatDistanceToNow, isValid } from "date-fns";
-import { Pin, X } from "lucide-react";
+import { format, formatDistanceToNow, isValid } from "date-fns";
+import { Calendar, Pin, X } from "lucide-react";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useWatchPartyChat, useWatchPartyChatSend } from "@/hooks/use-watch-party-chat";
@@ -11,6 +11,11 @@ import {
   useWatchPartyMarkerUnpin,
   useWatchPartyMarkers,
 } from "@/hooks/use-watch-party-markers";
+import {
+  useWatchPartyScheduleCreate,
+  useWatchPartyScheduleDelete,
+  useWatchPartySchedules,
+} from "@/hooks/use-watch-party-schedules";
 import { useWatchPartyReactionPulse, useWatchPartyReactions } from "@/hooks/use-watch-party-reactions";
 import type { WatchPartyRoomParticipant } from "@/hooks/use-watch-party-room-summary";
 import {
@@ -31,6 +36,7 @@ import {
 } from "@/lib/watch-party/reaction-pulses";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,6 +61,16 @@ type WatchPartyRoomPanelProps = {
   /** True while membership is being confirmed after landing or copying an invite link. */
   isJoining?: boolean;
   partyParticipants: WatchPartyRoomParticipant[];
+  /** Host user id for schedule queries. */
+  hostUserId?: string | null;
+  scheduleTitle?: {
+    tmdbId: number;
+    mediaType: "movie" | "tv";
+    title: string;
+    posterPath: string | null;
+    seasonNumber: number | null;
+    episodeNumber: number | null;
+  } | null;
 };
 
 export function WatchPartyRoomPanel({
@@ -68,6 +84,8 @@ export function WatchPartyRoomPanel({
   userPlaybackSnapshot = null,
   isJoining = false,
   partyParticipants,
+  hostUserId = null,
+  scheduleTitle = null,
 }: WatchPartyRoomPanelProps) {
   const members = partyParticipants ?? [];
   const queryEnabled = Boolean(partyId) && isParticipant;
@@ -97,8 +115,21 @@ export function WatchPartyRoomPanel({
   const sendPulse = useWatchPartyReactionPulse(partyId);
   const pinMarker = useWatchPartyMarkerPin(partyId);
   const unpinMarker = useWatchPartyMarkerUnpin(partyId);
+  const scheduleQuery = useWatchPartySchedules(
+    {
+      hostUserId,
+      tmdbId: scheduleTitle?.tmdbId ?? null,
+      mediaType: scheduleTitle?.mediaType ?? null,
+    },
+    Boolean(hostUserId && scheduleTitle)
+  );
+  const createSchedule = useWatchPartyScheduleCreate();
+  const deleteSchedule = useWatchPartyScheduleDelete();
   const [draft, setDraft] = useState("");
   const [markerLabel, setMarkerLabel] = useState("");
+  const [scheduleAtLocal, setScheduleAtLocal] = useState("");
+  const [scheduleWeekly, setScheduleWeekly] = useState(false);
+  const [scheduleNote, setScheduleNote] = useState("");
   const [pendingPulseKinds, setPendingPulseKinds] = useState<Set<WatchPartyReactionKind>>(() => new Set());
   const [burstKinds, setBurstKinds] = useState<Set<WatchPartyReactionKind>>(() => new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -108,6 +139,7 @@ export function WatchPartyRoomPanel({
     [reactionData?.recentPulses]
   );
   const markers = markersData?.markers ?? [];
+  const schedules = scheduleQuery.data?.schedules ?? [];
 
   const messages = chatData?.messages ?? [];
 
@@ -171,6 +203,37 @@ export function WatchPartyRoomPanel({
     }
   };
 
+  const handleAddSchedule = async () => {
+    if (!scheduleTitle || !scheduleAtLocal) {
+      toast.error("Pick a date and time for your next session.");
+      return;
+    }
+    const scheduledAt = new Date(scheduleAtLocal);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      toast.error("Invalid date/time.");
+      return;
+    }
+    try {
+      await createSchedule.mutateAsync({
+        tmdbId: scheduleTitle.tmdbId,
+        mediaType: scheduleTitle.mediaType,
+        title: scheduleTitle.title,
+        posterPath: scheduleTitle.posterPath,
+        seasonNumber: scheduleTitle.seasonNumber,
+        episodeNumber: scheduleTitle.episodeNumber,
+        scheduledAt: scheduledAt.toISOString(),
+        recurrence: scheduleWeekly ? "WEEKLY" : "NONE",
+        note: scheduleNote.trim() || null,
+      });
+      setScheduleAtLocal("");
+      setScheduleNote("");
+      setScheduleWeekly(false);
+      toast.success("Session scheduled.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not schedule");
+    }
+  };
+
   const handleUnpinMoment = async (markerId: string) => {
     try {
       await unpinMarker.mutateAsync(markerId);
@@ -206,6 +269,84 @@ export function WatchPartyRoomPanel({
         hostControls={hostControls}
         hostPlaybackSnapshot={hostPlaybackSnapshot}
       />
+
+      {schedules.length > 0 ? (
+        <ul className="space-y-1 rounded-lg border border-border/60 bg-muted/10 px-2.5 py-2">
+          <p className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+            <Calendar className="h-3 w-3" />
+            Upcoming sessions
+          </p>
+          {schedules.map((item) => (
+            <li key={item.id} className="flex items-start justify-between gap-2 text-[11px]">
+              <div className="min-w-0">
+                <span className="font-medium text-foreground">
+                  {isValid(new Date(item.scheduledAt))
+                    ? format(new Date(item.scheduledAt), "MMM d · h:mm a")
+                    : "Scheduled"}
+                </span>
+                {item.recurrence === "WEEKLY" ? (
+                  <span className="text-muted-foreground"> · weekly</span>
+                ) : null}
+                {item.note ? <span className="text-muted-foreground"> — {item.note}</span> : null}
+              </div>
+              {isHost ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0 cursor-pointer rounded-full"
+                  disabled={deleteSchedule.isPending}
+                  aria-label="Remove schedule"
+                  onClick={() => void deleteSchedule.mutateAsync(item.id)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {isHost && partyOpen && scheduleTitle ? (
+        <div className="rounded-lg border border-border/60 bg-muted/15 px-2.5 py-2 space-y-2">
+          <p className="text-[10px] font-medium text-muted-foreground">Schedule next session</p>
+          <Input
+            type="datetime-local"
+            value={scheduleAtLocal}
+            onChange={(e) => setScheduleAtLocal(e.target.value)}
+            className="h-8 text-xs"
+            disabled={createSchedule.isPending}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <Input
+            value={scheduleNote}
+            onChange={(e) => setScheduleNote(e.target.value)}
+            placeholder="Optional note for followers…"
+            maxLength={120}
+            className="h-8 text-xs"
+            disabled={createSchedule.isPending}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <label className="flex cursor-pointer items-center gap-2 text-[11px] text-muted-foreground">
+            <Checkbox
+              checked={scheduleWeekly}
+              onCheckedChange={(v) => setScheduleWeekly(v === true)}
+              disabled={createSchedule.isPending}
+            />
+            Repeats weekly
+          </label>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 w-full cursor-pointer rounded-full text-xs"
+            disabled={createSchedule.isPending || !scheduleAtLocal}
+            onClick={() => void handleAddSchedule()}
+          >
+            {createSchedule.isPending ? "Saving…" : "Add to schedule"}
+          </Button>
+        </div>
+      ) : null}
 
       {isHost && partyOpen ? (
         <div className="rounded-lg border border-border/60 bg-muted/15 px-2.5 py-2 space-y-2">
