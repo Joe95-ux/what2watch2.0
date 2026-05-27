@@ -52,7 +52,9 @@ export function useWatchPartyReactions(partyId: string | null, enabled: boolean)
     queryKey: ["watch-party-reactions", partyId],
     queryFn: () => fetchWatchPartyReactions(partyId!),
     enabled: Boolean(partyId) && enabled,
-    staleTime: 20_000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
   });
 }
 

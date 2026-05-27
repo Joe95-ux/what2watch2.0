@@ -22,7 +22,9 @@ export function useWatchPartyMarkers(partyId: string | null, enabled: boolean) {
     queryKey: ["watch-party-markers", partyId],
     queryFn: () => fetchWatchPartyMarkers(partyId!),
     enabled: Boolean(partyId) && enabled,
-    staleTime: 20_000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
   });
 }
 

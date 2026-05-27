@@ -37,7 +37,9 @@ export function useWatchPartyChat(partyId: string | null, enabled: boolean) {
     queryKey: ["watch-party-chat", partyId],
     queryFn: () => fetchWatchPartyChat(partyId!),
     enabled: Boolean(partyId) && enabled,
-    staleTime: 20_000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
   });
 }
 
@@ -111,7 +113,6 @@ export function useWatchPartyChatSend(
           return { messages: [...withoutTemp, data.message] };
         }
       );
-      queryClient.invalidateQueries({ queryKey: ["watch-party-chat", partyId] });
     },
   });
 }

@@ -7,6 +7,8 @@ import { getWatchPartyRoomChannelName, PUSHER_EVENTS } from "@/lib/pusher/channe
 import type { WatchPartyHostControls } from "@/lib/watch-party/host-controls";
 import type { WatchPartyRoomSummary } from "@/hooks/use-watch-party-room-summary";
 
+const DASHBOARD_INVALIDATE_DEBOUNCE_MS = 2_500;
+
 export function useWatchPartyRoomPusher(
   roomId: string | null,
   enabled = true,
@@ -18,22 +20,46 @@ export function useWatchPartyRoomPusher(
   const queryClient = useQueryClient();
   const onPartyEndedRef = useRef(options?.onPartyEnded);
   onPartyEndedRef.current = options?.onPartyEnded;
+  const dashboardDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!enabled || !roomId) return;
     const pusher = getPusherClient();
     if (!pusher) return;
 
+    const invalidateRoom = () => {
+      void queryClient.invalidateQueries({ queryKey: ["watch-party-room", roomId] });
+    };
+
+    const scheduleDashboardInvalidate = () => {
+      if (dashboardDebounceRef.current) {
+        window.clearTimeout(dashboardDebounceRef.current);
+      }
+      dashboardDebounceRef.current = window.setTimeout(() => {
+        dashboardDebounceRef.current = null;
+        void queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+      }, DASHBOARD_INVALIDATE_DEBOUNCE_MS);
+    };
+
     const channelName = getWatchPartyRoomChannelName(roomId);
     const channel = pusher.subscribe(channelName);
-    const handleUpdate = () => {
-      queryClient.invalidateQueries({ queryKey: ["watch-party-room", roomId] });
-      queryClient.invalidateQueries({ queryKey: ["watch-party-chat", roomId] });
-      queryClient.invalidateQueries({ queryKey: ["watch-party-reactions", roomId] });
-      queryClient.invalidateQueries({ queryKey: ["watch-party-markers", roomId] });
-      queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["watching-title"] });
-      queryClient.invalidateQueries({ queryKey: ["watching-replies-to-you"] });
+
+    const handleChatUpdate = () => {
+      void queryClient.invalidateQueries({ queryKey: ["watch-party-chat", roomId] });
+    };
+
+    const handleReactionsUpdate = () => {
+      void queryClient.invalidateQueries({ queryKey: ["watch-party-reactions", roomId] });
+    };
+
+    const handleMarkersUpdate = () => {
+      void queryClient.invalidateQueries({ queryKey: ["watch-party-markers", roomId] });
+    };
+
+    /** Membership / roster changes — refresh party summary; debounce heavy dashboard GET. */
+    const handleParticipantsUpdate = () => {
+      invalidateRoom();
+      scheduleDashboardInvalidate();
     };
 
     const handleRoomUpdated = (payload: { action?: string }) => {
@@ -48,10 +74,15 @@ export function useWatchPartyRoomPusher(
             prev ? { ...prev, status: "ENDED" } : prev
         );
         onPartyEndedRef.current?.(current?.feedRoomKey ?? null);
-        queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+        void queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
         return;
       }
-      handleUpdate();
+      if (payload?.action === "created") {
+        invalidateRoom();
+        void queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
+        return;
+      }
+      invalidateRoom();
     };
 
     const handleHostControlsUpdated = (payload: WatchPartyHostControls | Record<string, unknown>) => {
@@ -62,22 +93,25 @@ export function useWatchPartyRoomPusher(
             prev ? { ...prev, hostControls: payload as WatchPartyHostControls } : prev
         );
       }
-      handleUpdate();
     };
 
     channel.bind(PUSHER_EVENTS.WATCH_PARTY_ROOM_UPDATED, handleRoomUpdated);
-    channel.bind(PUSHER_EVENTS.WATCH_PARTY_PARTICIPANTS_UPDATED, handleUpdate);
-    channel.bind(PUSHER_EVENTS.WATCH_PARTY_CHAT_UPDATED, handleUpdate);
-    channel.bind(PUSHER_EVENTS.WATCH_PARTY_REACTIONS_UPDATED, handleUpdate);
-    channel.bind(PUSHER_EVENTS.WATCH_PARTY_MARKERS_UPDATED, handleUpdate);
+    channel.bind(PUSHER_EVENTS.WATCH_PARTY_PARTICIPANTS_UPDATED, handleParticipantsUpdate);
+    channel.bind(PUSHER_EVENTS.WATCH_PARTY_CHAT_UPDATED, handleChatUpdate);
+    channel.bind(PUSHER_EVENTS.WATCH_PARTY_REACTIONS_UPDATED, handleReactionsUpdate);
+    channel.bind(PUSHER_EVENTS.WATCH_PARTY_MARKERS_UPDATED, handleMarkersUpdate);
     channel.bind(PUSHER_EVENTS.WATCH_PARTY_HOST_CONTROLS_UPDATED, handleHostControlsUpdated);
 
     return () => {
+      if (dashboardDebounceRef.current) {
+        window.clearTimeout(dashboardDebounceRef.current);
+        dashboardDebounceRef.current = null;
+      }
       channel.unbind(PUSHER_EVENTS.WATCH_PARTY_ROOM_UPDATED, handleRoomUpdated);
-      channel.unbind(PUSHER_EVENTS.WATCH_PARTY_PARTICIPANTS_UPDATED, handleUpdate);
-      channel.unbind(PUSHER_EVENTS.WATCH_PARTY_CHAT_UPDATED, handleUpdate);
-      channel.unbind(PUSHER_EVENTS.WATCH_PARTY_REACTIONS_UPDATED, handleUpdate);
-      channel.unbind(PUSHER_EVENTS.WATCH_PARTY_MARKERS_UPDATED, handleUpdate);
+      channel.unbind(PUSHER_EVENTS.WATCH_PARTY_PARTICIPANTS_UPDATED, handleParticipantsUpdate);
+      channel.unbind(PUSHER_EVENTS.WATCH_PARTY_CHAT_UPDATED, handleChatUpdate);
+      channel.unbind(PUSHER_EVENTS.WATCH_PARTY_REACTIONS_UPDATED, handleReactionsUpdate);
+      channel.unbind(PUSHER_EVENTS.WATCH_PARTY_MARKERS_UPDATED, handleMarkersUpdate);
       channel.unbind(PUSHER_EVENTS.WATCH_PARTY_HOST_CONTROLS_UPDATED, handleHostControlsUpdated);
       pusher.unsubscribe(channelName);
     };

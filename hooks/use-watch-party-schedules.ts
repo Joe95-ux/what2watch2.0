@@ -31,7 +31,9 @@ export function useWatchPartySchedules(query: SchedulesQuery, enabled: boolean) 
       return { schedules: Array.isArray(data.schedules) ? data.schedules : [] };
     },
     enabled,
-    staleTime: 30_000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
   });
 }
 

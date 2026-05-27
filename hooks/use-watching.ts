@@ -275,10 +275,11 @@ export function useWatchingDashboard(enabled = true) {
   return useQuery({
     queryKey: ["watching-dashboard"],
     queryFn: fetchWatchingDashboard,
-    staleTime: 30 * 1000,
+    staleTime: 60 * 1000,
     enabled,
-    refetchOnWindowFocus: (query) =>
-      query.state.data?.currentSession?.status === "WATCHING_NOW",
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+    refetchOnReconnect: false,
   });
 }
 
