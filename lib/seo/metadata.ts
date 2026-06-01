@@ -5,7 +5,8 @@ import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
 
 export const SITE_NAME = "What2Watch";
 
-export const DEFAULT_OG_IMAGE_PATH = "/what2watch-logo.png";
+/** Next.js file-based OG image (1200×630). */
+export const DEFAULT_OG_IMAGE_PATH = "/opengraph-image";
 
 export function defaultOgImageUrl(): string {
   return absoluteUrl(DEFAULT_OG_IMAGE_PATH);
@@ -186,6 +187,9 @@ export function rootLayoutMetadata(): Metadata {
     },
     description: defaultDescription,
     applicationName: SITE_NAME,
+    verification: {
+      google: "7AOGaOJv67cYaSXfksBfMkAFQ99MuCO0VI4nzSkR2tc",
+    },
     openGraph: {
       type: "website",
       locale: "en_US",
