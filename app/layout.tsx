@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { rootLayoutMetadata } from "@/lib/seo/metadata";
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import RootProviders from "@/components/providers/root-providers";
@@ -14,10 +14,7 @@ const inter = Inter({
   preload: true,
 });
 
-export const metadata: Metadata = {
-  title: "What2Watch - Discover Your Next Favorite Watch",
-  description: "A movie and tv show watch guide like no other. Find, organize, and share your favorite content with personalized recommendations.",
-};
+export const metadata = rootLayoutMetadata();
 
 export default function RootLayout({
   children,

@@ -4,7 +4,8 @@ import { getMovieDetails } from "@/lib/tmdb";
 import ContentDetailPage from "@/components/content-detail/content-detail-page";
 import { TMDBMovie } from "@/lib/tmdb";
 import { createContentSlug } from "@/lib/content-slug";
-import { truncateMetaDescription } from "@/lib/content-detail-seo";
+import { buildContentDetailMetadata } from "@/lib/seo/metadata";
+import { ContentDetailJsonLd } from "@/lib/seo/content-json-ld";
 
 interface PageProps {
   params: Promise<{ id: string; slug: string }>;
@@ -18,17 +19,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
   try {
     const movie = await getMovieDetails(movieId);
-    const title = `Where to Watch ${movie.title} | What2Watch`;
-    const description =
-      movie.overview?.trim()
-        ? `Where to watch ${movie.title}. ${truncateMetaDescription(movie.overview)}`
-        : `Where to watch ${movie.title} — streaming, buy, and rent options on What2Watch.`;
-    return {
-      title,
-      description,
-      openGraph: { title, description },
-      twitter: { card: "summary_large_image", title, description },
-    };
+    return buildContentDetailMetadata({
+      type: "movie",
+      id: movieId,
+      title: movie.title,
+      overview: movie.overview,
+      posterPath: movie.poster_path,
+      backdropPath: movie.backdrop_path,
+    });
   } catch {
     return { title: "Movie | What2Watch" };
   }
@@ -70,7 +68,21 @@ export default async function MovieDetailPage({ params }: PageProps) {
       original_title: movie.original_title || movie.title,
     };
 
-    return <ContentDetailPage item={item} type="movie" />;
+    return (
+      <>
+        <ContentDetailJsonLd
+          type="movie"
+          id={movie.id}
+          title={movie.title}
+          overview={movie.overview}
+          posterPath={movie.poster_path}
+          releaseDate={movie.release_date}
+          voteAverage={movie.vote_average}
+          voteCount={movie.vote_count}
+        />
+        <ContentDetailPage item={item} type="movie" />
+      </>
+    );
   } catch (error) {
     console.error("Error fetching movie details:", error);
     notFound();

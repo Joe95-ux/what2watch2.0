@@ -1,5 +1,9 @@
+import type { Metadata } from "next";
 import Logo from "@/components/Logo";
 import React, { ReactNode } from "react";
+import { noIndexMetadata } from "@/lib/seo/metadata";
+
+export const metadata: Metadata = noIndexMetadata;
 
 function Layout({ children }: { children: ReactNode }) {
   return (

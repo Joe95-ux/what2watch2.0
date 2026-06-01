@@ -4,7 +4,8 @@ import { getTVDetails } from "@/lib/tmdb";
 import ContentDetailPage from "@/components/content-detail/content-detail-page";
 import { TMDBSeries } from "@/lib/tmdb";
 import { createContentSlug } from "@/lib/content-slug";
-import { truncateMetaDescription } from "@/lib/content-detail-seo";
+import { buildContentDetailMetadata } from "@/lib/seo/metadata";
+import { ContentDetailJsonLd } from "@/lib/seo/content-json-ld";
 
 interface PageProps {
   params: Promise<{ id: string; slug: string }>;
@@ -18,17 +19,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
   try {
     const tv = await getTVDetails(tvId);
-    const title = `Where to Watch ${tv.name} | What2Watch TV`;
-    const description =
-      tv.overview?.trim()
-        ? `Where to watch ${tv.name}. ${truncateMetaDescription(tv.overview)}`
-        : `Where to watch ${tv.name} — streaming, buy, and rent options on What2Watch.`;
-    return {
-      title,
-      description,
-      openGraph: { title, description },
-      twitter: { card: "summary_large_image", title, description },
-    };
+    return buildContentDetailMetadata({
+      type: "tv",
+      id: tvId,
+      title: tv.name,
+      overview: tv.overview,
+      posterPath: tv.poster_path,
+      backdropPath: tv.backdrop_path,
+    });
   } catch {
     return { title: "TV Show | What2Watch" };
   }
@@ -69,7 +67,21 @@ export default async function TVDetailPage({ params }: PageProps) {
       original_name: tv.original_name || tv.name,
     };
 
-    return <ContentDetailPage item={item} type="tv" />;
+    return (
+      <>
+        <ContentDetailJsonLd
+          type="tv"
+          id={tv.id}
+          title={tv.name}
+          overview={tv.overview}
+          posterPath={tv.poster_path}
+          releaseDate={tv.first_air_date}
+          voteAverage={tv.vote_average}
+          voteCount={tv.vote_count}
+        />
+        <ContentDetailPage item={item} type="tv" />
+      </>
+    );
   } catch (error) {
     console.error("Error fetching TV details:", error);
     notFound();

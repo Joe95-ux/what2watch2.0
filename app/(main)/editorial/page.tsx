@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
 import EditorialPageClient from "@/components/editorial/editorial-page-client";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
-  title: "What2watch.net Editors' lists | What2Watch",
-  description: "Explore lists curated by our Editors.",
-};
+export const metadata = buildPageMetadata({
+  title: "Editors' lists",
+  description: "Explore curated movie and TV lists from the What2Watch editors.",
+  path: "/editorial",
+});
 
 export default function EditorialPage() {
   return <EditorialPageClient />;

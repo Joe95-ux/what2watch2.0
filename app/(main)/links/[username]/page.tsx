@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { PublicLinksPage } from "@/components/links/public-links-page";
 import type { LinkPageTheme } from "@/components/links/public-links-page";
+import { buildShareMetadata } from "@/lib/seo/metadata";
 
 interface PageProps {
   params: Promise<{ username: string }>;
@@ -29,8 +30,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "Page not found" };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://what2watch2-0.vercel.app";
-  const url = `${siteUrl}/links/${username}`;
   const defaultTitle = user.displayName || (user.username ? `@${user.username}` : "Links");
   const title = user.linkPage?.ogTitle?.trim() || `${defaultTitle} | Links`;
   const description =
@@ -41,23 +40,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     user.linkPage?.ogImageUrl?.trim() ||
     (user.avatarUrl?.trim() ? user.avatarUrl : undefined);
 
-  return {
+  return buildShareMetadata({
     title,
     description,
-    openGraph: {
-      title,
-      description,
-      url,
-      siteName: "What2Watch",
-      ...(imageUrl && { images: [{ url: imageUrl }] }),
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      ...(imageUrl && { images: [imageUrl] }),
-    },
-  };
+    path: `/links/${username}`,
+    ogImage: imageUrl,
+  });
 }
 
 export default async function LinksPage({ params }: PageProps) {
