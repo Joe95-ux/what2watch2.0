@@ -163,8 +163,19 @@ export function YouTubeChannelSidebar({
     return Array.isArray(channels) ? channels : [];
   }, [feedChannels, searchQuery, filterBy, categoryFilter, sortBy, favoriteChannels, channelCategoriesData]);
 
-  const handleChannelClick = (channelId: string, slug?: string | null) => {
-    router.push(getChannelProfilePath(channelId, slug));
+  const handleChannelClick = (targetChannelId: string, slug?: string | null) => {
+    if (targetChannelId === currentChannelId) {
+      if (activeTab !== "channel") {
+        onTabChange?.("channel");
+      }
+      if (isMobile) {
+        setIsOpen(false);
+      }
+      return;
+    }
+
+    onTabChange?.("channel");
+    router.push(getChannelProfilePath(targetChannelId, slug));
     if (isMobile) {
       setIsOpen(false);
     }

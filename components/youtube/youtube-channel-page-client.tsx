@@ -131,6 +131,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
   const [watchlaterPage, setWatchlaterPage] = useState(1);
   const heroRef = useRef<HTMLDivElement>(null);
   const hasLoggedEmptyVideosRef = useRef(false);
+  const previousChannelIdRef = useRef<string | null>(null);
   const isMobile = useIsMobile();
   const videos = accumulatedVideos;
 
@@ -318,10 +319,23 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
 
   // Reset pagination when switching channels (do not clear accumulated videos here — that races with the sync effect below).
   useEffect(() => {
+    const previousChannelId = previousChannelIdRef.current;
+    if (previousChannelId !== null && previousChannelId !== channelId) {
+      setSidebarTab("channel");
+      try {
+        localStorage.setItem(YOUTUBE_SIDEBAR_TAB_KEY, "channel");
+      } catch {
+        // ignore quota / private mode
+      }
+    }
+    previousChannelIdRef.current = channelId;
+
     setPageToken(undefined);
     setPostsPageToken(undefined);
     setPlaylistsPageToken(undefined);
     setRecommendationsPage(1);
+    setFavoritesPage(1);
+    setWatchlaterPage(1);
     setAccumulatedPosts([]);
     hasLoggedEmptyVideosRef.current = false;
   }, [channelId]);
@@ -754,7 +768,7 @@ export default function YouTubeChannelPageClient({ channelId }: YouTubeChannelPa
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
       <YouTubeChannelSidebar 
-        currentChannelId={sidebarTab === "channel" ? channelId : undefined}
+        currentChannelId={channelId}
         activeTab={sidebarTab}
         onTabChange={handleSidebarTabChange}
         mobileOpen={mobileSidebarOpen}
