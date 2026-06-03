@@ -49,6 +49,7 @@ import { useLists, useDeleteList, type List } from "@/hooks/use-lists";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { getPosterUrl } from "@/lib/tmdb";
 import { cn } from "@/lib/utils";
+import { LIST_PAGE_HERO_HEADER } from "@/lib/list-page-hero";
 
 const EDITORIAL_PAGE_SIZE = 30;
 const SIDEBAR_LISTS_PAGE_SIZE = 30;
@@ -145,22 +146,22 @@ export default function EditorialPageClient() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="-mt-[65px] border-b border-white/10 bg-zinc-950 text-zinc-50 dark:bg-black pt-20 sm:pt-34 pb-8 lg:pb-15">
+      <header className={`${LIST_PAGE_HERO_HEADER} pt-20 sm:pt-34 pb-8 lg:pb-15`}>
         <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 lg:gap-8">
             <div className="flex gap-3 sm:gap-4 min-w-0">
-              <Avatar className="h-10 w-10 sm:h-14 sm:w-14 shrink-0 border border-white/10">
+              <Avatar className="h-10 w-10 sm:h-14 sm:w-14 shrink-0 border border-border">
                 <AvatarImage src="/icon1.png" alt="What2watch.net Editors" />
-                <AvatarFallback className="bg-zinc-800 text-zinc-200 text-sm sm:text-base">
+                <AvatarFallback className="bg-muted text-muted-foreground text-sm sm:text-base">
                   W
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 space-y-1.5 sm:space-y-2">
-                <p className="text-xs sm:text-sm text-zinc-400">What2watch.net Editors</p>
-                <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-zinc-50">
+                <p className="text-xs sm:text-sm text-muted-foreground">What2watch.net Editors</p>
+                <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-foreground">
                   What2watch.net Editors&apos; lists
                 </h1>
-                <p className="text-xs sm:text-base text-zinc-400 max-w-xl">
+                <p className="text-xs sm:text-base text-muted-foreground max-w-xl">
                   Explore lists curated by our Editors
                 </p>
               </div>
@@ -170,7 +171,7 @@ export default function EditorialPageClient() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-9 rounded-[20px] border-white/20 bg-transparent text-zinc-50 hover:bg-white/10 hover:text-zinc-50 cursor-pointer"
+                  className="h-9 rounded-[20px] border-border bg-transparent hover:bg-accent cursor-pointer"
                   onClick={() => setCreateOpen(true)}
                 >
                   <Plus className="h-4 w-4 mr-2 shrink-0" />
@@ -180,13 +181,13 @@ export default function EditorialPageClient() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-9 rounded-[20px] border-white/20 bg-transparent text-zinc-50 hover:bg-white/10 hover:text-zinc-50 cursor-pointer"
+                  className="h-9 rounded-[20px] border-border bg-transparent hover:bg-accent cursor-pointer"
                   asChild
                 >
                   <Link href="/sign-in">Create a new list</Link>
                 </Button>
               )}
-              <span className="text-zinc-500 select-none" aria-hidden>
+              <span className="text-muted-foreground/60 select-none" aria-hidden>
                 |
               </span>
               <ShareDropdown
@@ -197,7 +198,7 @@ export default function EditorialPageClient() {
                 size="sm"
                 showLabel
                 triggerTitle="Share"
-                className="h-9 rounded-[20px] border border-white/20 bg-transparent px-3 text-zinc-50 hover:bg-white/10 hover:text-zinc-50"
+                className="h-9 rounded-[20px] border border-border bg-transparent px-3 hover:bg-accent"
               />
             </div>
           </div>

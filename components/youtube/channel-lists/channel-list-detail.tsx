@@ -37,6 +37,7 @@ import { ChannelListChannelsToolbar } from "./channel-list-channels-toolbar";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { LIST_PAGE_HERO_HEADER } from "@/lib/list-page-hero";
 import { YouTubeChannelCardPage, YouTubeChannelCardPageSkeleton } from "../youtube-channel-card-page";
 import { YouTubeChannelCardHorizontal, YouTubeChannelCardHorizontalSkeleton } from "../youtube-channel-card-horizontal";
 import { useYouTubeCardStyle, useUpdateYouTubeCardStyle } from "@/hooks/use-youtube-card-style";
@@ -350,21 +351,21 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <header className="-mt-[65px] border-b border-white/10 bg-zinc-950 text-zinc-50 dark:bg-black pt-20 sm:pt-34 pb-6 sm:pb-8">
+        <header className={`${LIST_PAGE_HERO_HEADER} pt-20 sm:pt-34 pb-6 sm:pb-8`}>
           <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8">
-            <Skeleton className="h-9 w-28 mb-5 rounded-md bg-zinc-800/50" />
+            <Skeleton className="h-9 w-28 mb-5 rounded-md bg-muted/60" />
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
               <div className="flex-1 space-y-4">
-                <Skeleton className="h-4 w-28 mb-2 rounded-md bg-zinc-800/50" />
-                <Skeleton className="h-10 w-3/4 max-w-md rounded-md bg-zinc-800/50" />
-                <Skeleton className="h-5 w-full max-w-lg rounded-md bg-zinc-800/50" />
+                <Skeleton className="h-4 w-28 mb-2 rounded-md bg-muted/60" />
+                <Skeleton className="h-10 w-3/4 max-w-md rounded-md bg-muted/60" />
+                <Skeleton className="h-5 w-full max-w-lg rounded-md bg-muted/60" />
                 <div className="flex flex-wrap gap-3">
-                  <Skeleton className="h-4 w-40 rounded-md bg-zinc-800/50" />
+                  <Skeleton className="h-4 w-40 rounded-md bg-muted/60" />
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <Skeleton className="h-10 w-24 rounded-md bg-zinc-800/50" />
-                <Skeleton className="h-10 w-20 rounded-md bg-zinc-800/50" />
+                <Skeleton className="h-10 w-24 rounded-md bg-muted/60" />
+                <Skeleton className="h-10 w-20 rounded-md bg-muted/60" />
               </div>
             </div>
           </div>
@@ -491,12 +492,12 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="-mt-[65px] border-b border-white/10 bg-zinc-950 text-zinc-50 dark:bg-black pt-20 sm:pt-34 pb-6 sm:pb-8 lg:pb-10">
+      <header className={`${LIST_PAGE_HERO_HEADER} pt-20 sm:pt-34 pb-6 sm:pb-8 lg:pb-10`}>
         <div className="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8">
           <Button
             variant="ghost"
             onClick={() => router.push("/youtube?tab=lists")}
-            className="mb-3 sm:mb-5 -ml-2 h-9 text-zinc-300 hover:text-white hover:bg-white/10 cursor-pointer"
+            className="mb-3 sm:mb-5 -ml-2 h-9 text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
@@ -505,33 +506,33 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
             <div className="flex-1 space-y-4 min-w-0">
               <div>
-                <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">
+                <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">
                   Channel list
                 </p>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-50 mt-1">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1">
                   {list.name}
                 </h1>
                 {list.description ? (
-                  <p className="mt-2 text-sm sm:text-base text-zinc-400 max-w-3xl">
+                  <p className="mt-2 text-sm sm:text-base text-muted-foreground max-w-3xl">
                     {list.description}
                   </p>
                 ) : null}
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-400">
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <Link
                   href={ownerProfileHref}
-                  className="inline-flex items-center gap-2 hover:text-white transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 hover:text-foreground transition-colors cursor-pointer"
                 >
-                  <Avatar className="h-6 w-6 border border-white/10">
+                  <Avatar className="h-6 w-6 border border-border">
                     <AvatarImage src={list.user?.avatarUrl || undefined} alt={ownerName} />
-                    <AvatarFallback className="bg-zinc-800 text-zinc-200 text-xs">
+                    <AvatarFallback className="bg-muted text-muted-foreground text-xs">
                       {(ownerName || "C")[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <span>Curated by {ownerName}</span>
                 </Link>
-                <span className="text-zinc-600">•</span>
+                <span className="text-muted-foreground/50">•</span>
                 <span>{list._count.items} channels</span>
               </div>
 
@@ -541,7 +542,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
                     <Badge
                       key={tag}
                       variant="outline"
-                      className="rounded-full border-white/20 text-zinc-300 bg-white/5"
+                      className="rounded-full border-border text-muted-foreground bg-muted/50"
                     >
                       #{tag}
                     </Badge>
@@ -550,16 +551,16 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
               ) : null}
 
               <div className="space-y-1">
-                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wide">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
                   List activity
                 </span>
-                <div className="text-sm text-zinc-300 flex items-center gap-4 flex-wrap">
+                <div className="text-sm text-foreground/90 flex items-center gap-4 flex-wrap">
                   <span className="flex items-center gap-1.5">
-                    <Eye className="h-4 w-4 text-zinc-500" />
+                    <Eye className="h-4 w-4 text-muted-foreground" />
                     {list.viewsCount ?? 0} {list.viewsCount === 1 ? "view" : "views"}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <UsersRound className="h-4 w-4 text-zinc-500" />
+                    <UsersRound className="h-4 w-4 text-muted-foreground" />
                     {list.followersCount ?? list._count?.followedBy ?? 0}{" "}
                     {list.followersCount === 1 ? "follower" : "followers"}
                   </span>
@@ -572,7 +573,8 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
                 <>
                   <Button
                     type="button"
-                    className="gap-2 cursor-pointer bg-white/10 text-zinc-50 border border-white/10 hover:bg-white/15"
+                    variant="secondary"
+                    className="gap-2 cursor-pointer"
                     onClick={() => setBuilderOpen(true)}
                   >
                     <Pencil className="h-4 w-4" />
@@ -581,7 +583,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
                   <Button
                     type="button"
                     variant="outline"
-                    className="gap-2 cursor-pointer border-white/20 bg-transparent text-zinc-50 hover:bg-white/10 hover:text-white"
+                    className="gap-2 cursor-pointer border-border hover:bg-accent"
                     onClick={handleOpenDeleteDialog}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -593,9 +595,8 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
                   type="button"
                   className={cn(
                     "gap-2 cursor-pointer",
-                    list.viewerState.isFollowing
-                      ? "border border-emerald-500/40 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25"
-                      : "bg-zinc-100 text-zinc-950 hover:bg-white border-0"
+                    list.viewerState.isFollowing &&
+                      "border border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-100 hover:bg-emerald-500/25"
                   )}
                   variant={list.viewerState.isFollowing ? "outline" : "default"}
                   onClick={handleFollowToggle}
@@ -619,7 +620,7 @@ export function ChannelListDetail({ listId }: ChannelListDetailProps) {
                   <Button
                     type="button"
                     variant="outline"
-                    className="gap-2 cursor-pointer border-white/20 bg-transparent text-zinc-50 hover:bg-white/10 hover:text-white"
+                    className="gap-2 cursor-pointer border-border hover:bg-accent"
                   >
                     <Share2 className="h-4 w-4" />
                     Share
