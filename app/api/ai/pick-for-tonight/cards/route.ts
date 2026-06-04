@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { unstable_cache } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import {
+  getPickForTonightBucket,
+  PICK_FOR_TONIGHT_CACHE_SECONDS,
+} from "@/lib/pick-for-tonight-bucket";
 import {
   getMovieDetails,
   getTVDetails,
   getTrendingMovies,
+  discoverMovies,
+  discoverTV,
 } from "@/lib/tmdb";
+import { calculateContentMatchPercent } from "@/lib/content-match-percent";
+import {
+  rerankPicks,
+  selectDiversePicks,
+  type RerankMode,
+} from "@/lib/pick-for-tonight-scoring";
 import { getOMDBFullData } from "@/lib/omdb";
 import { getJustWatchAvailability } from "@/lib/justwatch";
 import type { PickForTonightCandidate } from "@/lib/pick-for-tonight-types";
@@ -14,12 +27,10 @@ import {
   buildWhyTonight,
   mergeListTouch,
   mergePlaylistTouch,
-  mergeWatchlistTouch,
   type PickTonightAnchor,
 } from "@/lib/pick-for-tonight-why-tonight";
 
 type Media = "movie" | "tv";
-type RerankMode = "lighter" | "shorter" | "intense" | "different";
 
 function normMedia(m: string): Media {
   return m === "tv" ? "tv" : "movie";
@@ -54,22 +65,6 @@ function isDateReleased(date: string | null | undefined): boolean {
   return candidate.getTime() <= today.getTime();
 }
 
-function parseRuntimeToMinutes(runtimeText: string | null | undefined): number | null {
-  if (!runtimeText) return null;
-  const hMatch = runtimeText.match(/(\d+)\s*h/i);
-  const mMatch = runtimeText.match(/(\d+)\s*m/i);
-  const h = hMatch ? Number.parseInt(hMatch[1], 10) : 0;
-  const m = mMatch ? Number.parseInt(mMatch[1], 10) : 0;
-  const total = h * 60 + m;
-  return Number.isFinite(total) && total > 0 ? total : null;
-}
-
-function isMatureRating(rated: string | null | undefined): boolean {
-  if (!rated) return false;
-  const r = rated.toUpperCase();
-  return r.includes("R") || r.includes("NC-17") || r.includes("TV-MA");
-}
-
 function recencyBoost(createdAt: Date | null | undefined, now = new Date()): number {
   if (!createdAt) return 0;
   const ageDays = Math.max(0, (now.getTime() - createdAt.getTime()) / 86400000);
@@ -79,84 +74,72 @@ function recencyBoost(createdAt: Date | null | undefined, now = new Date()): num
   return 0;
 }
 
-function rerankPicks(
-  picks: PickForTonightCandidate[],
-  mode: RerankMode | null
-): Array<{ pick: PickForTonightCandidate; score: number }> {
-  const score = (p: PickForTonightCandidate): number => {
-    const runtime = parseRuntimeToMinutes(p.runtimeText) ?? 120;
-    const mature = isMatureRating(p.rated);
-    // Episode runtime alone underestimates actual commitment for series.
-    const watchCommitmentMinutes =
-      p.mediaType === "tv" ? Math.round(runtime * 2.2 + 20) : runtime;
-    const base = (p.imdbRating ?? 6.5) * 6 + p.hints.length * 8 + (p.justwatchRank24h ? Math.max(0, 30 - p.justwatchRank24h) : 0);
-    if (!mode) return base;
-    switch (mode) {
-      case "shorter":
-        return base + (140 - watchCommitmentMinutes) * 0.8;
-      case "lighter":
-        return base + (mature ? -16 : 16) - watchCommitmentMinutes * 0.12;
-      case "intense":
-        return base + (mature ? 20 : 0) + watchCommitmentMinutes * 0.08;
-      case "different":
-        // Preserve quality but push away from obvious baseline.
-        return base + (mature ? 3 : 0) - watchCommitmentMinutes * 0.03;
-      default:
-        return base;
-    }
+/** TMDB discover page only — no DB reads; rotates with 6h bucket. */
+function discoveryPageSeed(userId: string): number {
+  const bucketPart = getPickForTonightBucket().split("-").pop() ?? "0";
+  const sixHourBucket = Number.parseInt(bucketPart, 10) || 0;
+  let hash = sixHourBucket;
+  for (let i = 0; i < userId.length; i += 1) {
+    hash = (hash * 31 + userId.charCodeAt(i)) % 97;
+  }
+  return 1 + (hash % 5);
+}
+
+async function addDiscoveryCandidates(
+  map: Map<string, BaseCandidate>,
+  opts: {
+    userId: string;
+    favoriteGenres: number[];
+    preferredTypes: Media[];
+    excluded: Set<string>;
+  }
+) {
+  const genres = opts.favoriteGenres.filter((g) => Number.isFinite(g)).slice(0, 4);
+  if (genres.length === 0) return;
+
+  const page = discoveryPageSeed(opts.userId);
+
+  const addFromResults = (
+    items: Array<{ id: number; title?: string; name?: string; poster_path?: string | null }>,
+    mediaType: Media,
+    startWeight: number
+  ) => {
+    items.forEach((item, index) => {
+      const title = item.title ?? item.name ?? "Unknown";
+      const base = {
+        id: candidateId(item.id, mediaType),
+        tmdbId: item.id,
+        mediaType,
+        title,
+        posterPath: item.poster_path ?? null,
+      };
+      if (opts.excluded.has(base.id)) return;
+      addHint(map, base, "Matches your taste", startWeight - index);
+    });
   };
 
-  return [...picks]
-    .map((pick) => ({ pick, score: score(pick) }))
-    .sort((a, b) => b.score - a.score || a.pick.title.localeCompare(b.pick.title));
-}
-
-function matchPercentsForScores(scores: number[]): number[] {
-  if (scores.length === 0) return [];
-  const min = Math.min(...scores);
-  const max = Math.max(...scores);
-  if (max === min) {
-    return scores.map((_, i) => Math.max(70, 96 - i * 4));
-  }
-  return scores.map((s) => {
-    const t = (s - min) / (max - min);
-    return Math.round(70 + t * 29);
-  });
-}
-
-function selectDiversePicks(
-  ranked: Array<{ pick: PickForTonightCandidate; score: number }>,
-  limit: number
-): Array<{ pick: PickForTonightCandidate; score: number }> {
-  const pool = [...ranked];
-  const selected: Array<{ pick: PickForTonightCandidate; score: number }> = [];
-  const genreSeen = new Map<string, number>();
-  const mediaSeen = new Map<string, number>();
-
-  while (selected.length < limit && pool.length > 0) {
-    let bestIndex = 0;
-    let bestAdjusted = Number.NEGATIVE_INFINITY;
-
-    for (let i = 0; i < pool.length; i += 1) {
-      const current = pool[i];
-      const leadGenre = current.pick.genreNames?.[0]?.toLowerCase() ?? "";
-      const genrePenalty = leadGenre ? (genreSeen.get(leadGenre) ?? 0) * 8 : 0;
-      const mediaPenalty = (mediaSeen.get(current.pick.mediaType) ?? 0) * 4;
-      const adjusted = current.score - genrePenalty - mediaPenalty;
-      if (adjusted > bestAdjusted) {
-        bestAdjusted = adjusted;
-        bestIndex = i;
-      }
+  try {
+    if (opts.preferredTypes.includes("movie")) {
+      const movies = await discoverMovies({
+        genre: genres,
+        sortBy: "popularity.desc",
+        minRating: 6.8,
+        page,
+      });
+      addFromResults((movies.results ?? []).slice(0, 10), "movie", 16);
     }
-
-    const chosen = pool.splice(bestIndex, 1)[0];
-    selected.push(chosen);
-    const g = chosen.pick.genreNames?.[0]?.toLowerCase();
-    if (g) genreSeen.set(g, (genreSeen.get(g) ?? 0) + 1);
-    mediaSeen.set(chosen.pick.mediaType, (mediaSeen.get(chosen.pick.mediaType) ?? 0) + 1);
+    if (opts.preferredTypes.includes("tv")) {
+      const tv = await discoverTV({
+        genre: genres,
+        sortBy: "popularity.desc",
+        minRating: 6.8,
+        page,
+      });
+      addFromResults((tv.results ?? []).slice(0, 10), "tv", 16);
+    }
+  } catch (error) {
+    console.error("pick-for-tonight discovery fetch failed:", error);
   }
-
-  return selected;
 }
 
 function arrayModeTypeToMedia(type: string | null | undefined): Media {
@@ -207,13 +190,18 @@ async function enrichCandidate(c: BaseCandidate): Promise<PickForTonightCandidat
       availability?.allOffers?.[0] ??
       null;
 
-    const genreNames = ((details as { genres?: { name?: string }[] }).genres ?? [])
+    const genres = (details as { genres?: { id?: number; name?: string }[] }).genres ?? [];
+    const genreIds = genres
+      .map((g) => g.id)
+      .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
+    const genreNames = genres
       .map((g) => g.name?.trim())
       .filter((x): x is string => Boolean(x));
 
     return {
       ...c,
       genreNames,
+      genreIds,
       whyTonight: "",
       matchPercent: 0,
       backdropPath: details.backdrop_path ?? null,
@@ -246,6 +234,7 @@ async function enrichCandidate(c: BaseCandidate): Promise<PickForTonightCandidat
     return {
       ...c,
       genreNames: [],
+      genreIds: [],
       whyTonight: "",
       matchPercent: 0,
       backdropPath: null,
@@ -266,52 +255,54 @@ async function enrichCandidate(c: BaseCandidate): Promise<PickForTonightCandidat
   }
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    let onlyUnseen = false;
-    let trendingToday = false;
-    let rerankMode: RerankMode | null = null;
-    let avoidTmdbId: number | null = null;
-    try {
-      const body = (await request.json()) as {
-        onlyUnseen?: unknown;
-        trendingToday?: unknown;
-        rerankMode?: unknown;
-        avoidTmdbId?: unknown;
-      } | null;
-      if (body && body.onlyUnseen === true) onlyUnseen = true;
-      if (body && body.trendingToday === true) trendingToday = true;
-      if (
-        body &&
-        typeof body.rerankMode === "string" &&
-        (body.rerankMode === "lighter" ||
-          body.rerankMode === "shorter" ||
-          body.rerankMode === "intense" ||
-          body.rerankMode === "different")
-      ) {
-        rerankMode = body.rerankMode;
-      }
-      if (body && typeof body.avoidTmdbId === "number" && Number.isFinite(body.avoidTmdbId)) {
-        avoidTmdbId = body.avoidTmdbId;
-      }
-    } catch {
-      // empty or invalid body — treat as default picks
-    }
+export type PickForTonightApiResult =
+  | { picks: PickForTonightCandidate[] }
+  | { insufficientContext: true; message: string };
 
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+type BuildPickInput = {
+  onlyUnseen: boolean;
+  trendingToday: boolean;
+  rerankMode: RerankMode | null;
+  avoidTmdbId: number | null;
+  writeCooldownLog: boolean;
+};
 
-    const user = await db.user.findUnique({
-      where: { clerkId: clerkUserId },
-      select: { id: true },
-    });
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+async function buildPickForTonightResult(
+  userId: string,
+  input: BuildPickInput
+): Promise<PickForTonightApiResult> {
+  const { onlyUnseen, trendingToday, rerankMode, avoidTmdbId, writeCooldownLog } = input;
 
-    const anchorById = new Map<string, PickTonightAnchor>();
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      preferences: {
+        select: {
+          favoriteGenres: true,
+          dislikedGenres: true,
+          preferredTypes: true,
+        },
+      },
+    },
+  });
+  if (!user) {
+    return { insufficientContext: true, message: "User not found." };
+  }
 
-    const cooldownSince = new Date(Date.now() - 1000 * 60 * 60 * 72); // 72h cooldown window
+  const favoriteGenres = user.preferences?.favoriteGenres ?? [];
+  const dislikedGenres = user.preferences?.dislikedGenres ?? [];
+  const preferredTypes = (user.preferences?.preferredTypes ?? ["movie", "tv"]).filter(
+    (t): t is Media => t === "movie" || t === "tv"
+  );
+  const effectivePreferredTypes: Media[] =
+    preferredTypes.length > 0 ? preferredTypes : (["movie", "tv"] as Media[]);
 
-    const [lists, playlists, favorites, sessions, recentPickEvents] = await Promise.all([
+  const anchorById = new Map<string, PickTonightAnchor>();
+  const cooldownSince = new Date(Date.now() - 1000 * 60 * 60 * 72);
+
+  const [lists, playlists, sessions, recentPickEvents, dislikes, watchedTitles, viewingLogs, lowRatedReviews] =
+    await Promise.all([
       db.list.findMany({
         where: { userId: user.id },
         select: {
@@ -344,10 +335,6 @@ export async function POST(request: NextRequest) {
           },
         },
       }),
-      db.favorite.findMany({
-        where: { userId: user.id },
-        select: { tmdbId: true, mediaType: true, title: true, posterPath: true, createdAt: true },
-      }),
       db.aiChatSession.findMany({
         where: { userId: user.id, mode: "movie-details" },
         orderBy: { updatedAt: "desc" },
@@ -364,138 +351,168 @@ export async function POST(request: NextRequest) {
         take: 24,
         select: { resultIds: true, resultTypes: true },
       }),
-    ]);
-    const recentRecommended = new Set<string>();
-    for (const event of recentPickEvents) {
-      for (let i = 0; i < event.resultIds.length; i += 1) {
-        const tmdbId = event.resultIds[i];
-        const mediaType = arrayModeTypeToMedia(event.resultTypes[i]);
-        recentRecommended.add(candidateId(tmdbId, mediaType));
-      }
-    }
-
-
-    const byId = new Map<string, BaseCandidate>();
-    if (trendingToday) {
-      const trending = await getTrendingMovies("day", 1);
-      const releasedTrending = (trending.results ?? []).filter((movie) => isDateReleased(movie.release_date));
-      for (const [index, movie] of releasedTrending.slice(0, 5).entries()) {
-        const base = {
-          id: candidateId(movie.id, "movie"),
-          tmdbId: movie.id,
-          mediaType: "movie" as const,
-          title: movie.title,
-          posterPath: movie.poster_path ?? null,
-        };
-        addHint(byId, base, "Trending today", 100 - index);
-      }
-    } else {
-      for (const list of lists) {
-        for (const it of list.items) {
-          const base = {
-            id: candidateId(it.tmdbId, it.mediaType),
-            tmdbId: it.tmdbId,
-            mediaType: normMedia(it.mediaType),
-            title: it.title,
-            posterPath: it.posterPath ?? null,
-          };
-          addHint(byId, base, `List: ${list.name}`, 3 + recencyBoost(it.createdAt));
-          mergeListTouch(anchorById, base.id, list.name, it.createdAt);
-          if (it.note?.trim()) addHint(byId, base, "Has personal note", 4 + recencyBoost(it.createdAt));
-        }
-      }
-      for (const pl of playlists) {
-        for (const it of pl.items) {
-          const base = {
-            id: candidateId(it.tmdbId, it.mediaType),
-            tmdbId: it.tmdbId,
-            mediaType: normMedia(it.mediaType),
-            title: it.title,
-            posterPath: it.posterPath ?? null,
-          };
-          addHint(byId, base, `Playlist: ${pl.name}`, 2 + recencyBoost(it.createdAt));
-          mergePlaylistTouch(anchorById, base.id, pl.name, it.createdAt);
-          if (it.note?.trim()) addHint(byId, base, "Has personal note", 4 + recencyBoost(it.createdAt));
-        }
-      }
-      for (const fav of favorites) {
-        const base = {
-          id: candidateId(fav.tmdbId, fav.mediaType),
-          tmdbId: fav.tmdbId,
-          mediaType: normMedia(fav.mediaType),
-          title: fav.title,
-          posterPath: fav.posterPath ?? null,
-        };
-        addHint(byId, base, "Saved titles", 1 + recencyBoost(fav.createdAt));
-        mergeWatchlistTouch(anchorById, base.id, fav.createdAt);
-      }
-
-      for (const s of sessions) {
-        const meta = (s.metadata as { tmdbId?: number; mediaType?: string } | null) ?? {};
-        if (typeof meta.tmdbId !== "number" || !meta.mediaType) continue;
-        const id = candidateId(meta.tmdbId, meta.mediaType);
-        const prev = byId.get(id);
-        if (prev) {
-          prev.score += 2;
-          if (!prev.hints.includes("Recent title chat")) prev.hints.push("Recent title chat");
-        }
-      }
-    }
-
-    if (onlyUnseen) {
-      const logs = await db.viewingLog.findMany({
+      db.contentReaction.findMany({
+        where: { userId: user.id, reactionType: "dislike" },
+        select: { tmdbId: true, mediaType: true },
+      }),
+      db.watchedTitle.findMany({
         where: { userId: user.id },
         select: { tmdbId: true, mediaType: true },
-      });
-      const watched = new Set(logs.map((l) => candidateId(l.tmdbId, l.mediaType)));
-      for (const id of [...byId.keys()]) {
-        if (watched.has(id)) byId.delete(id);
+        take: 4000,
+      }),
+      db.viewingLog.findMany({
+        where: { userId: user.id },
+        select: { tmdbId: true, mediaType: true },
+        take: 4000,
+      }),
+      db.review.findMany({
+        where: { userId: user.id, rating: { lte: 4 } },
+        select: { tmdbId: true, mediaType: true },
+        take: 500,
+      }),
+    ]);
+
+  const excluded = new Set<string>();
+  const addExcluded = (tmdbId: number, mediaType: string) => {
+    excluded.add(candidateId(tmdbId, mediaType));
+  };
+  for (const event of recentPickEvents) {
+    for (let i = 0; i < event.resultIds.length; i += 1) {
+      addExcluded(event.resultIds[i], event.resultTypes[i] ?? "movie");
+    }
+  }
+  for (const row of dislikes) addExcluded(row.tmdbId, row.mediaType);
+  for (const row of lowRatedReviews) addExcluded(row.tmdbId, row.mediaType);
+  for (const row of watchedTitles) addExcluded(row.tmdbId, row.mediaType);
+  for (const row of viewingLogs) addExcluded(row.tmdbId, row.mediaType);
+
+  const byId = new Map<string, BaseCandidate>();
+  if (trendingToday) {
+    const trending = await getTrendingMovies("day", 1);
+    const releasedTrending = (trending.results ?? []).filter((movie) => isDateReleased(movie.release_date));
+    for (const [index, movie] of releasedTrending.slice(0, 5).entries()) {
+      const id = candidateId(movie.id, "movie");
+      if (excluded.has(id)) continue;
+      const base = {
+        id,
+        tmdbId: movie.id,
+        mediaType: "movie" as const,
+        title: movie.title,
+        posterPath: movie.poster_path ?? null,
+      };
+      addHint(byId, base, "Trending today", 100 - index);
+    }
+  } else {
+    for (const list of lists) {
+      for (const it of list.items) {
+        const id = candidateId(it.tmdbId, it.mediaType);
+        if (excluded.has(id)) continue;
+        const base = {
+          id,
+          tmdbId: it.tmdbId,
+          mediaType: normMedia(it.mediaType),
+          title: it.title,
+          posterPath: it.posterPath ?? null,
+        };
+        addHint(byId, base, `List: ${list.name}`, 5 + recencyBoost(it.createdAt));
+        mergeListTouch(anchorById, base.id, list.name, it.createdAt);
+        if (it.note?.trim()) addHint(byId, base, "Has personal note", 6 + recencyBoost(it.createdAt));
       }
     }
-    if (avoidTmdbId != null) {
-      for (const [id, candidate] of [...byId.entries()]) {
-        if (candidate.tmdbId === avoidTmdbId) byId.delete(id);
+    for (const pl of playlists) {
+      for (const it of pl.items) {
+        const id = candidateId(it.tmdbId, it.mediaType);
+        if (excluded.has(id)) continue;
+        const base = {
+          id,
+          tmdbId: it.tmdbId,
+          mediaType: normMedia(it.mediaType),
+          title: it.title,
+          posterPath: it.posterPath ?? null,
+        };
+        addHint(byId, base, `Playlist: ${pl.name}`, 4 + recencyBoost(it.createdAt));
+        mergePlaylistTouch(anchorById, base.id, pl.name, it.createdAt);
+        if (it.note?.trim()) addHint(byId, base, "Has personal note", 6 + recencyBoost(it.createdAt));
       }
     }
 
-    for (const [id, candidate] of byId.entries()) {
-      if (recentRecommended.has(id)) {
-        candidate.score -= 8; // keep available, but make repeats less likely during cooldown window
+    await addDiscoveryCandidates(byId, {
+      userId: user.id,
+      favoriteGenres,
+      preferredTypes: effectivePreferredTypes,
+      excluded,
+    });
+
+    for (const s of sessions) {
+      const meta = (s.metadata as { tmdbId?: number; mediaType?: string } | null) ?? {};
+      if (typeof meta.tmdbId !== "number" || !meta.mediaType) continue;
+      const id = candidateId(meta.tmdbId, meta.mediaType);
+      if (excluded.has(id)) continue;
+      const prev = byId.get(id);
+      if (prev) {
+        prev.score += 2;
+        if (!prev.hints.includes("Recent title chat")) prev.hints.push("Recent title chat");
       }
     }
+  }
 
-    const ranked = Array.from(byId.values())
-      .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
-      .slice(0, 20);
-
-    if (ranked.length === 0) {
-      return NextResponse.json({
-        insufficientContext: true,
-        message: trendingToday
-          ? "No unseen titles were found in today's TMDB trending top picks."
-          : onlyUnseen
-            ? "No unseen titles found in your library—everything here is already logged as watched, or add more lists and try again."
-            : "Add titles to your watchlist, lists, or playlists to generate tonight picks.",
-      });
+  if (avoidTmdbId != null) {
+    for (const [id, candidate] of [...byId.entries()]) {
+      if (candidate.tmdbId === avoidTmdbId) byId.delete(id);
     }
+  }
 
-    const enriched = await Promise.all(ranked.map((c) => enrichCandidate(c)));
-    const rerankedWithScores = selectDiversePicks(rerankPicks(enriched, rerankMode), 6);
-    const percents = matchPercentsForScores(rerankedWithScores.map((x) => x.score));
-    const reranked = rerankedWithScores.map(({ pick: e }, idx) => ({
-        ...e,
-        matchPercent: percents[idx] ?? 70,
-        whyTonight: buildWhyTonight(
-          {
-            hints: e.hints,
-            isTrendingTodayPick: e.isTrendingTodayPick,
-            genreNames: e.genreNames,
-          },
-          anchorById.get(e.id) ?? EMPTY_PICK_TONIGHT_ANCHOR
-        ),
-      }));
+  for (const id of excluded) {
+    byId.delete(id);
+  }
 
-    // Non-blocking: store picks to reduce near-term repetition.
+  const ranked = Array.from(byId.values())
+    .sort((a, b) => {
+      const aDiscovery = a.hints.some((h) => h.startsWith("Matches your taste")) ? 1 : 0;
+      const bDiscovery = b.hints.some((h) => h.startsWith("Matches your taste")) ? 1 : 0;
+      if (bDiscovery !== aDiscovery) return bDiscovery - aDiscovery;
+      return b.score - a.score || a.title.localeCompare(b.title);
+    })
+    .slice(0, 24);
+
+  if (ranked.length === 0) {
+    return {
+      insufficientContext: true,
+      message: trendingToday
+        ? "No unseen titles were found in today's TMDB trending top picks."
+        : onlyUnseen
+          ? "No unseen titles found in your library—everything here is already logged as watched, or add more lists and try again."
+          : "Add titles to your watchlist, lists, or playlists to generate tonight picks.",
+    };
+  }
+
+  const enriched = await Promise.all(ranked.map((c) => enrichCandidate(c)));
+  const withMatch = enriched.map((pick) => ({
+    ...pick,
+    matchPercent: calculateContentMatchPercent({
+      genreIds: pick.genreIds,
+      mediaType: pick.mediaType,
+      favoriteGenres,
+      dislikedGenres,
+      preferredTypes: effectivePreferredTypes,
+      voteAverage: pick.imdbRating,
+      inWatchlist: pick.hints.some((h) => h.startsWith("List:") || h.startsWith("Playlist:")),
+    }),
+  }));
+  const rerankedWithScores = selectDiversePicks(rerankPicks(withMatch, rerankMode), 6);
+  const reranked = rerankedWithScores.map(({ pick: e }) => ({
+    ...e,
+    whyTonight: buildWhyTonight(
+      {
+        hints: e.hints,
+        isTrendingTodayPick: e.isTrendingTodayPick,
+        genreNames: e.genreNames,
+      },
+      anchorById.get(e.id) ?? EMPTY_PICK_TONIGHT_ANCHOR
+    ),
+  }));
+
+  if (writeCooldownLog) {
     db.aiChatEvent
       .create({
         data: {
@@ -509,10 +526,90 @@ export async function POST(request: NextRequest) {
           resultTypes: reranked.map((p) => p.mediaType),
         },
       })
-      .catch(() => {
-        // Ignore logging failures; recommendation response should still succeed.
-      });
-    return NextResponse.json({ picks: reranked });
+      .catch(() => {});
+  }
+
+  return { picks: reranked };
+}
+
+async function getCachedDefaultPicks(
+  userId: string,
+  bucket: string,
+  onlyUnseen: boolean,
+  trendingToday: boolean
+): Promise<PickForTonightApiResult> {
+  return unstable_cache(
+    async () =>
+      buildPickForTonightResult(userId, {
+        onlyUnseen,
+        trendingToday,
+        rerankMode: null,
+        avoidTmdbId: null,
+        writeCooldownLog: true,
+      }),
+    ["pick-for-tonight", userId, bucket, onlyUnseen ? "u1" : "u0", trendingToday ? "t1" : "t0"],
+    { revalidate: PICK_FOR_TONIGHT_CACHE_SECONDS }
+  )();
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    let onlyUnseen = false;
+    let trendingToday = false;
+    let rerankMode: RerankMode | null = null;
+    let avoidTmdbId: number | null = null;
+    let forceRefresh = false;
+    try {
+      const body = (await request.json()) as {
+        onlyUnseen?: unknown;
+        trendingToday?: unknown;
+        rerankMode?: unknown;
+        avoidTmdbId?: unknown;
+        forceRefresh?: unknown;
+      } | null;
+      if (body && body.onlyUnseen === true) onlyUnseen = true;
+      if (body && body.trendingToday === true) trendingToday = true;
+      if (body && body.forceRefresh === true) forceRefresh = true;
+      if (
+        body &&
+        typeof body.rerankMode === "string" &&
+        (body.rerankMode === "lighter" ||
+          body.rerankMode === "shorter" ||
+          body.rerankMode === "intense" ||
+          body.rerankMode === "different")
+      ) {
+        rerankMode = body.rerankMode;
+      }
+      if (body && typeof body.avoidTmdbId === "number" && Number.isFinite(body.avoidTmdbId)) {
+        avoidTmdbId = body.avoidTmdbId;
+      }
+    } catch {
+      // empty or invalid body — treat as default picks
+    }
+
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const user = await db.user.findUnique({
+      where: { clerkId: clerkUserId },
+      select: { id: true },
+    });
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+    const bucket = getPickForTonightBucket();
+    const useServerCache = !forceRefresh && !rerankMode && avoidTmdbId == null;
+
+    const result = useServerCache
+      ? await getCachedDefaultPicks(user.id, bucket, onlyUnseen, trendingToday)
+      : await buildPickForTonightResult(user.id, {
+          onlyUnseen,
+          trendingToday,
+          rerankMode,
+          avoidTmdbId,
+          writeCooldownLog: true,
+        });
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("pick-for-tonight/cards error:", error);
     return NextResponse.json({ error: "Failed to generate picks" }, { status: 500 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import OpenAI from "openai";
+import { calculateContentMatchPercent } from "@/lib/content-match-percent";
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({
@@ -20,18 +21,19 @@ type RoomScoreInput = {
   episodeNumber?: number | null;
 };
 
-function clampPercent(value: number): number {
-  return Math.max(55, Math.min(98, Math.round(value)));
-}
-
 function fallbackScore(room: RoomScoreInput, inWatchlist: boolean, watchedBefore: boolean, tvPreference: number): number {
-  let score = 62;
-  if (inWatchlist) score += 18;
-  if (watchedBefore) score += 8;
-  score += Math.min(8, room.watchingCount * 2);
-  score += Math.min(4, room.thoughtCount);
-  if (room.mediaType === "tv") score += Math.round(tvPreference * 6);
-  return clampPercent(score);
+  return calculateContentMatchPercent({
+    genreIds: [],
+    mediaType: room.mediaType,
+    favoriteGenres: [],
+    dislikedGenres: [],
+    preferredTypes: ["movie", "tv"],
+    inWatchlist,
+    watchedBefore,
+    watchingCount: room.watchingCount,
+    thoughtCount: room.thoughtCount,
+    tvPreferenceRatio: tvPreference,
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -135,7 +137,7 @@ export async function POST(request: NextRequest) {
     for (const room of rooms) {
       const candidate = parsed?.scores?.[room.key];
       if (typeof candidate === "number" && Number.isFinite(candidate)) {
-        merged[room.key] = clampPercent(candidate);
+        merged[room.key] = Math.max(55, Math.min(98, Math.round(candidate)));
       }
     }
 

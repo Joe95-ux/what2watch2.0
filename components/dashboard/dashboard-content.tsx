@@ -305,6 +305,7 @@ export default function DashboardContent() {
               onlyUnseen={pickForTonight.onlyUnseen}
               onOnlyUnseenChange={pickForTonight.setOnlyUnseen}
               trendingToday={pickForTonight.trendingToday}
+              skipAutoload={pickForTonight.hydratedFromCache}
             />
           )}
         </div>

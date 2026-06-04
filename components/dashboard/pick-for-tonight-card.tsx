@@ -36,7 +36,7 @@ type ApiPicks = {
 type RerankMode = "lighter" | "shorter" | "intense" | "different";
 type ExploreViewMode = "cards" | "table";
 type PendingMode = RerankMode | "base" | null;
-const PICK_CACHE_KEY = "pick-for-tonight-cache-v1";
+const PICK_CACHE_KEY = "pick-for-tonight-cache-v2";
 
 type PickCachePayload = {
   dayKey: string;
@@ -47,47 +47,56 @@ type PickCachePayload = {
 };
 
 function getDayKey(date = new Date()): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const bucket = Math.floor(date.getHours() / 6);
+  return `${day}-${bucket}`;
+}
+
+function readPickCacheFromStorage(): PickCachePayload | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PICK_CACHE_KEY);
+    if (!raw) return null;
+    const cached = JSON.parse(raw) as PickCachePayload;
+    if (cached.dayKey !== getDayKey()) return null;
+    return cached;
+  } catch {
+    return null;
+  }
 }
 
 export function usePickForTonight() {
-  const [showRow, setShowRow] = useState(false);
+  const initialCache = readPickCacheFromStorage();
+  const [showRow, setShowRow] = useState(() =>
+    Boolean(initialCache?.data?.picks?.length || initialCache?.insufficientMessage)
+  );
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<ApiPicks | null>(null);
-  const [insufficientMessage, setInsufficientMessage] = useState<string | null>(null);
+  const [data, setData] = useState<ApiPicks | null>(() => initialCache?.data ?? null);
+  const [insufficientMessage, setInsufficientMessage] = useState<string | null>(
+    () => initialCache?.insufficientMessage ?? null
+  );
   const [picksHidden, setPicksHidden] = useState(false);
   /** Default on: “tonight” picks should not surface titles already logged as watched. */
-  const [onlyUnseen, setOnlyUnseen] = useState(true);
-  const [trendingToday, setTrendingToday] = useState(false);
+  const [onlyUnseen, setOnlyUnseen] = useState(() => initialCache?.onlyUnseen ?? true);
+  const [trendingToday, setTrendingToday] = useState(() => initialCache?.trendingToday ?? false);
   const pickInFlightRef = useRef(false);
-  const hydratedFromCacheRef = useRef(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(PICK_CACHE_KEY);
-      if (!raw) return;
-      const cached = JSON.parse(raw) as PickCachePayload;
-      if (cached.dayKey !== getDayKey()) return;
-      setOnlyUnseen(cached.onlyUnseen);
-      setTrendingToday(cached.trendingToday);
-      setData(cached.data);
-      setInsufficientMessage(cached.insufficientMessage);
-      setShowRow(Boolean(cached.data?.picks?.length || cached.insufficientMessage));
-      hydratedFromCacheRef.current = true;
-    } catch {
-      // ignore stale/invalid cache payload
-    }
-  }, []);
+  const hydratedFromCache = initialCache != null;
 
   const runPick = useCallback(
-    async (options?: { onlyUnseen?: boolean; trendingToday?: boolean; rerankMode?: RerankMode; avoidTmdbId?: number }) => {
+    async (options?: {
+      onlyUnseen?: boolean;
+      trendingToday?: boolean;
+      rerankMode?: RerankMode;
+      avoidTmdbId?: number;
+      forceRefresh?: boolean;
+    }) => {
       if (pickInFlightRef.current) return;
       const unseenFlag = options?.onlyUnseen !== undefined ? options.onlyUnseen : onlyUnseen;
       const trendingFlag = options?.trendingToday !== undefined ? options.trendingToday : trendingToday;
       const hasRerank = typeof options?.rerankMode === "string";
       const hasAvoid = typeof options?.avoidTmdbId === "number";
-      if (!hasRerank && !hasAvoid && typeof window !== "undefined") {
+      const forceRefresh = options?.forceRefresh === true;
+      if (!forceRefresh && !hasRerank && !hasAvoid && typeof window !== "undefined") {
         try {
           const raw = window.localStorage.getItem(PICK_CACHE_KEY);
           if (raw) {
@@ -123,6 +132,7 @@ export function usePickForTonight() {
             trendingToday: trendingFlag,
             rerankMode: options?.rerankMode,
             avoidTmdbId: options?.avoidTmdbId,
+            forceRefresh,
           }),
         });
         const json = await res.json();
@@ -196,7 +206,7 @@ export function usePickForTonight() {
     setOnlyUnseen,
     trendingToday,
     setTrendingToday,
-    hydratedFromCache: hydratedFromCacheRef.current,
+    hydratedFromCache,
   };
 }
 
@@ -959,14 +969,23 @@ export function PickForTonightSilentSurface({
   onlyUnseen,
   onOnlyUnseenChange,
   trendingToday,
+  skipAutoload = false,
 }: {
   loading: boolean;
   data: ApiPicks | null;
   insufficientMessage: string | null;
-  runPick: (options?: { onlyUnseen?: boolean; trendingToday?: boolean; rerankMode?: RerankMode; avoidTmdbId?: number }) => Promise<void>;
+  runPick: (options?: {
+    onlyUnseen?: boolean;
+    trendingToday?: boolean;
+    rerankMode?: RerankMode;
+    avoidTmdbId?: number;
+    forceRefresh?: boolean;
+  }) => Promise<void>;
   onlyUnseen: boolean;
   onOnlyUnseenChange: (onlyUnseen: boolean) => void;
   trendingToday: boolean;
+  /** True when picks were restored from localStorage for this 6h bucket — skip network autoload. */
+  skipAutoload?: boolean;
 }) {
   const didAutoloadRef = useRef(false);
   const [activeChip, setActiveChip] = useState<null | "lighter" | "shorter" | "intense" | "different">(null);
@@ -978,9 +997,10 @@ export function PickForTonightSilentSurface({
 
   useEffect(() => {
     if (didAutoloadRef.current) return;
+    if (skipAutoload && (data?.picks?.length || insufficientMessage)) return;
     didAutoloadRef.current = true;
     void runPick();
-  }, [runPick]);
+  }, [runPick, skipAutoload, data?.picks?.length, insufficientMessage]);
 
   useEffect(() => {
     if (!data?.picks?.length) return;
@@ -1292,7 +1312,7 @@ export function PickForTonightCard() {
   return (
     <div className="flex w-full max-w-md flex-col items-end">
       <div className="flex items-center gap-0.5">
-        <PickForTonightButton onClick={() => void p.runPick()} disabled={p.loading} />
+        <PickForTonightButton onClick={() => void p.runPick({ forceRefresh: true })} disabled={p.loading} />
         <PickForTonightActionsMenu
           picksHidden={p.picksHidden}
           onPicksHiddenChange={p.setPicksHidden}

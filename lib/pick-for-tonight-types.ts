@@ -23,6 +23,7 @@ export type PickForTonightCandidate = {
   overview: string | null;
   /** TMDB genre names (first is used for “why tonight” flavor). */
   genreNames: string[];
+  genreIds: number[];
   /** Short narrative explaining why this title surfaced tonight. */
   whyTonight: string;
   /** Relative mood-aware relevance score for UI display. */
