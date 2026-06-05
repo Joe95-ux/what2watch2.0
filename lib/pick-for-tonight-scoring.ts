@@ -88,3 +88,18 @@ export function selectDiversePicks(
 
   return selected;
 }
+
+/** Reorder a pre-enriched pool locally (mood chips) without hitting the API. */
+export function applyPickPoolRerank(
+  pool: PickForTonightCandidate[],
+  mode: RerankMode | null,
+  opts?: { avoidTmdbId?: number; limit?: number }
+): PickForTonightCandidate[] {
+  const limit = opts?.limit ?? 6;
+  let candidates = pool;
+  if (opts?.avoidTmdbId != null) {
+    candidates = candidates.filter((p) => p.tmdbId !== opts.avoidTmdbId);
+  }
+  if (candidates.length === 0) return [];
+  return selectDiversePicks(rerankPicks(candidates, mode), limit).map(({ pick }) => pick);
+}

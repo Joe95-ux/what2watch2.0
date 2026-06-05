@@ -44,4 +44,6 @@ export type PickForTonightResponse =
     }
   | {
       picks: PickForTonightCandidate[];
+      /** Enriched candidates for client-side mood reranking (no extra API round-trip). */
+      pool: PickForTonightCandidate[];
     };

@@ -10,6 +10,7 @@ import {
   getMovieDetails,
   getTVDetails,
   getTrendingMovies,
+  getTrendingTV,
   discoverMovies,
   discoverTV,
 } from "@/lib/tmdb";
@@ -27,8 +28,12 @@ import {
   buildWhyTonight,
   mergeListTouch,
   mergePlaylistTouch,
+  mergeWatchlistTouch,
   type PickTonightAnchor,
 } from "@/lib/pick-for-tonight-why-tonight";
+
+const ENRICH_LIMIT = 12;
+const PICK_LIMIT = 6;
 
 type Media = "movie" | "tv";
 
@@ -142,10 +147,6 @@ async function addDiscoveryCandidates(
   }
 }
 
-function arrayModeTypeToMedia(type: string | null | undefined): Media {
-  return type === "tv" ? "tv" : "movie";
-}
-
 type BaseCandidate = {
   id: string;
   tmdbId: number;
@@ -256,7 +257,7 @@ async function enrichCandidate(c: BaseCandidate): Promise<PickForTonightCandidat
 }
 
 export type PickForTonightApiResult =
-  | { picks: PickForTonightCandidate[] }
+  | { picks: PickForTonightCandidate[]; pool: PickForTonightCandidate[] }
   | { insufficientContext: true; message: string };
 
 type BuildPickInput = {
@@ -301,7 +302,7 @@ async function buildPickForTonightResult(
   const anchorById = new Map<string, PickTonightAnchor>();
   const cooldownSince = new Date(Date.now() - 1000 * 60 * 60 * 72);
 
-  const [lists, playlists, sessions, recentPickEvents, dislikes, watchedTitles, viewingLogs, lowRatedReviews] =
+  const [lists, playlists, watchlist, sessions, recentPickEvents, dislikes, watchedTitles, viewingLogs, lowRatedReviews] =
     await Promise.all([
       db.list.findMany({
         where: { userId: user.id },
@@ -334,6 +335,18 @@ async function buildPickForTonightResult(
             },
           },
         },
+      }),
+      db.watchlistItem.findMany({
+        where: { userId: user.id },
+        select: {
+          tmdbId: true,
+          mediaType: true,
+          title: true,
+          note: true,
+          posterPath: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
       }),
       db.aiChatSession.findMany({
         where: { userId: user.id, mode: "movie-details" },
@@ -383,14 +396,19 @@ async function buildPickForTonightResult(
   }
   for (const row of dislikes) addExcluded(row.tmdbId, row.mediaType);
   for (const row of lowRatedReviews) addExcluded(row.tmdbId, row.mediaType);
-  for (const row of watchedTitles) addExcluded(row.tmdbId, row.mediaType);
-  for (const row of viewingLogs) addExcluded(row.tmdbId, row.mediaType);
+  if (onlyUnseen) {
+    for (const row of watchedTitles) addExcluded(row.tmdbId, row.mediaType);
+    for (const row of viewingLogs) addExcluded(row.tmdbId, row.mediaType);
+  }
 
   const byId = new Map<string, BaseCandidate>();
   if (trendingToday) {
-    const trending = await getTrendingMovies("day", 1);
-    const releasedTrending = (trending.results ?? []).filter((movie) => isDateReleased(movie.release_date));
-    for (const [index, movie] of releasedTrending.slice(0, 5).entries()) {
+    const [trendingMovies, trendingTv] = await Promise.all([
+      getTrendingMovies("day", 1),
+      effectivePreferredTypes.includes("tv") ? getTrendingTV("day", 1) : Promise.resolve({ results: [] }),
+    ]);
+    const releasedMovies = (trendingMovies.results ?? []).filter((movie) => isDateReleased(movie.release_date));
+    for (const [index, movie] of releasedMovies.slice(0, 4).entries()) {
       const id = candidateId(movie.id, "movie");
       if (excluded.has(id)) continue;
       const base = {
@@ -401,6 +419,19 @@ async function buildPickForTonightResult(
         posterPath: movie.poster_path ?? null,
       };
       addHint(byId, base, "Trending today", 100 - index);
+    }
+    const releasedTv = (trendingTv.results ?? []).filter((show) => isDateReleased(show.first_air_date));
+    for (const [index, show] of releasedTv.slice(0, 4).entries()) {
+      const id = candidateId(show.id, "tv");
+      if (excluded.has(id)) continue;
+      const base = {
+        id,
+        tmdbId: show.id,
+        mediaType: "tv" as const,
+        title: show.name,
+        posterPath: show.poster_path ?? null,
+      };
+      addHint(byId, base, "Trending today", 96 - index);
     }
   } else {
     for (const list of lists) {
@@ -434,6 +465,20 @@ async function buildPickForTonightResult(
         mergePlaylistTouch(anchorById, base.id, pl.name, it.createdAt);
         if (it.note?.trim()) addHint(byId, base, "Has personal note", 6 + recencyBoost(it.createdAt));
       }
+    }
+    for (const wl of watchlist) {
+      const id = candidateId(wl.tmdbId, wl.mediaType);
+      if (excluded.has(id)) continue;
+      const base = {
+        id,
+        tmdbId: wl.tmdbId,
+        mediaType: normMedia(wl.mediaType),
+        title: wl.title,
+        posterPath: wl.posterPath ?? null,
+      };
+      addHint(byId, base, "Watchlist", 7 + recencyBoost(wl.createdAt));
+      mergeWatchlistTouch(anchorById, base.id, wl.createdAt);
+      if (wl.note?.trim()) addHint(byId, base, "Has personal note", 6 + recencyBoost(wl.createdAt));
     }
 
     await addDiscoveryCandidates(byId, {
@@ -486,7 +531,7 @@ async function buildPickForTonightResult(
     };
   }
 
-  const enriched = await Promise.all(ranked.map((c) => enrichCandidate(c)));
+  const enriched = await Promise.all(ranked.slice(0, ENRICH_LIMIT).map((c) => enrichCandidate(c)));
   const withMatch = enriched.map((pick) => ({
     ...pick,
     matchPercent: calculateContentMatchPercent({
@@ -496,11 +541,12 @@ async function buildPickForTonightResult(
       dislikedGenres,
       preferredTypes: effectivePreferredTypes,
       voteAverage: pick.imdbRating,
-      inWatchlist: pick.hints.some((h) => h.startsWith("List:") || h.startsWith("Playlist:")),
+      inWatchlist: pick.hints.some(
+        (h) => h === "Watchlist" || h.startsWith("List:") || h.startsWith("Playlist:")
+      ),
     }),
   }));
-  const rerankedWithScores = selectDiversePicks(rerankPicks(withMatch, rerankMode), 6);
-  const reranked = rerankedWithScores.map(({ pick: e }) => ({
+  const pool = withMatch.map((e) => ({
     ...e,
     whyTonight: buildWhyTonight(
       {
@@ -511,6 +557,8 @@ async function buildPickForTonightResult(
       anchorById.get(e.id) ?? EMPTY_PICK_TONIGHT_ANCHOR
     ),
   }));
+  const rerankedWithScores = selectDiversePicks(rerankPicks(pool, rerankMode), PICK_LIMIT);
+  const picks = rerankedWithScores.map(({ pick }) => pick);
 
   if (writeCooldownLog) {
     db.aiChatEvent
@@ -521,15 +569,15 @@ async function buildPickForTonightResult(
           userMessage: "pick-for-tonight/cards",
           intent: "RECOMMENDATION",
           aiResponse: null,
-          resultsCount: reranked.length,
-          resultIds: reranked.map((p) => p.tmdbId),
-          resultTypes: reranked.map((p) => p.mediaType),
+          resultsCount: picks.length,
+          resultIds: picks.map((p) => p.tmdbId),
+          resultTypes: picks.map((p) => p.mediaType),
         },
       })
       .catch(() => {});
   }
 
-  return { picks: reranked };
+  return { picks, pool };
 }
 
 async function getCachedDefaultPicks(

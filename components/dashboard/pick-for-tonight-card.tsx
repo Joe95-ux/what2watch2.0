@@ -22,7 +22,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PickForTonightConfidenceRow } from "@/components/dashboard/pick-for-tonight-confidence-row";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
-import type { PickForTonightCandidate } from "@/lib/pick-for-tonight-types";
+import type { PickForTonightCandidate, PickForTonightResponse } from "@/lib/pick-for-tonight-types";
+import { getPickForTonightBucket } from "@/lib/pick-for-tonight-bucket";
+import { applyPickPoolRerank, type RerankMode } from "@/lib/pick-for-tonight-scoring";
 import { cn } from "@/lib/utils";
 import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
 import { useToggleFavorite } from "@/hooks/use-favorites";
@@ -30,13 +32,10 @@ import { useLikeContent, useContentReactions } from "@/hooks/use-content-reactio
 import { useToggleWatchlist } from "@/hooks/use-watchlist";
 import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { getPosterUrl } from "@/lib/tmdb";
-type ApiPicks = {
-  picks: PickForTonightCandidate[];
-};
-type RerankMode = "lighter" | "shorter" | "intense" | "different";
+type ApiPicks = Extract<PickForTonightResponse, { picks: PickForTonightCandidate[] }>;
 type ExploreViewMode = "cards" | "table";
 type PendingMode = RerankMode | "base" | null;
-const PICK_CACHE_KEY = "pick-for-tonight-cache-v2";
+const PICK_CACHE_KEY = "pick-for-tonight-cache-v3";
 
 type PickCachePayload = {
   dayKey: string;
@@ -46,19 +45,13 @@ type PickCachePayload = {
   insufficientMessage: string | null;
 };
 
-function getDayKey(date = new Date()): string {
-  const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  const bucket = Math.floor(date.getHours() / 6);
-  return `${day}-${bucket}`;
-}
-
 function readPickCacheFromStorage(): PickCachePayload | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(PICK_CACHE_KEY);
     if (!raw) return null;
     const cached = JSON.parse(raw) as PickCachePayload;
-    if (cached.dayKey !== getDayKey()) return null;
+    if (cached.dayKey !== getPickForTonightBucket()) return null;
     return cached;
   } catch {
     return null;
@@ -94,15 +87,33 @@ export function usePickForTonight() {
       const unseenFlag = options?.onlyUnseen !== undefined ? options.onlyUnseen : onlyUnseen;
       const trendingFlag = options?.trendingToday !== undefined ? options.trendingToday : trendingToday;
       const hasRerank = typeof options?.rerankMode === "string";
-      const hasAvoid = typeof options?.avoidTmdbId === "number";
       const forceRefresh = options?.forceRefresh === true;
-      if (!forceRefresh && !hasRerank && !hasAvoid && typeof window !== "undefined") {
+
+      if (hasRerank && !forceRefresh && data?.pool?.length) {
+        pickInFlightRef.current = true;
+        setShowRow(true);
+        setLoading(true);
+        try {
+          const picks = applyPickPoolRerank(data.pool, options?.rerankMode ?? null, {
+            avoidTmdbId: options?.avoidTmdbId,
+          });
+          if (picks.length > 0) {
+            setData({ picks, pool: data.pool });
+          }
+        } finally {
+          setLoading(false);
+          pickInFlightRef.current = false;
+        }
+        return;
+      }
+
+      if (!forceRefresh && !hasRerank && typeof window !== "undefined") {
         try {
           const raw = window.localStorage.getItem(PICK_CACHE_KEY);
           if (raw) {
             const cached = JSON.parse(raw) as PickCachePayload;
             if (
-              cached.dayKey === getDayKey() &&
+              cached.dayKey === getPickForTonightBucket() &&
               cached.onlyUnseen === unseenFlag &&
               cached.trendingToday === trendingFlag &&
               (cached.data?.picks?.length || cached.insufficientMessage)
@@ -156,7 +167,7 @@ export function usePickForTonight() {
           setInsufficientMessage(nextMessage);
           if (typeof window !== "undefined") {
             const payload: PickCachePayload = {
-              dayKey: getDayKey(),
+              dayKey: getPickForTonightBucket(),
               onlyUnseen: unseenFlag,
               trendingToday: trendingFlag,
               data: null,
@@ -172,7 +183,7 @@ export function usePickForTonight() {
           setData(nextData);
           if (typeof window !== "undefined") {
             const payload: PickCachePayload = {
-              dayKey: getDayKey(),
+              dayKey: getPickForTonightBucket(),
               onlyUnseen: unseenFlag,
               trendingToday: trendingFlag,
               data: nextData,
@@ -191,7 +202,7 @@ export function usePickForTonight() {
         pickInFlightRef.current = false;
       }
     },
-    [onlyUnseen, trendingToday]
+    [onlyUnseen, trendingToday, data]
   );
 
   return {
@@ -248,7 +259,13 @@ export function PickForTonightActionsMenu({
   trendingToday: boolean;
   onTrendingTodayChange: (value: boolean) => void;
   showRow: boolean;
-  runPick: (options?: { onlyUnseen?: boolean; trendingToday?: boolean; rerankMode?: RerankMode; avoidTmdbId?: number }) => Promise<void>;
+  runPick: (options?: {
+    onlyUnseen?: boolean;
+    trendingToday?: boolean;
+    rerankMode?: RerankMode;
+    avoidTmdbId?: number;
+    forceRefresh?: boolean;
+  }) => Promise<void>;
   loading: boolean;
 }) {
   if (!showRow) return null;
