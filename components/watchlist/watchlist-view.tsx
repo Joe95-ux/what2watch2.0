@@ -34,8 +34,6 @@ import {
   Move,
   Star,
   GripVertical,
-  ChevronLeft,
-  ChevronRight,
   ChevronUp,
   ChevronDown,
   Loader2,
@@ -70,6 +68,7 @@ import CreateListModal from "@/components/lists/create-list-modal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { GroupedPagination } from "@/components/ui/pagination";
 import type { WatchlistItem } from "@/hooks/use-watchlist";
 import {
   useMovieDetails,
@@ -468,35 +467,6 @@ export default function WatchlistView({
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, filterType, sortField, sortOrder]);
-
-  // Page numbers with ellipsis
-  const pageNumbers = useMemo(() => {
-    const pages: (number | "ellipsis")[] = [];
-    
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      pages.push(1);
-      if (currentPage > 3) {
-        pages.push("ellipsis");
-      }
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
-      for (let i = start; i <= end; i++) {
-        if (i !== 1 && i !== totalPages) {
-          pages.push(i);
-        }
-      }
-      if (currentPage < totalPages - 2) {
-        pages.push("ellipsis");
-      }
-      pages.push(totalPages);
-    }
-    
-    return pages;
-  }, [currentPage, totalPages]);
 
   // Drag and drop hook (after filteredAndSorted is defined)
   // Only enable drag-and-drop when sortField is "listOrder" and in edit mode
@@ -1625,52 +1595,12 @@ export default function WatchlistView({
                 </div>
               ))}
             </div>
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-8 w-full overflow-auto px-2 py-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="flex-shrink-0"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-                <div className="flex items-center gap-1 overflow-x-auto">
-                  {pageNumbers.map((page, index) => {
-                    if (page === "ellipsis") {
-                      return (
-                        <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
-                          ...
-                        </span>
-                      );
-                    }
-                    return (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(page)}
-                        className="min-w-[40px] flex-shrink-0"
-                      >
-                        {page}
-                      </Button>
-                    );
-                  })}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  className="flex-shrink-0"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            )}
+            <GroupedPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              className="mt-8"
+            />
             </>
           ) : effectiveViewMode === "table" ? (
             <>
@@ -1699,52 +1629,12 @@ export default function WatchlistView({
                 );
               })}
             </div>
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-8 w-full overflow-auto px-2 py-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="flex-shrink-0"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-                <div className="flex items-center gap-1 overflow-x-auto">
-                  {pageNumbers.map((page, index) => {
-                    if (page === "ellipsis") {
-                      return (
-                        <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
-                          ...
-                        </span>
-                      );
-                    }
-                    return (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(page)}
-                        className="min-w-[40px] flex-shrink-0"
-                      >
-                        {page}
-                      </Button>
-                    );
-                  })}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  className="flex-shrink-0"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            )}
+            <GroupedPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              className="mt-8"
+            />
             </>
           ) : (
             // Detailed View
@@ -1847,51 +1737,13 @@ export default function WatchlistView({
                 )}
               </Droppable>
             </DragDropContext>
-            {totalPages > 1 && !isDragEnabled && (
-              <div className="flex items-center justify-center gap-2 mt-8 w-full overflow-auto px-2 py-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="flex-shrink-0"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-                <div className="flex items-center gap-1 overflow-x-auto">
-                  {pageNumbers.map((page, index) => {
-                    if (page === "ellipsis") {
-                      return (
-                        <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
-                          ...
-                        </span>
-                      );
-                    }
-                    return (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(page)}
-                        className="min-w-[40px] flex-shrink-0"
-                      >
-                        {page}
-                      </Button>
-                    );
-                  })}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  className="flex-shrink-0"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
+            {!isDragEnabled && (
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="mt-8"
+              />
             )}
             </>
           )

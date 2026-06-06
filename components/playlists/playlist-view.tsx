@@ -522,60 +522,6 @@ export default function PlaylistView({
     setYoutubeCurrentPage(1);
   }, [youtubeSearchQuery]);
 
-  // Page numbers with ellipsis for TMDB
-  const tmdbPageNumbers = useMemo(() => {
-    const pages: (number | "ellipsis")[] = [];
-    if (tmdbTotalPages <= 7) {
-      for (let i = 1; i <= tmdbTotalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      pages.push(1);
-      if (tmdbCurrentPage > 3) {
-        pages.push("ellipsis");
-      }
-      const start = Math.max(2, tmdbCurrentPage - 1);
-      const end = Math.min(tmdbTotalPages - 1, tmdbCurrentPage + 1);
-      for (let i = start; i <= end; i++) {
-        if (i !== 1 && i !== tmdbTotalPages) {
-          pages.push(i);
-        }
-      }
-      if (tmdbCurrentPage < tmdbTotalPages - 2) {
-        pages.push("ellipsis");
-      }
-      pages.push(tmdbTotalPages);
-    }
-    return pages;
-  }, [tmdbCurrentPage, tmdbTotalPages]);
-
-  // Page numbers with ellipsis for YouTube
-  const youtubePageNumbers = useMemo(() => {
-    const pages: (number | "ellipsis")[] = [];
-    if (youtubeTotalPages <= 7) {
-      for (let i = 1; i <= youtubeTotalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      pages.push(1);
-      if (youtubeCurrentPage > 3) {
-        pages.push("ellipsis");
-      }
-      const start = Math.max(2, youtubeCurrentPage - 1);
-      const end = Math.min(youtubeTotalPages - 1, youtubeCurrentPage + 1);
-      for (let i = start; i <= end; i++) {
-        if (i !== 1 && i !== youtubeTotalPages) {
-          pages.push(i);
-        }
-      }
-      if (youtubeCurrentPage < youtubeTotalPages - 2) {
-        pages.push("ellipsis");
-      }
-      pages.push(youtubeTotalPages);
-    }
-    return pages;
-  }, [youtubeCurrentPage, youtubeTotalPages]);
-
   // Full list sorted by order for YouTube items (for drag and drop reordering) - YouTube-only playlists
   const fullSortedYouTubeByOrder = useMemo(() => {
     if (!displayYouTubeItems || displayYouTubeItems.length === 0 || isMixedPlaylist) return [];
@@ -1600,7 +1546,6 @@ export default function PlaylistView({
                       currentPage={tmdbCurrentPage}
                       totalPages={tmdbTotalPages}
                       onPageChange={setTmdbCurrentPage}
-                      pageNumbers={tmdbPageNumbers}
                     />
                   )}
                 </>
@@ -1636,7 +1581,6 @@ export default function PlaylistView({
                       currentPage={tmdbCurrentPage}
                       totalPages={tmdbTotalPages}
                       onPageChange={setTmdbCurrentPage}
-                      pageNumbers={tmdbPageNumbers}
                     />
                   )}
                 </>
@@ -1746,7 +1690,6 @@ export default function PlaylistView({
                       currentPage={tmdbCurrentPage}
                       totalPages={tmdbTotalPages}
                       onPageChange={setTmdbCurrentPage}
-                      pageNumbers={tmdbPageNumbers}
                     />
                   )}
                 </>
@@ -1883,7 +1826,6 @@ export default function PlaylistView({
                       currentPage={youtubeCurrentPage}
                       totalPages={youtubeTotalPages}
                       onPageChange={setYoutubeCurrentPage}
-                      pageNumbers={youtubePageNumbers}
                     />
                   )}
                 </>
@@ -1931,7 +1873,6 @@ export default function PlaylistView({
                       currentPage={youtubeCurrentPage}
                       totalPages={youtubeTotalPages}
                       onPageChange={setYoutubeCurrentPage}
-                      pageNumbers={youtubePageNumbers}
                     />
                   )}
                 </>
@@ -2066,7 +2007,6 @@ export default function PlaylistView({
                       currentPage={youtubeCurrentPage}
                       totalPages={youtubeTotalPages}
                       onPageChange={setYoutubeCurrentPage}
-                      pageNumbers={youtubePageNumbers}
                     />
                   )}
                 </>

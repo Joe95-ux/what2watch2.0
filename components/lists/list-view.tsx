@@ -438,35 +438,6 @@ export default function ListView({
     setCurrentPage(1);
   }, [searchQuery, filterType, sortField, sortOrder]);
 
-  // Page numbers with ellipsis
-  const pageNumbers = useMemo(() => {
-    const pages: (number | "ellipsis")[] = [];
-
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      pages.push(1);
-      if (currentPage > 3) {
-        pages.push("ellipsis");
-      }
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
-      for (let i = start; i <= end; i++) {
-        if (i !== 1 && i !== totalPages) {
-          pages.push(i);
-        }
-      }
-      if (currentPage < totalPages - 2) {
-        pages.push("ellipsis");
-      }
-      pages.push(totalPages);
-    }
-
-    return pages;
-  }, [currentPage, totalPages]);
-
   // Drag and drop hook (after filteredAndSorted is defined)
   // Only enable drag-and-drop when sortField is "listOrder" and in edit mode
   const { DragDropContext, handleDragEnd, isDragEnabled, displayedEntries } = useListDragDrop({
@@ -1398,7 +1369,6 @@ export default function ListView({
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
-                pageNumbers={pageNumbers}
               />
             </>
           ) : effectiveViewMode === "table" ? (
@@ -1432,7 +1402,6 @@ export default function ListView({
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
-                pageNumbers={pageNumbers}
               />
             </>
           ) : (
@@ -1543,7 +1512,6 @@ export default function ListView({
                   currentPage={currentPage}
                   totalPages={totalPages}
                   onPageChange={setCurrentPage}
-                  pageNumbers={pageNumbers}
                 />
               )}
             </>
