@@ -6,7 +6,8 @@ import MovieCard from "@/components/browse/movie-card";
 import { MovieCardSkeleton } from "@/components/skeletons/movie-card-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Youtube, ChevronDown } from "lucide-react";
+import { Youtube, ChevronDown } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import {
   Carousel,
   CarouselContent,
@@ -110,145 +111,14 @@ export default function NollywoodPage() {
     setCurrentPage(1);
   }, [contentFilter]);
 
-  const renderPagination = () => {
-    if (totalPages <= 1) return null;
-
-    // Generate page numbers for desktop (full pagination)
-    const generateDesktopPages = () => {
-      const pages: (number | "ellipsis")[] = [];
-      if (totalPages <= 7) {
-        for (let i = 1; i <= totalPages; i++) {
-          pages.push(i);
-        }
-      } else {
-        pages.push(1);
-        if (currentPage > 4) {
-          pages.push("ellipsis");
-        }
-        const start = Math.max(2, currentPage - 1);
-        const end = Math.min(totalPages - 1, currentPage + 1);
-        for (let i = start; i <= end; i++) {
-          if (i !== 1 && i !== totalPages) {
-            pages.push(i);
-          }
-        }
-        if (currentPage < totalPages - 3) {
-          pages.push("ellipsis");
-        }
-        pages.push(totalPages);
-      }
-      return pages;
-    };
-
-    // Generate page numbers for mobile (truncated: first, current, last)
-    const generateMobilePages = () => {
-      const pages: (number | "ellipsis")[] = [];
-      if (totalPages <= 3) {
-        for (let i = 1; i <= totalPages; i++) {
-          pages.push(i);
-        }
-      } else {
-        pages.push(1);
-        if (currentPage > 2 && currentPage < totalPages) {
-          if (currentPage > 3) {
-            pages.push("ellipsis");
-          }
-          pages.push(currentPage);
-          if (currentPage < totalPages - 1) {
-            pages.push("ellipsis");
-          }
-        } else if (currentPage === 2) {
-          pages.push(2);
-          if (totalPages > 3) {
-            pages.push("ellipsis");
-          }
-        } else if (currentPage === totalPages && totalPages > 2) {
-          pages.push("ellipsis");
-        }
-        if (currentPage !== totalPages) {
-          pages.push(totalPages);
-        }
-      }
-      return pages;
-    };
-
-    const desktopPages = generateDesktopPages();
-    const mobilePages = generateMobilePages();
-
-    return (
-      <div className="flex items-center justify-center gap-2 mt-8">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="cursor-pointer flex-shrink-0"
-        >
-          <ChevronLeft className="h-4 w-4 mr-1" />
-          <span className="hidden sm:inline">Previous</span>
-        </Button>
-        
-        {/* Mobile pagination - truncated */}
-        <div className="flex items-center gap-1 sm:hidden overflow-x-auto">
-          {mobilePages.map((page, index) => {
-            if (page === "ellipsis") {
-              return (
-                <span key={`mobile-ellipsis-${index}`} className="text-muted-foreground px-1">
-                  ...
-                </span>
-              );
-            }
-            return (
-              <Button
-                key={`mobile-${page}`}
-                variant={currentPage === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => handlePageChange(page)}
-                className="cursor-pointer min-w-[36px] flex-shrink-0"
-              >
-                {page}
-              </Button>
-            );
-          })}
-        </div>
-
-        {/* Desktop pagination - full */}
-        <div className="hidden sm:flex items-center gap-1">
-          {desktopPages.map((page, index) => {
-            if (page === "ellipsis") {
-              return (
-                <span key={`desktop-ellipsis-${index}`} className="text-muted-foreground px-2">
-                  ...
-                </span>
-              );
-            }
-            return (
-              <Button
-                key={`desktop-${page}`}
-                variant={currentPage === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => handlePageChange(page)}
-                className="cursor-pointer min-w-[40px] flex-shrink-0"
-              >
-                {page}
-              </Button>
-            );
-          })}
-        </div>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="cursor-pointer flex-shrink-0"
-        >
-          <span className="hidden sm:inline">Next</span>
-          <ChevronRight className="h-4 w-4 ml-1 sm:ml-0" />
-        </Button>
-      </div>
-    );
-  };
+  const renderPagination = () => (
+    <GroupedPagination
+      currentPage={currentPage}
+      totalPages={totalPages}
+      onPageChange={handlePageChange}
+      className="mt-8"
+    />
+  );
 
   return (
     <div className="min-h-screen bg-background">

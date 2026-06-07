@@ -20,16 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Check } from "lucide-react";
+import { ArrowLeft, ChevronRight, Plus, Check } from "lucide-react";
 import WriteReviewDialog from "@/components/reviews/write-review-dialog";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { getPosterUrl, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
@@ -538,66 +531,12 @@ export default function ReviewsPage() {
                     </div>
 
                     {/* TMDB Pagination */}
-                    {tmdbPagination.totalPages > 1 && (
-                      <div className="mt-6">
-                        <Pagination>
-                          <PaginationContent>
-                            <PaginationItem>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setTMDBPage(tmdbPage - 1)}
-                                disabled={tmdbPage === 1}
-                                className="gap-1 cursor-pointer"
-                              >
-                                <ChevronLeft className="h-4 w-4" />
-                                Previous
-                              </Button>
-                            </PaginationItem>
-
-                            {Array.from({ length: Math.min(5, tmdbPagination.totalPages) }, (_, i) => {
-                              let pageNum: number;
-                              if (tmdbPagination.totalPages <= 5) {
-                                pageNum = i + 1;
-                              } else if (tmdbPage <= 3) {
-                                pageNum = i + 1;
-                              } else if (tmdbPage >= tmdbPagination.totalPages - 2) {
-                                pageNum = tmdbPagination.totalPages - 4 + i;
-                              } else {
-                                pageNum = tmdbPage - 2 + i;
-                              }
-                              return (
-                                <PaginationItem key={pageNum}>
-                                  <PaginationLink
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      setTMDBPage(pageNum);
-                                    }}
-                                    isActive={tmdbPage === pageNum}
-                                    className="cursor-pointer"
-                                  >
-                                    {pageNum}
-                                  </PaginationLink>
-                                </PaginationItem>
-                              );
-                            })}
-
-                            <PaginationItem>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setTMDBPage(tmdbPage + 1)}
-                                disabled={tmdbPage === tmdbPagination.totalPages}
-                                className="gap-1 cursor-pointer"
-                              >
-                                Next
-                                <ChevronRight className="h-4 w-4" />
-                              </Button>
-                            </PaginationItem>
-                          </PaginationContent>
-                        </Pagination>
-                      </div>
-                    )}
+                    <GroupedPagination
+                      currentPage={tmdbPage}
+                      totalPages={tmdbPagination.totalPages}
+                      onPageChange={setTMDBPage}
+                      className="mt-6"
+                    />
                   </>
                 )}
               </TabsContent>
@@ -630,90 +569,12 @@ export default function ReviewsPage() {
                     </div>
 
                     {/* User Reviews Pagination */}
-                    {userPagination.totalPages > 1 && (
-                      <div className="mt-6">
-                        <Pagination>
-                          <PaginationContent>
-                            <PaginationItem>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePageChange(page - 1)}
-                                disabled={page === 1}
-                                className="gap-1 cursor-pointer"
-                              >
-                                <ChevronLeft className="h-4 w-4" />
-                                Previous
-                              </Button>
-                            </PaginationItem>
-
-                            {(() => {
-                              const pages: (number | "ellipsis")[] = [];
-                              pages.push(1);
-                              if (page > 3) {
-                                pages.push("ellipsis");
-                              }
-                              for (let i = Math.max(2, page - 1); i <= Math.min(userPagination.totalPages - 1, page + 1); i++) {
-                                if (i !== 1 && i !== userPagination.totalPages) {
-                                  pages.push(i);
-                                }
-                              }
-                              if (page < userPagination.totalPages - 2) {
-                                pages.push("ellipsis");
-                              }
-                              if (userPagination.totalPages > 1) {
-                                pages.push(userPagination.totalPages);
-                              }
-
-                              const uniquePages = pages.filter((p, index, self) => {
-                                if (p === "ellipsis") {
-                                  return index === self.indexOf("ellipsis") ||
-                                    (index > 0 && self[index - 1] !== "ellipsis");
-                                }
-                                return index === self.findIndex((pageNumber) => pageNumber === p);
-                              });
-
-                              return uniquePages.map((p, index) => {
-                                if (p === "ellipsis") {
-                                  return (
-                                    <PaginationItem key={`ellipsis-${index}`}>
-                                      <span className="px-2">...</span>
-                                    </PaginationItem>
-                                  );
-                                }
-                                return (
-                                  <PaginationItem key={p}>
-                                    <PaginationLink
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        handlePageChange(p);
-                                      }}
-                                      isActive={page === p}
-                                      className="cursor-pointer"
-                                    >
-                                      {p}
-                                    </PaginationLink>
-                                  </PaginationItem>
-                                );
-                              });
-                            })()}
-
-                            <PaginationItem>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePageChange(page + 1)}
-                                disabled={page === userPagination.totalPages}
-                                className="gap-1 cursor-pointer"
-                              >
-                                Next
-                                <ChevronRight className="h-4 w-4" />
-                              </Button>
-                            </PaginationItem>
-                          </PaginationContent>
-                        </Pagination>
-                      </div>
-                    )}
+                    <GroupedPagination
+                      currentPage={page}
+                      totalPages={userPagination.totalPages}
+                      onPageChange={handlePageChange}
+                      className="mt-6"
+                    />
                   </>
                 )}
               </TabsContent>

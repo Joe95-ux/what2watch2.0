@@ -9,7 +9,8 @@ import MoreLikeThisCard from "@/components/browse/more-like-this-card";
 import { MoreLikeThisCardSkeleton } from "@/components/skeletons/more-like-this-card-skeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, SlidersHorizontal } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { FiltersSheet, type SearchFilters } from "@/components/filters/filters-sheet";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
@@ -648,56 +649,12 @@ function PopularContentInner() {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex w-full items-center justify-center gap-2 overflow-auto scrollbar-hide px-2 py-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => updateURL({ page: currentPage - 1 })}
-                  disabled={currentPage === 1 || isLoading}
-                  className="cursor-pointer sm:gap-1"
-                >
-                  <ChevronLeft className="h-4 w-4 sm:mr-1" />
-                  <span className="hidden sm:inline">Previous</span>
-                </Button>
-                <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum: number;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => updateURL({ page: pageNum })}
-                        disabled={isLoading}
-                        className="min-w-[40px] cursor-pointer"
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  })}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => updateURL({ page: currentPage + 1 })}
-                  disabled={currentPage === totalPages || isLoading}
-                  className="cursor-pointer sm:gap-1"
-                >
-                  <span className="hidden sm:inline">Next</span>
-                  <ChevronRight className="h-4 w-4 sm:ml-1" />
-                </Button>
-              </div>
-            )}
+            <GroupedPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={(page) => updateURL({ page })}
+              className="mt-6"
+            />
           </>
         )}
       </div>

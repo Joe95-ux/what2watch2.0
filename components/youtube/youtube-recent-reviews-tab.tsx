@@ -7,7 +7,8 @@ import { ChannelReviewCard } from "./channel-review-card";
 import { ChannelReviewFormSheet } from "./channel-review-form-sheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { ChannelReview } from "@/hooks/use-youtube-channel-reviews";
 import { useYouTubeChannelLists, type YouTubeChannelList } from "@/hooks/use-youtube-channel-lists";
 import { ChannelListBuilder } from "./channel-lists/channel-list-builder";
@@ -178,32 +179,12 @@ export function YouTubeRecentReviewsTab() {
             </div>
 
             {/* Pagination */}
-            {pagination && pagination.totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="cursor-pointer"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Page {pagination.page} of {pagination.totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-                  disabled={page === pagination.totalPages}
-                  className="cursor-pointer"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+            {pagination && (
+              <GroupedPagination
+                currentPage={page}
+                totalPages={pagination.totalPages}
+                onPageChange={setPage}
+              />
             )}
           </>
         )}

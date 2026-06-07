@@ -9,6 +9,7 @@ import { getPosterUrl } from "@/lib/tmdb";
 import { createPersonSlug } from "@/lib/person-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { useToggleFavoritePersonality } from "@/hooks/use-favorite-personalities";
 import {
   Carousel,
@@ -688,29 +689,12 @@ export default function CastSection({ cast, crew, isLoading, type = "movie" }: C
               <p className="text-sm text-muted-foreground">
                 Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredAndSorted.length)} of {filteredAndSorted.length} results
               </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="cursor-pointer"
-                >
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="cursor-pointer"
-                >
-                  Next
-                </Button>
-              </div>
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="w-auto mt-0"
+              />
             </div>
           )}
         </div>

@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { Activity, MessageSquare, Sparkles, TrendingUp, Clock, MousePointerClick, Plus, Users, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Download, MoreHorizontal } from "lucide-react";
+import { Activity, MessageSquare, Sparkles, TrendingUp, Clock, MousePointerClick, Plus, Users, Calendar as CalendarIcon, Download, MoreHorizontal } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -23,15 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import { GroupedPagination } from "@/components/ui/pagination";
 
 export default function AiUsageContent() {
   const [quickRange, setQuickRange] = useState<"1d" | "7d" | "30d">("30d");
@@ -156,47 +148,6 @@ export default function AiUsageContent() {
       count: item.count,
     }));
   }, [data?.trend]);
-
-  // Generate page numbers with ellipsis for pagination
-  const pageNumbers = useMemo(() => {
-    const totalPages = eventsData?.pagination.totalPages || 1;
-    const pages: (number | "ellipsis")[] = [];
-    
-    if (totalPages <= 7) {
-      // Show all pages if 7 or fewer
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Always show first page
-      pages.push(1);
-      
-      // Add ellipsis if current page is far from start
-      if (currentPage > 3) {
-        pages.push("ellipsis");
-      }
-      
-      // Add pages around current page
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
-      
-      for (let i = start; i <= end; i++) {
-        if (i !== 1 && i !== totalPages) {
-          pages.push(i);
-        }
-      }
-      
-      // Add ellipsis if current page is far from end
-      if (currentPage < totalPages - 2) {
-        pages.push("ellipsis");
-      }
-      
-      // Always show last page
-      pages.push(totalPages);
-    }
-    
-    return pages;
-  }, [currentPage, eventsData?.pagination.totalPages]);
 
   // CSV export function - fetches all events for the current filter
   const handleExportCSV = async () => {
@@ -516,62 +467,12 @@ export default function AiUsageContent() {
                   </TableBody>
                 </Table>
               </div>
-              {eventsData.pagination.totalPages > 1 && (
-                <div className="flex items-center justify-end py-4">
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                          disabled={currentPage === 1}
-                          className="h-9 w-9"
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                          <span className="sr-only">Previous page</span>
-                        </Button>
-                      </PaginationItem>
-                      {pageNumbers.map((page, index) => {
-                        if (page === "ellipsis") {
-                          return (
-                            <PaginationItem key={`ellipsis-${index}`}>
-                              <PaginationEllipsis />
-                            </PaginationItem>
-                          );
-                        }
-                        return (
-                          <PaginationItem key={page}>
-                            <Button
-                              variant={currentPage === page ? "outline" : "ghost"}
-                              size="icon"
-                              onClick={() => setCurrentPage(page)}
-                              className={cn(
-                                "h-9 w-9",
-                                currentPage === page && "bg-primary text-primary/80"
-                              )}
-                            >
-                              {page}
-                            </Button>
-                          </PaginationItem>
-                        );
-                      })}
-                      <PaginationItem>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setCurrentPage((prev) => Math.min(eventsData.pagination.totalPages, prev + 1))}
-                          disabled={currentPage === eventsData.pagination.totalPages}
-                          className="h-9 w-9"
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                          <span className="sr-only">Next page</span>
-                        </Button>
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={eventsData.pagination.totalPages}
+                onPageChange={setCurrentPage}
+                className="justify-end py-4"
+              />
             </>
           ) : (
             <div className="text-center py-12 text-muted-foreground">

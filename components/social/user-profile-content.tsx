@@ -15,7 +15,8 @@ import { MovieCardSkeleton } from "@/components/skeletons/movie-card-skeleton";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Playlist } from "@/hooks/use-playlists";
 import { List as ListType } from "@/hooks/use-lists";
-import { Users, UserCheck, List, Star, Heart, ChevronLeft, ChevronRight, ClipboardList, Activity, ArrowLeft, MessagesSquare, ArrowRight } from "lucide-react";
+import { Users, UserCheck, List, Star, Heart, ClipboardList, Activity, ArrowLeft, MessagesSquare, ArrowRight } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useUserReviews } from "@/hooks/use-reviews";
@@ -442,31 +443,12 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                   />
                 ))}
               </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              )}
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="mt-6"
+              />
             </>
           )}
         </>
@@ -531,31 +513,12 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                   />
                 ))}
               </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              )}
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="mt-6"
+              />
             </>
           )}
         </>
@@ -582,68 +545,12 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                   <ReviewCard key={review.id} review={review} />
                 ))}
               </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-8">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="flex-shrink-0"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                      let pageNum: number;
-                      if (totalPages <= 7) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 4) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 3) {
-                        pageNum = totalPages - 6 + i;
-                      } else {
-                        pageNum = currentPage - 3 + i;
-                      }
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={currentPage === pageNum ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(pageNum)}
-                          className="min-w-[40px]"
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    })}
-                    {totalPages > 7 && currentPage < totalPages - 3 && (
-                      <>
-                        <span className="px-2 text-muted-foreground">...</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(totalPages)}
-                          className="min-w-[40px]"
-                        >
-                          {totalPages}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="flex-shrink-0"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              )}
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="mt-8"
+              />
             </>
           )}
         </>
@@ -844,68 +751,12 @@ export default function UserProfileContent({ userId: propUserId }: UserProfileCo
                   </div>
                 ))}
               </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="flex-shrink-0"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1 overflow-x-auto">
-                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                      let pageNum: number;
-                      if (totalPages <= 7) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 4) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 3) {
-                        pageNum = totalPages - 6 + i;
-                      } else {
-                        pageNum = currentPage - 3 + i;
-                      }
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={currentPage === pageNum ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(pageNum)}
-                          className="min-w-[40px] flex-shrink-0"
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    })}
-                    {totalPages > 7 && currentPage < totalPages - 3 && (
-                      <>
-                        <span className="px-2 text-muted-foreground">...</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(totalPages)}
-                          className="min-w-[40px] flex-shrink-0"
-                        >
-                          {totalPages}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="flex-shrink-0"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              )}
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="mt-6"
+              />
             </>
           )}
         </>

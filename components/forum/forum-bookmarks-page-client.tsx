@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Bookmark, BookmarkCheck, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ForumPostCardReddit } from "./forum-post-card-reddit";
 import { useUser } from "@clerk/nextjs";
@@ -152,28 +153,13 @@ export function ForumBookmarksPageClient() {
                   ))}
                 </div>
 
-                {pagination && pagination.totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-6">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage(p => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                    >
-                      Previous
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      Page {page} of {pagination.totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
-                      disabled={page === pagination.totalPages}
-                    >
-                      Next
-                    </Button>
-                  </div>
+                {pagination && (
+                  <GroupedPagination
+                    currentPage={page}
+                    totalPages={pagination.totalPages}
+                    onPageChange={setPage}
+                    className="mt-6"
+                  />
                 )}
               </>
             )}

@@ -15,6 +15,7 @@ import {
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { ArrowUpDown, Check, MessageCircle, PenLine, Pencil } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { ChannelReviewRatingSummary } from "@/components/youtube/channel-review-rating-summary";
 
 function ChannelReviewCardSkeleton() {
@@ -315,27 +316,12 @@ export function YouTubeChannelReviews({
   const renderPagination = () => {
     if (!pagination || pagination.totalPages <= 1) return null;
     return (
-      <div className="flex items-center justify-center gap-4 pt-6">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-          disabled={page === 1}
-        >
-          Previous
-        </Button>
-        <p className="text-sm text-muted-foreground">
-          Page {pagination.page} of {pagination.totalPages}
-        </p>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setPage((prev) => prev + 1)}
-          disabled={page >= pagination.totalPages}
-        >
-          Next
-        </Button>
-      </div>
+      <GroupedPagination
+        currentPage={page}
+        totalPages={pagination.totalPages}
+        onPageChange={setPage}
+        className="pt-6"
+      />
     );
   };
 

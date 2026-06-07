@@ -9,7 +9,8 @@ import { useYouTubeCardStyle, useUpdateYouTubeCardStyle } from "@/hooks/use-yout
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronLeft, ChevronRight, LayoutGrid, Rows3 } from "lucide-react";
+import { Search, LayoutGrid, Rows3 } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 
 interface Channel {
@@ -198,55 +199,13 @@ export function YouTubeChannelsTab() {
           </div>
 
           {/* Pagination */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="cursor-pointer"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                  .filter((pageNum) => {
-                    return (
-                      pageNum === 1 ||
-                      pageNum === pagination.totalPages ||
-                      (pageNum >= page - 1 && pageNum <= page + 1)
-                    );
-                  })
-                  .map((pageNum, index, array) => {
-                    const showEllipsisBefore = index > 0 && array[index - 1] < pageNum - 1;
-                    return (
-                      <div key={pageNum} className="flex items-center gap-1">
-                        {showEllipsisBefore && (
-                          <span className="text-muted-foreground px-2">...</span>
-                        )}
-                        <Button
-                          variant={page === pageNum ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setPage(pageNum)}
-                          className="min-w-[2.5rem] cursor-pointer"
-                        >
-                          {pageNum}
-                        </Button>
-                      </div>
-                    );
-                  })}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-                disabled={page >= pagination.totalPages}
-                className="cursor-pointer"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+          {pagination && (
+            <GroupedPagination
+              currentPage={page}
+              totalPages={pagination.totalPages}
+              onPageChange={setPage}
+              className="mt-6"
+            />
           )}
         </>
       )}

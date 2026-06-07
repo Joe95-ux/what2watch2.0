@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { GroupedPagination } from "@/components/ui/pagination";
 import {
   Table,
   TableBody,
@@ -1179,27 +1180,12 @@ function PlaylistLeaderboard({
               {Math.min(currentPage * itemsPerPage, sortedLeaderboard.length)} of{" "}
               {sortedLeaderboard.length} playlists
             </div>
-            <div className="flex items-center gap-2 w-full overflow-auto md:w-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              <div className="text-sm text-muted-foreground flex-shrink-0">
-                Page {currentPage} of {totalPages}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </Button>
-            </div>
+            <GroupedPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              className="w-auto mt-0"
+            />
           </div>
         )}
       </CardContent>
@@ -1388,27 +1374,12 @@ function ListLeaderboard({
               {Math.min(currentPage * itemsPerPage, sortedLeaderboard.length)} of{" "}
               {sortedLeaderboard.length} lists
             </div>
-            <div className="flex items-center gap-2 w-full overflow-auto md:w-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              <div className="text-sm text-muted-foreground flex-shrink-0">
-                Page {currentPage} of {totalPages}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </Button>
-            </div>
+            <GroupedPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              className="w-auto mt-0"
+            />
           </div>
         )}
       </CardContent>

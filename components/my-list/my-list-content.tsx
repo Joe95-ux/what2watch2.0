@@ -11,7 +11,8 @@ import { useFavoritePersonalities, useToggleFavoritePersonality } from "@/hooks/
 import { TMDBMovie, TMDBSeries, getPosterUrl } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LayoutGrid, List, X, Plus, Star, ChevronLeft, ChevronRight, Youtube, Info } from "lucide-react";
+import { LayoutGrid, List, X, Plus, Star, Youtube, Info } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { Heart, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import MovieCard from "@/components/browse/movie-card";
@@ -193,20 +194,6 @@ export default function MyListContent() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredAndSorted.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredAndSorted, currentPage, itemsPerPage]);
-
-  const pageNumbers = useMemo(() => {
-    const maxButtons = 5;
-    if (totalPages <= maxButtons) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    if (currentPage <= 3) {
-      return [1, 2, 3, 4, 5];
-    }
-    if (currentPage >= totalPages - 2) {
-      return Array.from({ length: maxButtons }, (_, i) => totalPages - 4 + i);
-    }
-    return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
-  }, [currentPage, totalPages]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -692,43 +679,12 @@ export default function MyListContent() {
         </div>
       )}
 
-      {filteredAndSorted.length > 0 && totalPages > 1 && (
-        <div className="mt-8 flex w-full items-center justify-center gap-2 overflow-auto px-2 py-1">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-            className="cursor-pointer disabled:cursor-not-allowed"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
-          </Button>
-          <div className="flex items-center gap-1 overflow-auto">
-            {pageNumbers.map((page) => (
-              <Button
-                key={page}
-                variant={currentPage === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCurrentPage(page)}
-                className="min-w-[40px] cursor-pointer"
-              >
-                {page}
-              </Button>
-            ))}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-            disabled={currentPage === totalPages}
-            className="cursor-pointer disabled:cursor-not-allowed"
-          >
-            Next
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
-      )}
+      <GroupedPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        className="mt-8"
+      />
 
       {/* Remove Confirmation Dialog */}
       <AlertDialog open={!!itemToRemove} onOpenChange={(open) => !open && setItemToRemove(null)}>

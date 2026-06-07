@@ -7,7 +7,7 @@ import ListCard from "@/components/browse/list-card";
 import PlaylistCard from "@/components/browse/playlist-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import {
   Select,
   SelectContent,
@@ -22,15 +22,6 @@ const ITEMS_PER_PAGE = 12; // 3 per row × 4 rows
 
 type SortOption = "popularity" | "newest" | "oldest" | "name";
 type FilterType = "all" | "editorial" | "lists" | "playlists";
-
-function buildVisiblePageNumbers(currentPage: number, totalPages: number): number[] {
-  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
-  if (currentPage <= 4) return [1, 2, 3, 4, 5, totalPages - 1, totalPages];
-  if (currentPage >= totalPages - 3) {
-    return [1, 2, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
-  }
-  return [1, currentPage - 1, currentPage, currentPage + 1, totalPages];
-}
 
 export function WatchGuideTab() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -189,41 +180,12 @@ export function WatchGuideTab() {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-            className="cursor-pointer"
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          {buildVisiblePageNumbers(currentPage, totalPages).map((page) => (
-            <Button
-              key={page}
-              variant={page === currentPage ? "default" : "outline"}
-              size="sm"
-              onClick={() => setCurrentPage(page)}
-              className="cursor-pointer min-w-9"
-            >
-              {page}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-            disabled={currentPage === totalPages}
-            className="cursor-pointer"
-            aria-label="Next page"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
+      <GroupedPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        className="mt-8"
+      />
     </div>
   );
 }

@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Film, Search, Filter, X, ArrowUpDown, ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react";
+import { Film, Search, Filter, X, ArrowUpDown, ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YouTubeChannelExtractorInline } from "@/components/youtube/youtube-channel-extractor-inline";
 import { YouTubeChannelCard } from "@/components/youtube/youtube-channel-card";
@@ -607,58 +608,12 @@ export default function AdminYouTubeManagementContent() {
               </div>
               
               {/* Active Channels Pagination */}
-              {activeTotalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-6">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setActivePage((prev) => Math.max(1, prev - 1))}
-                    disabled={activePage === 1}
-                    className="gap-1"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: activeTotalPages }, (_, i) => i + 1)
-                      .filter((page) => {
-                        return (
-                          page === 1 ||
-                          page === activeTotalPages ||
-                          (page >= activePage - 1 && page <= activePage + 1)
-                        );
-                      })
-                      .map((page, index, array) => {
-                        const showEllipsisBefore = index > 0 && array[index - 1] < page - 1;
-                        return (
-                          <div key={page} className="flex items-center gap-1">
-                            {showEllipsisBefore && (
-                              <span className="text-muted-foreground px-2">...</span>
-                            )}
-                            <Button
-                              variant={activePage === page ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => setActivePage(page)}
-                              className="min-w-[2.5rem]"
-                            >
-                              {page}
-                            </Button>
-                          </div>
-                        );
-                      })}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setActivePage((prev) => Math.min(activeTotalPages, prev + 1))}
-                    disabled={activePage === activeTotalPages}
-                    className="gap-1"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
+              <GroupedPagination
+                currentPage={activePage}
+                totalPages={activeTotalPages}
+                onPageChange={setActivePage}
+                className="mt-6"
+              />
             </div>
           )}
 
@@ -703,58 +658,12 @@ export default function AdminYouTubeManagementContent() {
               </div>
               
               {/* Inactive Channels Pagination */}
-              {inactiveTotalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-6">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setInactivePage((prev) => Math.max(1, prev - 1))}
-                    disabled={inactivePage === 1}
-                    className="gap-1"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: inactiveTotalPages }, (_, i) => i + 1)
-                      .filter((page) => {
-                        return (
-                          page === 1 ||
-                          page === inactiveTotalPages ||
-                          (page >= inactivePage - 1 && page <= inactivePage + 1)
-                        );
-                      })
-                      .map((page, index, array) => {
-                        const showEllipsisBefore = index > 0 && array[index - 1] < page - 1;
-                        return (
-                          <div key={page} className="flex items-center gap-1">
-                            {showEllipsisBefore && (
-                              <span className="text-muted-foreground px-2">...</span>
-                            )}
-                            <Button
-                              variant={inactivePage === page ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => setInactivePage(page)}
-                              className="min-w-[2.5rem]"
-                            >
-                              {page}
-                            </Button>
-                          </div>
-                        );
-                      })}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setInactivePage((prev) => Math.min(inactiveTotalPages, prev + 1))}
-                    disabled={inactivePage === inactiveTotalPages}
-                    className="gap-1"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
+              <GroupedPagination
+                currentPage={inactivePage}
+                totalPages={inactiveTotalPages}
+                onPageChange={setInactivePage}
+                className="mt-6"
+              />
             </div>
           )}
 

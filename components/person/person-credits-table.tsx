@@ -5,15 +5,8 @@ import { useRouter } from "next/navigation";
 import { TMDBPersonMovieCredits, TMDBPersonTVCredits } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
+import { ArrowUpDown } from "lucide-react";
 
 type CreditType = "all" | "movies" | "tv";
 type RoleType = "all" | "cast" | "crew";
@@ -326,107 +319,12 @@ export default function PersonCreditsTable({
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-6">
-          <Pagination>
-            <PaginationContent className="flex flex-wrap items-center justify-center gap-2">
-              <PaginationItem>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className={
-                    currentPage === 1
-                      ? "gap-0 px-2 cursor-not-allowed"
-                      : "gap-0 px-2 cursor-pointer"
-                  }
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-              </PaginationItem>
-              
-              {(() => {
-                const pages: (number | "ellipsis")[] = [];
-                
-                // Always show first page
-                pages.push(1);
-                
-                // Add ellipsis if needed
-                if (currentPage > 3) {
-                  pages.push("ellipsis");
-                }
-                
-                // Add pages around current
-                for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-                  if (i !== 1 && i !== totalPages) {
-                    pages.push(i);
-                  }
-                }
-                
-                // Add ellipsis if needed
-                if (currentPage < totalPages - 2) {
-                  pages.push("ellipsis");
-                }
-                
-                // Always show last page
-                if (totalPages > 1) {
-                  pages.push(totalPages);
-                }
-                
-                // Remove duplicates
-                const uniquePages = pages.filter((page, index, self) => {
-                  if (page === "ellipsis") {
-                    return index === self.indexOf("ellipsis") || 
-                           (index > 0 && self[index - 1] !== "ellipsis");
-                  }
-                  return index === self.findIndex((p) => p === page);
-                });
-                
-                return uniquePages.map((page, index) => {
-                  if (page === "ellipsis") {
-                    return (
-                      <PaginationItem key={`ellipsis-${index}`}>
-                        <span className="px-2">...</span>
-                      </PaginationItem>
-                    );
-                  }
-                  return (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handlePageChange(page);
-                        }}
-                        isActive={currentPage === page}
-                        className="cursor-pointer px-2 rounded-sm"
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  );
-                });
-              })()}
-
-              <PaginationItem>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className={
-                    currentPage === totalPages
-                      ? "gap-0 px-2 cursor-not-allowed"
-                      : "gap-0 px-2 cursor-pointer"
-                  }
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
+      <GroupedPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+        className="mt-6"
+      />
     </section>
   );
 }

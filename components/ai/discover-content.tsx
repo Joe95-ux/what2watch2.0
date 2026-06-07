@@ -14,7 +14,7 @@ import Image from "next/image";
 import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { ChatInput } from "@/components/ai/chat-input";
 import {
   DropdownMenu,
@@ -732,33 +732,12 @@ export default function DiscoverContent() {
                 </ScrollArea>
 
                 {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t w-full gap-2 overflow-auto px-2 py-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      className="flex-1 sm:flex-initial"
-                    >
-                      <ChevronLeft className="h-4 w-4 sm:mr-1" />
-                      <span className="hidden sm:inline">Previous</span>
-                    </Button>
-                    <div className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
-                      Page {currentPage} of {totalPages}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                      className="flex-1 sm:flex-initial"
-                    >
-                      <span className="hidden sm:inline">Next</span>
-                      <ChevronRight className="h-4 w-4 sm:ml-1" />
-                    </Button>
-                  </div>
-                )}
+                <GroupedPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  className="mt-4 pt-4 border-t w-full"
+                />
               </div>
             ) : null}
 

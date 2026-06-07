@@ -4,7 +4,8 @@ import { useState, useMemo, useEffect } from "react";
 import { useViewingLogs, useDeleteViewingLog, useUpdateViewingLog, type ViewingLog } from "@/hooks/use-viewing-logs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Trash2, Film, Tv, Edit, Table2, Grid3x3, CalendarIcon, Heart, Star, FileText, X, Filter, ChevronLeft, ChevronRight, Bookmark, ArrowUpDown, ArrowUp, ArrowDown, Repeat } from "lucide-react";
+import { Trash2, Film, Tv, Edit, Table2, Grid3x3, CalendarIcon, Heart, Star, FileText, X, Filter, Bookmark, ArrowUpDown, ArrowUp, ArrowDown, Repeat } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
 import Image from "next/image";
 import { getPosterUrl, TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -1029,54 +1030,12 @@ export default function DiaryContent() {
               <div className="text-sm text-muted-foreground">
                 Showing {(tableCurrentPage - 1) * tablePageSize + 1} to {Math.min(tableCurrentPage * tablePageSize, filteredAndSortedLogs.length)} of {filteredAndSortedLogs.length} entries
               </div>
-              <div className="flex items-center gap-2 w-full overflow-auto md:w-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setTableCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={tableCurrentPage === 1}
-                  className="cursor-pointer"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                <div className="flex items-center gap-1 overflow-auto">
-                  {Array.from({ length: paginatedTableData.totalPages }, (_, i) => i + 1)
-                    .filter(page => {
-                      // Show first page, last page, current page, and pages around current
-                      return page === 1 || 
-                             page === paginatedTableData.totalPages || 
-                             (page >= tableCurrentPage - 1 && page <= tableCurrentPage + 1);
-                    })
-                    .map((page, index, array) => {
-                      // Add ellipsis if there's a gap
-                      const showEllipsisBefore = index > 0 && array[index - 1] < page - 1;
-                      return (
-                        <div key={page} className="flex items-center gap-1">
-                          {showEllipsisBefore && <span className="text-muted-foreground px-2">...</span>}
-                          <Button
-                            variant={tableCurrentPage === page ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setTableCurrentPage(page)}
-                            className="cursor-pointer min-w-[2.5rem]"
-                          >
-                            {page}
-                          </Button>
-                        </div>
-                      );
-                    })}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setTableCurrentPage(prev => Math.min(paginatedTableData.totalPages, prev + 1))}
-                  disabled={tableCurrentPage === paginatedTableData.totalPages}
-                  className="cursor-pointer"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+              <GroupedPagination
+                currentPage={tableCurrentPage}
+                totalPages={paginatedTableData.totalPages}
+                onPageChange={setTableCurrentPage}
+                className="w-auto mt-0"
+              />
             </div>
           )}
         </div>

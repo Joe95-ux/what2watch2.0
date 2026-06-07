@@ -14,7 +14,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, Mail, ChevronLeft, ChevronRight, Loader2, Search, Filter, Download, X, ChevronDown, ChevronUp, CalendarIcon, ArrowUpDown, ArrowDown, ArrowUp, Trash2, CheckCheck, MoreVertical, Copy, UserRound, FileText, Tag, History, UserPlus, Plus } from "lucide-react";
+import { Eye, Mail, Loader2, Search, Filter, Download, X, ChevronDown, ChevronUp, CalendarIcon, ArrowUpDown, ArrowDown, ArrowUp, Trash2, CheckCheck, MoreVertical, Copy, UserRound, FileText, Tag, History, UserPlus, Plus } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { toast } from "sonner";
 import { formatDistanceToNow, format, subDays, startOfDay, endOfDay } from "date-fns";
 import {
@@ -1516,26 +1517,12 @@ export function FeedbackManagementTable() {
           <div className="text-sm text-muted-foreground">
             Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-              disabled={page >= pagination.totalPages}
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <GroupedPagination
+            currentPage={page}
+            totalPages={pagination.totalPages}
+            onPageChange={setPage}
+            className="w-auto mt-0"
+          />
         </div>
       )}
 

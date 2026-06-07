@@ -5,7 +5,8 @@ import { usePlaylists, useDeletePlaylist, type Playlist } from "@/hooks/use-play
 import { useLikedPlaylists } from "@/hooks/use-playlist-likes";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { Plus, Grid3x3, Table2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Grid3x3, Table2 } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -322,31 +323,12 @@ export default function PlaylistsContent() {
               </TableBody>
             </Table>
           </div>
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          )}
+          <GroupedPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            className="mt-6"
+          />
         </>
       ) : (
         <>
@@ -360,31 +342,12 @@ export default function PlaylistsContent() {
               />
             ))}
           </div>
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          )}
+          <GroupedPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            className="mt-6"
+          />
         </>
       )}
 

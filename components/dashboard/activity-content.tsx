@@ -21,11 +21,10 @@ import {
   UserPlus,
   Calendar,
   Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
   X,
   MessageSquare
 } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -376,46 +375,6 @@ export default function ActivityContent() {
   }, [grouped, allActivities]);
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
-  // Generate page numbers with ellipsis
-  const pageNumbers = useMemo(() => {
-    const pages: (number | "ellipsis")[] = [];
-    
-    if (totalPages <= 7) {
-      // Show all pages if 7 or fewer
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Always show first page
-      pages.push(1);
-      
-      // Add ellipsis if current page is far from start
-      if (currentPage > 3) {
-        pages.push("ellipsis");
-      }
-      
-      // Add pages around current page
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
-      
-      for (let i = start; i <= end; i++) {
-        if (i !== 1 && i !== totalPages) {
-          pages.push(i);
-        }
-      }
-      
-      // Add ellipsis if current page is far from end
-      if (currentPage < totalPages - 2) {
-        pages.push("ellipsis");
-      }
-      
-      // Always show last page
-      pages.push(totalPages);
-    }
-    
-    return pages;
-  }, [currentPage, totalPages]);
-
   // Paginated activities
   const paginatedActivities = useMemo(() => {
     if (grouped) {
@@ -705,50 +664,12 @@ export default function ActivityContent() {
               <p className="text-sm text-muted-foreground">
                 Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, totalItems)} of {totalItems} results
               </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="flex-shrink-0"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-                <div className="flex items-center gap-1 overflow-x-auto">
-                  {pageNumbers.map((page, index) => {
-                    if (page === "ellipsis") {
-                      return (
-                        <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
-                          ...
-                        </span>
-                      );
-                    }
-                    return (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(page)}
-                        className="min-w-[40px] flex-shrink-0"
-                      >
-                        {page}
-                      </Button>
-                    );
-                  })}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="flex-shrink-0"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="w-auto mt-0"
+              />
             </div>
           )}
         </div>

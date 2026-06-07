@@ -12,18 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type FilterType = "all" | "movie" | "tv";
@@ -42,7 +34,6 @@ export default function PersonKnownFor({
   knownForDepartment,
 }: PersonKnownForProps) {
   const router = useRouter();
-  const isMobile = useIsMobile();
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -248,122 +239,12 @@ export default function PersonKnownFor({
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-6">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className={cn(
-                    "gap-0 px-2",
-                    isMobile && "px-2",
-                    currentPage === 1 ? "cursor-not-allowed" : "cursor-pointer",
-                  )}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-              </PaginationItem>
-              
-              {(() => {
-                const pages: (number | "ellipsis")[] = [];
-                
-                // If less than 6 pages, show all pages
-                if (totalPages <= 5) {
-                  for (let i = 1; i <= totalPages; i++) {
-                    pages.push(i);
-                  }
-                } else {
-                  // Always show first page
-                  pages.push(1);
-                  
-                  // Show at least 1 2 3 4 5 before ellipsis
-                  if (currentPage <= 5) {
-                    // Show pages 2-5
-                    for (let i = 2; i <= Math.min(5, totalPages - 1); i++) {
-                      pages.push(i);
-                    }
-                    // Add ellipsis if there are more pages
-                    if (totalPages > 5) {
-                      pages.push("ellipsis");
-                    }
-                  } else if (currentPage >= totalPages - 4) {
-                    // Show ellipsis and last 5 pages
-                    pages.push("ellipsis");
-                    for (let i = Math.max(2, totalPages - 4); i < totalPages; i++) {
-                      pages.push(i);
-                    }
-                  } else {
-                    // Show ellipsis, pages around current, and ellipsis
-                    pages.push("ellipsis");
-                    for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-                      pages.push(i);
-                    }
-                    pages.push("ellipsis");
-                  }
-                  
-                  // Always show last page if more than 5 pages
-                  if (totalPages > 5) {
-                    pages.push(totalPages);
-                  }
-                }
-                
-                // Remove duplicate ellipsis
-                const uniquePages = pages.filter((page, index, self) => {
-                  if (page === "ellipsis") {
-                    return index === self.indexOf("ellipsis") || 
-                           (index > 0 && self[index - 1] !== "ellipsis");
-                  }
-                  return index === self.findIndex((p) => p === page);
-                });
-                
-                return uniquePages.map((page, index) => {
-                  if (page === "ellipsis") {
-                    return (
-                      <PaginationItem key={`ellipsis-${index}`}>
-                        <span className="px-2">...</span>
-                      </PaginationItem>
-                    );
-                  }
-                  return (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handlePageChange(page);
-                        }}
-                        isActive={currentPage === page}
-                            className="cursor-pointer px-2 rounded-sm"
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  );
-                });
-              })()}
-
-              <PaginationItem>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className={cn(
-                    "gap-0 px-2",
-                    isMobile && "px-2",
-                    currentPage === totalPages ? "cursor-not-allowed" : "cursor-pointer",
-                  )}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
+      <GroupedPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+        className="mt-6"
+      />
     </section>
   );
 }

@@ -25,7 +25,8 @@ import MovieCard from "@/components/browse/movie-card";
 import ContentDetailModal from "@/components/browse/content-detail-modal";
 import { MovieCardSkeleton } from "@/components/skeletons/movie-card-skeleton";
 import { Playlist } from "@/hooks/use-playlists";
-import { Users, UserCheck, List, Star, Heart, Edit, Image as ImageIcon, KeyRound, User as UserIcon, ChevronLeft, ChevronRight, MessagesSquare, ArrowRight, UserCircle } from "lucide-react";
+import { Users, UserCheck, List, Star, Heart, Edit, Image as ImageIcon, KeyRound, User as UserIcon, MessagesSquare, ArrowRight, UserCircle } from "lucide-react";
+import { GroupedPagination } from "@/components/ui/pagination";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAvatar } from "@/contexts/avatar-context";
 import { useUserFollowers, useUserFollowing, type User } from "@/hooks/use-follow";
@@ -302,40 +303,6 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
     }
   }, [currentUser?.bannerUrl, currentUser?.bannerGradientId, currentUser, selectedBannerGradient]);
 
-  // Generate page numbers with ellipsis for pagination
-  // MUST be called before any early returns to maintain hook order
-  const pageNumbers = useMemo(() => {
-    try {
-      const pages: (number | "ellipsis")[] = [];
-      const safeTotalPages = Math.max(1, totalPages || 1);
-      const safeCurrentPage = Math.max(1, Math.min(currentPage || 1, safeTotalPages));
-      
-      if (safeTotalPages <= 7) {
-        for (let i = 1; i <= safeTotalPages; i++) {
-          pages.push(i);
-        }
-      } else {
-        pages.push(1);
-        if (safeCurrentPage > 3) {
-          pages.push("ellipsis");
-        }
-        const start = Math.max(2, safeCurrentPage - 1);
-        const end = Math.min(safeTotalPages - 1, safeCurrentPage + 1);
-        for (let i = start; i <= end; i++) {
-          pages.push(i);
-        }
-        if (safeCurrentPage < safeTotalPages - 2) {
-          pages.push("ellipsis");
-        }
-        pages.push(safeTotalPages);
-      }
-      return pages;
-    } catch (error) {
-      console.error("Error calculating pageNumbers:", error);
-      return [1];
-    }
-  }, [totalPages, currentPage]);
-
   // Defensive early return: show skeleton if critical data is loading or missing
   if (isLoadingCurrentUser || !currentUser || isLoadingPlaylists || isLoadingLists) {
     return (
@@ -502,52 +469,12 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
                   />
                 ))}
               </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="flex-shrink-0"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1 overflow-x-auto">
-                    {pageNumbers.map((page, index) => {
-                      if (page === "ellipsis") {
-                        return (
-                          <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
-                            ...
-                          </span>
-                        );
-                      }
-                      return (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className="min-w-[40px] flex-shrink-0"
-                        >
-                          {page}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="flex-shrink-0"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              )}
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="mt-6"
+              />
             </>
           )}
         </>
@@ -581,52 +508,12 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
                   />
                 ))}
               </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="flex-shrink-0"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1 overflow-x-auto">
-                    {pageNumbers.map((page, index) => {
-                      if (page === "ellipsis") {
-                        return (
-                          <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
-                            ...
-                          </span>
-                        );
-                      }
-                      return (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className="min-w-[40px] flex-shrink-0"
-                        >
-                          {page}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="flex-shrink-0"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              )}
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="mt-6"
+              />
             </>
           )}
         </>
@@ -664,52 +551,12 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
                   </div>
                 ))}
               </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="flex-shrink-0"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1 overflow-x-auto">
-                    {pageNumbers.map((page, index) => {
-                      if (page === "ellipsis") {
-                        return (
-                          <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
-                            ...
-                          </span>
-                        );
-                      }
-                      return (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className="min-w-[40px] flex-shrink-0"
-                        >
-                          {page}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="flex-shrink-0"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              )}
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="mt-6"
+              />
             </>
           )}
         </>
@@ -739,68 +586,12 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
                   <ReviewCard key={review.id} review={review} />
                 ))}
               </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-8">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="flex-shrink-0"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                      let pageNum: number;
-                      if (totalPages <= 7) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 4) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 3) {
-                        pageNum = totalPages - 6 + i;
-                      } else {
-                        pageNum = currentPage - 3 + i;
-                      }
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={currentPage === pageNum ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(pageNum)}
-                          className="min-w-[40px]"
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    })}
-                    {totalPages > 7 && currentPage < totalPages - 3 && (
-                      <>
-                        <span className="px-2 text-muted-foreground">...</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(totalPages)}
-                          className="min-w-[40px]"
-                        >
-                          {totalPages}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="flex-shrink-0"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              )}
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="mt-8"
+              />
             </>
           )}
         </>
@@ -967,52 +758,12 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
                   </div>
                 ))}
               </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="flex-shrink-0"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1 overflow-x-auto">
-                    {pageNumbers.map((page, index) => {
-                      if (page === "ellipsis") {
-                        return (
-                          <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
-                            ...
-                          </span>
-                        );
-                      }
-                      return (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className="min-w-[40px] flex-shrink-0"
-                        >
-                          {page}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="flex-shrink-0"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              )}
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="mt-6"
+              />
             </>
           )}
         </>
@@ -1047,52 +798,12 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
                 </div>
               ))}
               </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="flex-shrink-0"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1 overflow-x-auto">
-                    {pageNumbers.map((page, index) => {
-                      if (page === "ellipsis") {
-                        return (
-                          <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
-                            ...
-                          </span>
-                        );
-                      }
-                      return (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className="min-w-[40px] flex-shrink-0"
-                        >
-                          {page}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="flex-shrink-0"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              )}
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="mt-6"
+              />
             </>
           )}
         </div>
@@ -1127,52 +838,12 @@ export default function DashboardProfileContent({ userId: serverUserId }: Dashbo
                 </div>
               ))}
               </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-6 w-full overflow-auto px-2 py-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="flex-shrink-0"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1 overflow-x-auto">
-                    {pageNumbers.map((page, index) => {
-                      if (page === "ellipsis") {
-                        return (
-                          <span key={`ellipsis-${index}`} className="text-muted-foreground px-2">
-                            ...
-                          </span>
-                        );
-                      }
-                      return (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className="min-w-[40px] flex-shrink-0"
-                        >
-                          {page}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                    className="flex-shrink-0"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              )}
+              <GroupedPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                className="mt-6"
+              />
             </>
           )}
         </div>
