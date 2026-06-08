@@ -35,7 +35,25 @@ import { getPosterUrl } from "@/lib/tmdb";
 type ApiPicks = Extract<PickForTonightResponse, { picks: PickForTonightCandidate[] }>;
 type ExploreViewMode = "cards" | "table";
 type PendingMode = RerankMode | "base" | null;
-const PICK_CACHE_KEY = "pick-for-tonight-cache-v3";
+
+function moodRerankOpts(
+  displayedPick: PickForTonightCandidate | null,
+  mode: RerankMode | null,
+  options?: { avoidTmdbId?: number }
+) {
+  const avoidLeadGenre =
+    mode === "different" || mode === "thoughtful"
+      ? (displayedPick?.genreNames?.[0] ?? null)
+      : null;
+  return {
+    avoidTmdbId:
+      options?.avoidTmdbId ??
+      (mode === "different" ? displayedPick?.tmdbId : undefined),
+    avoidLeadGenre,
+    previousTmdbId: displayedPick?.tmdbId,
+  };
+}
+const PICK_CACHE_KEY = "pick-for-tonight-cache-v4";
 
 type PickCachePayload = {
   dayKey: string;
@@ -81,6 +99,8 @@ export function usePickForTonight() {
       trendingToday?: boolean;
       rerankMode?: RerankMode;
       avoidTmdbId?: number;
+      avoidLeadGenre?: string | null;
+      previousTmdbId?: number;
       forceRefresh?: boolean;
     }) => {
       if (pickInFlightRef.current) return;
@@ -96,6 +116,8 @@ export function usePickForTonight() {
         try {
           const picks = applyPickPoolRerank(data.pool, options?.rerankMode ?? null, {
             avoidTmdbId: options?.avoidTmdbId,
+            avoidLeadGenre: options?.avoidLeadGenre,
+            previousTmdbId: options?.previousTmdbId,
           });
           if (picks.length > 0) {
             setData({ picks, pool: data.pool });
@@ -143,6 +165,7 @@ export function usePickForTonight() {
             trendingToday: trendingFlag,
             rerankMode: options?.rerankMode,
             avoidTmdbId: options?.avoidTmdbId,
+            avoidLeadGenre: options?.avoidLeadGenre,
             forceRefresh,
           }),
         });
@@ -449,21 +472,20 @@ function adjustedIntentCopy(mode: RerankMode, item?: PickForTonightCandidate): s
   const genre = item?.genreNames?.[0]?.toLowerCase();
   const runtime = item?.runtimeText;
   if (mode === "lighter") {
-    return genre
-      ? `Adjusted for lighter mood: Softer ${genre} energy, but still keeps the craft and emotional pull you gravitate to.`
-      : "Adjusted for lighter mood: Tender and warm, but still has the craft and emotional depth you gravitate to.";
+    return "Adjusted for feel-good mood: Comedy, romance, and lighter ratings ranked above heavy or mature picks.";
   }
   if (mode === "shorter") {
     return runtime
-      ? `Adjusted for shorter runtime: A tighter ${runtime} watch that still matches the tone and quality you usually save.`
-      : "Adjusted for shorter runtime: Quicker watch, still aligned with the tone and quality you usually save.";
+      ? `Adjusted for quick watch: Shorter runtimes like ${runtime} ranked first.`
+      : "Adjusted for quick watch: Shorter commitments ranked first.";
   }
   if (mode === "intense") {
-    return genre
-      ? `Adjusted for more intensity: Sharper stakes with a stronger ${genre} edge, while keeping your preferred cinematic style.`
-      : "Adjusted for more intensity: Sharper stakes and stronger edge, while keeping the cinematic style you lean toward.";
+    return "Adjusted for gripping mood: Thriller, crime, and high-stakes picks ranked above lighter comfort watches.";
   }
-  return "Adjusted for something different: A deliberate pivot from your last pick, while preserving quality and relevance.";
+  if (mode === "thoughtful") {
+    return "Adjusted for thought-provoking mood: Drama, sci-fi, and documentary-leaning picks with more weight than easy comedies.";
+  }
+  return "Adjusted for something different: A deliberate pivot away from your last pick's genre lane.";
 }
 
 function matchPercentTone(p: number): string {
@@ -963,20 +985,11 @@ const RERANK_MODE_CHIPS: Array<{ id: RerankMode; label: string }> = RERANK_CHIPS
 );
 const EXPLORE_MOOD_CHIPS: Array<{ id: RerankMode | null; label: string }> = [
   { id: null, label: "For you" },
-  { id: "intense", label: "Gripping" },
+  { id: "intense", label: "Gripping thriller" },
   { id: "lighter", label: "Feel-good" },
-  { id: "different", label: "Thought-provoking" },
+  { id: "thoughtful", label: "Thought-provoking" },
   { id: "shorter", label: "Quick watch" },
 ];
-
-function deriveExploreMoodChips(seedPick: PickForTonightCandidate | null): Array<{ id: RerankMode | null; label: string }> {
-  const genre = seedPick?.genreNames?.[0]?.trim();
-  if (!genre) return EXPLORE_MOOD_CHIPS;
-  return EXPLORE_MOOD_CHIPS.map((chip) => {
-    if (chip.id === "intense") return { ...chip, label: `Gripping ${genre}` };
-    return chip;
-  });
-}
 
 export function PickForTonightSilentSurface({
   loading,
@@ -1005,7 +1018,7 @@ export function PickForTonightSilentSurface({
   skipAutoload?: boolean;
 }) {
   const didAutoloadRef = useRef(false);
-  const [activeChip, setActiveChip] = useState<null | "lighter" | "shorter" | "intense" | "different">(null);
+  const [activeChip, setActiveChip] = useState<RerankMode | null>(null);
   const [isExploreMode, setIsExploreMode] = useState(false);
   const [exploreView, setExploreView] = useState<ExploreViewMode>("cards");
   const [displayedPick, setDisplayedPick] = useState<PickForTonightCandidate | null>(null);
@@ -1034,11 +1047,12 @@ export function PickForTonightSilentSurface({
     setActiveChip(mode);
     setPendingChip(mode);
     try {
+      const moodOpts = moodRerankOpts(displayedPick, mode);
       await runPick({
         onlyUnseen,
         trendingToday,
         rerankMode: mode,
-        avoidTmdbId: mode === "different" ? displayedPick?.tmdbId : undefined,
+        ...moodOpts,
       });
     } finally {
       setPendingChip(null);
@@ -1049,11 +1063,12 @@ export function PickForTonightSilentSurface({
     setActiveChip(mode);
     setPendingChip(mode ?? "base");
     try {
+      const moodOpts = mode ? moodRerankOpts(displayedPick, mode) : {};
       await runPick({
         onlyUnseen,
         trendingToday,
         rerankMode: mode ?? undefined,
-        avoidTmdbId: mode === "different" ? displayedPick?.tmdbId : undefined,
+        ...moodOpts,
       });
     } finally {
       setPendingChip(null);
@@ -1075,7 +1090,7 @@ export function PickForTonightSilentSurface({
       onlyUnseen: nextOnlyUnseen,
       trendingToday,
       rerankMode: activeChip ?? undefined,
-      avoidTmdbId: activeChip === "different" ? displayedPick?.tmdbId : undefined,
+      ...(activeChip ? moodRerankOpts(displayedPick, activeChip) : {}),
     });
   };
   const enterExploreMode = () => {
@@ -1088,7 +1103,7 @@ export function PickForTonightSilentSurface({
   };
   const isRerankLoading = loading && pendingChip !== null;
   const isInitialLoading = loading && pendingChip === null;
-  const exploreMoodChips = useMemo(() => deriveExploreMoodChips(displayedPick), [displayedPick]);
+  const exploreMoodChips = EXPLORE_MOOD_CHIPS;
 
   return (
     <div className="mt-3 w-full space-y-3">

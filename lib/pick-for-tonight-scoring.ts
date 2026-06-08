@@ -1,6 +1,37 @@
 import type { PickForTonightCandidate } from "@/lib/pick-for-tonight-types";
 
-export type RerankMode = "lighter" | "shorter" | "intense" | "different";
+export type RerankMode = "lighter" | "shorter" | "intense" | "different" | "thoughtful";
+
+const GRIPPING_GENRES = new Set([
+  "thriller",
+  "horror",
+  "crime",
+  "mystery",
+  "war",
+  "action",
+  "adventure",
+]);
+
+const FEEL_GOOD_GENRES = new Set([
+  "comedy",
+  "romance",
+  "family",
+  "animation",
+  "music",
+  "musical",
+  "fantasy",
+]);
+
+const THOUGHTFUL_GENRES = new Set([
+  "drama",
+  "documentary",
+  "history",
+  "biography",
+  "science fiction",
+  "sci-fi",
+  "war",
+  "mystery",
+]);
 
 function parseRuntimeToMinutes(runtimeText: string | null | undefined): number | null {
   if (!runtimeText) return null;
@@ -18,35 +49,113 @@ function isMatureRating(rated: string | null | undefined): boolean {
   return r.includes("R") || r.includes("NC-17") || r.includes("TV-MA");
 }
 
+function normalizedGenres(pick: PickForTonightCandidate): string[] {
+  return (pick.genreNames ?? []).map((g) => g.trim().toLowerCase()).filter(Boolean);
+}
+
+function genreAffinity(genres: string[], preferred: Set<string>, penalized: Set<string>): number {
+  let score = 0;
+  for (const g of genres) {
+    if (preferred.has(g)) score += 14;
+    if (penalized.has(g)) score -= 18;
+  }
+  return score;
+}
+
+function moodGenreBoost(pick: PickForTonightCandidate, mode: RerankMode): number {
+  const genres = normalizedGenres(pick);
+  if (genres.length === 0) return 0;
+
+  switch (mode) {
+    case "intense":
+      return genreAffinity(genres, GRIPPING_GENRES, FEEL_GOOD_GENRES);
+    case "lighter":
+      return genreAffinity(genres, FEEL_GOOD_GENRES, GRIPPING_GENRES);
+    case "thoughtful":
+      return (
+        genreAffinity(genres, THOUGHTFUL_GENRES, new Set(["comedy"])) +
+        (pick.overview && pick.overview.length > 120 ? 4 : 0) +
+        ((pick.imdbRating ?? 0) >= 7.5 ? 6 : 0)
+      );
+    case "different":
+      return 0;
+    default:
+      return 0;
+  }
+}
+
+function leadGenre(pick: PickForTonightCandidate): string {
+  return normalizedGenres(pick)[0] ?? "";
+}
+
+function ensurePrimaryChanges(
+  picks: PickForTonightCandidate[],
+  previousTmdbId: number | undefined
+): PickForTonightCandidate[] {
+  if (!previousTmdbId || picks.length <= 1 || picks[0].tmdbId !== previousTmdbId) return picks;
+  const prevLead = leadGenre(picks[0]);
+  const alt =
+    picks.find((p) => p.tmdbId !== previousTmdbId && leadGenre(p) !== prevLead) ??
+    picks.find((p) => p.tmdbId !== previousTmdbId);
+  if (!alt) return picks;
+  return [alt, ...picks.filter((p) => p.tmdbId !== alt.tmdbId)];
+}
+
 export function rerankPicks(
   picks: PickForTonightCandidate[],
-  mode: RerankMode | null
+  mode: RerankMode | null,
+  opts?: { avoidLeadGenre?: string | null }
 ): Array<{ pick: PickForTonightCandidate; score: number }> {
+  const avoidGenre = opts?.avoidLeadGenre?.trim().toLowerCase() ?? "";
+
   const score = (p: PickForTonightCandidate): number => {
     const runtime = parseRuntimeToMinutes(p.runtimeText) ?? 120;
     const mature = isMatureRating(p.rated);
     const watchCommitmentMinutes =
       p.mediaType === "tv" ? Math.round(runtime * 2.2 + 20) : runtime;
-    const discoveryBoost = p.hints.some((h) => h.startsWith("Matches your taste")) ? 6 : 0;
+    const isDiscovery = p.hints.some((h) => h.startsWith("Matches your taste"));
+    const discoveryBoost = isDiscovery ? 8 : 0;
+    const libraryBoost = p.hints.some((h) => h === "Watchlist" || h.startsWith("List:") || h.startsWith("Playlist:"))
+      ? 3
+      : 0;
+
     const base =
-      p.matchPercent +
+      p.matchPercent * 0.55 +
       discoveryBoost +
-      (p.imdbRating ?? 0) * 0.4 +
-      (p.justwatchRank24h ? Math.max(0, 12 - p.justwatchRank24h * 0.4) : 0);
+      libraryBoost +
+      (p.imdbRating ?? 0) * 0.35 +
+      (p.justwatchRank24h ? Math.max(0, 10 - p.justwatchRank24h * 0.35) : 0);
 
     if (!mode) return base;
+
+    let moodScore = base + moodGenreBoost(p, mode);
+
     switch (mode) {
       case "shorter":
-        return base + (140 - watchCommitmentMinutes) * 0.35;
+        moodScore += (140 - watchCommitmentMinutes) * 0.55;
+        break;
       case "lighter":
-        return base + (mature ? -12 : 12) - watchCommitmentMinutes * 0.06;
+        moodScore += (mature ? -16 : 14) - watchCommitmentMinutes * 0.08;
+        break;
       case "intense":
-        return base + (mature ? 14 : 0) + watchCommitmentMinutes * 0.05;
-      case "different":
-        return base + (mature ? 2 : 0) - watchCommitmentMinutes * 0.02;
+        moodScore += (mature ? 16 : 4) + watchCommitmentMinutes * 0.06;
+        break;
+      case "thoughtful":
+        moodScore += mature ? 4 : 0;
+        moodScore -= watchCommitmentMinutes * 0.04;
+        break;
+      case "different": {
+        const g = leadGenre(p);
+        if (avoidGenre && g === avoidGenre) moodScore -= 28;
+        else if (avoidGenre && g) moodScore += 10;
+        moodScore -= watchCommitmentMinutes * 0.03;
+        break;
+      }
       default:
-        return base;
+        break;
     }
+
+    return moodScore;
   };
 
   return [...picks]
@@ -69,9 +178,9 @@ export function selectDiversePicks(
 
     for (let i = 0; i < pool.length; i += 1) {
       const current = pool[i];
-      const leadGenre = current.pick.genreNames?.[0]?.toLowerCase() ?? "";
-      const genrePenalty = leadGenre ? (genreSeen.get(leadGenre) ?? 0) * 8 : 0;
-      const mediaPenalty = (mediaSeen.get(current.pick.mediaType) ?? 0) * 4;
+      const lead = leadGenre(current.pick);
+      const genrePenalty = lead ? (genreSeen.get(lead) ?? 0) * 12 : 0;
+      const mediaPenalty = (mediaSeen.get(current.pick.mediaType) ?? 0) * 5;
       const adjusted = current.score - genrePenalty - mediaPenalty;
       if (adjusted > bestAdjusted) {
         bestAdjusted = adjusted;
@@ -81,7 +190,7 @@ export function selectDiversePicks(
 
     const chosen = pool.splice(bestIndex, 1)[0];
     selected.push(chosen);
-    const g = chosen.pick.genreNames?.[0]?.toLowerCase();
+    const g = leadGenre(chosen.pick);
     if (g) genreSeen.set(g, (genreSeen.get(g) ?? 0) + 1);
     mediaSeen.set(chosen.pick.mediaType, (mediaSeen.get(chosen.pick.mediaType) ?? 0) + 1);
   }
@@ -93,7 +202,12 @@ export function selectDiversePicks(
 export function applyPickPoolRerank(
   pool: PickForTonightCandidate[],
   mode: RerankMode | null,
-  opts?: { avoidTmdbId?: number; limit?: number }
+  opts?: {
+    avoidTmdbId?: number;
+    avoidLeadGenre?: string | null;
+    previousTmdbId?: number;
+    limit?: number;
+  }
 ): PickForTonightCandidate[] {
   const limit = opts?.limit ?? 6;
   let candidates = pool;
@@ -101,5 +215,8 @@ export function applyPickPoolRerank(
     candidates = candidates.filter((p) => p.tmdbId !== opts.avoidTmdbId);
   }
   if (candidates.length === 0) return [];
-  return selectDiversePicks(rerankPicks(candidates, mode), limit).map(({ pick }) => pick);
+
+  const ranked = rerankPicks(candidates, mode, { avoidLeadGenre: opts?.avoidLeadGenre });
+  const selected = selectDiversePicks(ranked, limit).map(({ pick }) => pick);
+  return ensurePrimaryChanges(selected, opts?.previousTmdbId);
 }

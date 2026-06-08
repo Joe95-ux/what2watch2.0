@@ -32,7 +32,8 @@ import {
   type PickTonightAnchor,
 } from "@/lib/pick-for-tonight-why-tonight";
 
-const ENRICH_LIMIT = 12;
+const ENRICH_LIMIT = 16;
+const POOL_LIMIT = 12;
 const PICK_LIMIT = 6;
 
 type Media = "movie" | "tv";
@@ -265,6 +266,7 @@ type BuildPickInput = {
   trendingToday: boolean;
   rerankMode: RerankMode | null;
   avoidTmdbId: number | null;
+  avoidLeadGenre: string | null;
   writeCooldownLog: boolean;
 };
 
@@ -272,7 +274,7 @@ async function buildPickForTonightResult(
   userId: string,
   input: BuildPickInput
 ): Promise<PickForTonightApiResult> {
-  const { onlyUnseen, trendingToday, rerankMode, avoidTmdbId, writeCooldownLog } = input;
+  const { onlyUnseen, trendingToday, rerankMode, avoidTmdbId, avoidLeadGenre, writeCooldownLog } = input;
 
   const user = await db.user.findUnique({
     where: { id: userId },
@@ -476,7 +478,7 @@ async function buildPickForTonightResult(
         title: wl.title,
         posterPath: wl.posterPath ?? null,
       };
-      addHint(byId, base, "Watchlist", 7 + recencyBoost(wl.createdAt));
+      addHint(byId, base, "Watchlist", 5 + recencyBoost(wl.createdAt));
       mergeWatchlistTouch(anchorById, base.id, wl.createdAt);
       if (wl.note?.trim()) addHint(byId, base, "Has personal note", 6 + recencyBoost(wl.createdAt));
     }
@@ -531,7 +533,13 @@ async function buildPickForTonightResult(
     };
   }
 
-  const enriched = await Promise.all(ranked.slice(0, ENRICH_LIMIT).map((c) => enrichCandidate(c)));
+  const discoveryRanked = ranked.filter((c) => c.hints.some((h) => h.startsWith("Matches your taste")));
+  const libraryRanked = ranked.filter((c) => !c.hints.some((h) => h.startsWith("Matches your taste")));
+  const toEnrich = [
+    ...discoveryRanked.slice(0, 6),
+    ...libraryRanked.slice(0, Math.max(0, ENRICH_LIMIT - Math.min(6, discoveryRanked.length))),
+  ].slice(0, ENRICH_LIMIT);
+  const enriched = await Promise.all(toEnrich.map((c) => enrichCandidate(c)));
   const withMatch = enriched.map((pick) => ({
     ...pick,
     matchPercent: calculateContentMatchPercent({
@@ -546,7 +554,7 @@ async function buildPickForTonightResult(
       ),
     }),
   }));
-  const pool = withMatch.map((e) => ({
+  const withWhy = withMatch.map((e) => ({
     ...e,
     whyTonight: buildWhyTonight(
       {
@@ -557,7 +565,11 @@ async function buildPickForTonightResult(
       anchorById.get(e.id) ?? EMPTY_PICK_TONIGHT_ANCHOR
     ),
   }));
-  const rerankedWithScores = selectDiversePicks(rerankPicks(pool, rerankMode), PICK_LIMIT);
+  const pool = selectDiversePicks(rerankPicks(withWhy, null), POOL_LIMIT).map(({ pick }) => pick);
+  const rerankedWithScores = selectDiversePicks(
+    rerankPicks(withWhy, rerankMode, { avoidLeadGenre }),
+    PICK_LIMIT
+  );
   const picks = rerankedWithScores.map(({ pick }) => pick);
 
   if (writeCooldownLog) {
@@ -593,6 +605,7 @@ async function getCachedDefaultPicks(
         trendingToday,
         rerankMode: null,
         avoidTmdbId: null,
+        avoidLeadGenre: null,
         writeCooldownLog: true,
       }),
     ["pick-for-tonight", userId, bucket, onlyUnseen ? "u1" : "u0", trendingToday ? "t1" : "t0"],
@@ -606,6 +619,7 @@ export async function POST(request: NextRequest) {
     let trendingToday = false;
     let rerankMode: RerankMode | null = null;
     let avoidTmdbId: number | null = null;
+    let avoidLeadGenre: string | null = null;
     let forceRefresh = false;
     try {
       const body = (await request.json()) as {
@@ -613,6 +627,7 @@ export async function POST(request: NextRequest) {
         trendingToday?: unknown;
         rerankMode?: unknown;
         avoidTmdbId?: unknown;
+        avoidLeadGenre?: unknown;
         forceRefresh?: unknown;
       } | null;
       if (body && body.onlyUnseen === true) onlyUnseen = true;
@@ -624,12 +639,16 @@ export async function POST(request: NextRequest) {
         (body.rerankMode === "lighter" ||
           body.rerankMode === "shorter" ||
           body.rerankMode === "intense" ||
-          body.rerankMode === "different")
+          body.rerankMode === "different" ||
+          body.rerankMode === "thoughtful")
       ) {
         rerankMode = body.rerankMode;
       }
       if (body && typeof body.avoidTmdbId === "number" && Number.isFinite(body.avoidTmdbId)) {
         avoidTmdbId = body.avoidTmdbId;
+      }
+      if (body && typeof body.avoidLeadGenre === "string" && body.avoidLeadGenre.trim()) {
+        avoidLeadGenre = body.avoidLeadGenre.trim();
       }
     } catch {
       // empty or invalid body — treat as default picks
@@ -654,6 +673,7 @@ export async function POST(request: NextRequest) {
           trendingToday,
           rerankMode,
           avoidTmdbId,
+          avoidLeadGenre,
           writeCooldownLog: true,
         });
 

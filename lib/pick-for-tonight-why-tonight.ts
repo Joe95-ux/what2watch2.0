@@ -74,76 +74,81 @@ export type WhyTonightInput = {
 };
 
 /**
- * Short, human “Why tonight:” blurb from real signals (lists, playlists, watchlist age, chat, notes, trending).
+ * Short “Why tonight” blurb — prioritizes discovery, lists, and behaviour over watchlist tenure.
  */
 export function buildWhyTonight(candidate: WhyTonightInput, anchor: PickTonightAnchor, now = new Date()): string {
   if (candidate.isTrendingTodayPick || candidate.hints.some((h) => h.toLowerCase().includes("trending today"))) {
     return "Why tonight: It's trending today—easy pick if you want something people are actually watching right now.";
   }
 
+  const isDiscovery = candidate.hints.some((h) => h.startsWith("Matches your taste"));
   const hasNote = candidate.hints.includes("Has personal note");
   const recentChat = candidate.hints.includes("Recent title chat");
+  const onWatchlist = candidate.hints.includes("Watchlist");
+  const listHint = candidate.hints.find((h) => h.startsWith("List:"));
+  const playlistHint = candidate.hints.find((h) => h.startsWith("Playlist:"));
   const primaryGenre = candidate.genreNames[0]?.trim();
   const variationSeed = (candidate.hints.join("|").length + (primaryGenre?.length ?? 0)) % 3;
 
-  /** Order matters: lead with taste, then tenure, then where it lives in your library, then intent signals. */
   const clauses: string[] = [];
 
-  if (primaryGenre) {
-    const g = primaryGenre.toLowerCase();
-    if (variationSeed === 0) {
-      clauses.push(`You've leaned into ${g} titles lately, and this one fits that lane.`);
-    } else if (variationSeed === 1) {
-      clauses.push(`Your recent picks have a ${g} pattern, and this lands right in that pocket.`);
+  if (isDiscovery) {
+    if (primaryGenre) {
+      clauses.push(
+        `Fresh ${primaryGenre.toLowerCase()} pick from TMDB discovery—it matches your genre tastes but isn't sitting in your saved lists.`
+      );
     } else {
-      clauses.push(`You keep gravitating toward ${g} stories, and this matches that taste.`);
+      clauses.push("Surfaced from discovery based on your genre preferences—not pulled from a list you've already built.");
     }
   }
 
-  if (anchor.watchlistedAt) {
+  if (listHint) {
+    const name = listHint.replace(/^List:\s*/, "").trim();
+    if (name) clauses.push(`Your list "${name}" keeps pointing here.`);
+  }
+
+  if (playlistHint) {
+    const name = playlistHint.replace(/^Playlist:\s*/, "").trim();
+    if (name) clauses.push(`It's queued on your playlist "${name}".`);
+  }
+
+  if (recentChat) {
+    clauses.push("You recently opened its details chat, so it's already on your radar.");
+  }
+
+  if (hasNote) {
+    clauses.push("You left a personal note when you saved it—that usually means real intent.");
+  }
+
+  if (!isDiscovery && primaryGenre && clauses.length < 2) {
+    const g = primaryGenre.toLowerCase();
+    if (variationSeed === 0) {
+      clauses.push(`Lines up with the ${g} titles you've been collecting lately.`);
+    } else if (variationSeed === 1) {
+      clauses.push(`Fits the ${g} lane your library has been leaning toward.`);
+    } else {
+      clauses.push(`A solid ${g} match for how you've been browsing and saving.`);
+    }
+  }
+
+  if (onWatchlist && anchor.watchlistedAt && clauses.length < 2) {
     const days = calendarDaysSince(anchor.watchlistedAt, now);
-    const shouldMentionWatchlistAge =
-      days >= 21 || // long-standing saves should almost always be surfaced
-      clauses.length === 0 || // if we lack stronger context, use this
-      (variationSeed === 0 && days >= 7); // otherwise mention only sometimes
-    if (shouldMentionWatchlistAge) {
-      if (days >= 14) {
-        clauses.push(`It's been sitting on your watchlist for ${days} days.`);
-      } else if (days >= 7) {
-        clauses.push(`It's been on your watchlist for about a week (${days} days).`);
-      } else if (days >= 1) {
-        clauses.push(`It only landed on your watchlist ${days} day${days === 1 ? "" : "s"} ago—still fresh.`);
-      } else {
-        clauses.push("It just hit your watchlist—worth striking while the mood is there.");
+    const onlyWatchlistSignal =
+      !listHint && !playlistHint && !isDiscovery && !recentChat && !hasNote;
+    if (onlyWatchlistSignal || days >= 45) {
+      if (days >= 30) {
+        clauses.push(`It's been on your watchlist for ${days} days—tonight might be the night.`);
+      } else if (days >= 14) {
+        clauses.push(`Saved to your watchlist a couple of weeks ago (${days} days).`);
+      } else if (days >= 3) {
+        clauses.push("Still fairly new on your watchlist—you saved it while the mood was there.");
       }
     }
   }
 
-  const lists = anchor.listNames.filter(Boolean);
-  if (lists.length === 1) {
-    clauses.push(`Your list "${lists[0]}" keeps surfacing it.`);
-  } else if (lists.length >= 2) {
-    clauses.push(`It shows up on "${lists[0]}" and "${lists[1]}", so you've bumped into it more than once.`);
-  }
-
-  const playlists = anchor.playlistNames.filter(Boolean);
-  if (playlists.length === 1 && lists.length === 0) {
-    clauses.push(`Your playlist "${playlists[0]}" is holding a spot for it.`);
-  } else if (playlists.length >= 1 && lists.length > 0) {
-    clauses.push(`It's also parked in "${playlists[0]}" on the playlist side.`);
-  }
-
-  if (recentChat) {
-    clauses.push("You recently opened its details chat, so it's already on your mind.");
-  }
-
-  if (hasNote) {
-    clauses.push("You left a note on it—so it clearly mattered when you saved it.");
-  }
-
   const picked = clauses.slice(0, 2);
   if (picked.length === 0) {
-    return "Why tonight: It bubbled up from your lists, playlists, and saved titles—tonight's a good night to commit.";
+    return "Why tonight: It bubbled up from your activity on the app—worth committing to tonight.";
   }
 
   if (picked.length === 1) {
