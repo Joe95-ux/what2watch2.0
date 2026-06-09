@@ -30,6 +30,7 @@ import { useUserYouTubePlaylists } from "@/hooks/use-user-youtube-playlists";
 import { TrendAlertsWidget } from "@/components/dashboard/trend-alerts-widget";
 import {
   usePickForTonight,
+  PickForTonightActionsMenu,
   PickForTonightSilentSurface,
 } from "@/components/dashboard/pick-for-tonight-card";
 import { useWatchProviders } from "@/hooks/use-watch-providers";
@@ -294,7 +295,22 @@ export default function DashboardContent() {
                 <p className="text-sm sm:text-base text-muted-foreground">{"Here's whats happening with your watchlist"}</p>
               )}
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground">{pickTimestamp}</p>
+            <div className="flex items-center gap-1">
+              <p className="text-xs sm:text-sm text-muted-foreground">{pickTimestamp}</p>
+              {(pickForTonight.showRow || pickForTonight.picksHidden) && (
+                <PickForTonightActionsMenu
+                  picksHidden={pickForTonight.picksHidden}
+                  onPicksHiddenChange={pickForTonight.setPicksHidden}
+                  onlyUnseen={pickForTonight.onlyUnseen}
+                  onOnlyUnseenChange={pickForTonight.setOnlyUnseen}
+                  trendingToday={pickForTonight.trendingToday}
+                  onTrendingTodayChange={pickForTonight.setTrendingToday}
+                  showRow={pickForTonight.showRow}
+                  runPick={pickForTonight.runPick}
+                  loading={pickForTonight.loading}
+                />
+              )}
+            </div>
           </div>
           {!pickForTonight.picksHidden && (
             <PickForTonightSilentSurface
@@ -302,6 +318,7 @@ export default function DashboardContent() {
               data={pickForTonight.data}
               insufficientMessage={pickForTonight.insufficientMessage}
               runPick={pickForTonight.runPick}
+              replacePickData={pickForTonight.replacePickData}
               onlyUnseen={pickForTonight.onlyUnseen}
               onOnlyUnseenChange={pickForTonight.setOnlyUnseen}
               trendingToday={pickForTonight.trendingToday}

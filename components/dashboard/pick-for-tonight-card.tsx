@@ -34,8 +34,6 @@ import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { getPosterUrl } from "@/lib/tmdb";
 type ApiPicks = Extract<PickForTonightResponse, { picks: PickForTonightCandidate[] }>;
 type ExploreViewMode = "cards" | "table";
-type PendingMode = RerankMode | "base" | null;
-
 function moodRerankOpts(
   displayedPick: PickForTonightCandidate | null,
   mode: RerankMode | null,
@@ -53,7 +51,7 @@ function moodRerankOpts(
     previousTmdbId: displayedPick?.tmdbId,
   };
 }
-const PICK_CACHE_KEY = "pick-for-tonight-cache-v4";
+const PICK_CACHE_KEY = "pick-for-tonight-cache-v5";
 
 type PickCachePayload = {
   dayKey: string;
@@ -73,6 +71,15 @@ function readPickCacheFromStorage(): PickCachePayload | null {
     return cached;
   } catch {
     return null;
+  }
+}
+
+function writePickCacheToStorage(payload: PickCachePayload): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(PICK_CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    // ignore quota / private mode
   }
 }
 
@@ -110,21 +117,22 @@ export function usePickForTonight() {
       const forceRefresh = options?.forceRefresh === true;
 
       if (hasRerank && !forceRefresh && data?.pool?.length) {
-        pickInFlightRef.current = true;
         setShowRow(true);
-        setLoading(true);
-        try {
-          const picks = applyPickPoolRerank(data.pool, options?.rerankMode ?? null, {
-            avoidTmdbId: options?.avoidTmdbId,
-            avoidLeadGenre: options?.avoidLeadGenre,
-            previousTmdbId: options?.previousTmdbId,
+        const picks = applyPickPoolRerank(data.pool, options?.rerankMode ?? null, {
+          avoidTmdbId: options?.avoidTmdbId,
+          avoidLeadGenre: options?.avoidLeadGenre,
+          previousTmdbId: options?.previousTmdbId,
+        });
+        if (picks.length > 0) {
+          const nextData = { picks, pool: data.pool };
+          setData(nextData);
+          writePickCacheToStorage({
+            dayKey: getPickForTonightBucket(),
+            onlyUnseen: unseenFlag,
+            trendingToday: trendingFlag,
+            data: nextData,
+            insufficientMessage: null,
           });
-          if (picks.length > 0) {
-            setData({ picks, pool: data.pool });
-          }
-        } finally {
-          setLoading(false);
-          pickInFlightRef.current = false;
         }
         return;
       }
@@ -188,32 +196,26 @@ export function usePickForTonight() {
         if (json.insufficientContext) {
           const nextMessage = json.message || "Add titles to your library first.";
           setInsufficientMessage(nextMessage);
-          if (typeof window !== "undefined") {
-            const payload: PickCachePayload = {
-              dayKey: getPickForTonightBucket(),
-              onlyUnseen: unseenFlag,
-              trendingToday: trendingFlag,
-              data: null,
-              insufficientMessage: nextMessage,
-            };
-            window.localStorage.setItem(PICK_CACHE_KEY, JSON.stringify(payload));
-          }
+          writePickCacheToStorage({
+            dayKey: getPickForTonightBucket(),
+            onlyUnseen: unseenFlag,
+            trendingToday: trendingFlag,
+            data: null,
+            insufficientMessage: nextMessage,
+          });
           return;
         }
 
         if (json.picks) {
           const nextData = json as ApiPicks;
           setData(nextData);
-          if (typeof window !== "undefined") {
-            const payload: PickCachePayload = {
-              dayKey: getPickForTonightBucket(),
-              onlyUnseen: unseenFlag,
-              trendingToday: trendingFlag,
-              data: nextData,
-              insufficientMessage: null,
-            };
-            window.localStorage.setItem(PICK_CACHE_KEY, JSON.stringify(payload));
-          }
+          writePickCacheToStorage({
+            dayKey: getPickForTonightBucket(),
+            onlyUnseen: unseenFlag,
+            trendingToday: trendingFlag,
+            data: nextData,
+            insufficientMessage: null,
+          });
           return;
         }
 
@@ -228,12 +230,31 @@ export function usePickForTonight() {
     [onlyUnseen, trendingToday, data]
   );
 
+  const replacePickData = useCallback(
+    (nextData: ApiPicks | null, nextInsufficientMessage: string | null = null) => {
+      setData(nextData);
+      setInsufficientMessage(nextInsufficientMessage);
+      if (nextData || nextInsufficientMessage) {
+        setShowRow(true);
+      }
+      writePickCacheToStorage({
+        dayKey: getPickForTonightBucket(),
+        onlyUnseen,
+        trendingToday,
+        data: nextData,
+        insufficientMessage: nextInsufficientMessage,
+      });
+    },
+    [onlyUnseen, trendingToday]
+  );
+
   return {
     showRow,
     loading,
     data,
     insufficientMessage,
     runPick,
+    replacePickData,
     picksHidden,
     setPicksHidden,
     onlyUnseen,
@@ -312,40 +333,10 @@ export function PickForTonightActionsMenu({
           className="cursor-pointer"
           onSelect={(e) => {
             e.preventDefault();
-            onOnlyUnseenChange(false);
-            onTrendingTodayChange(false);
-            if (showRow) void runPick({ onlyUnseen: false, trendingToday: false });
+            if (showRow) void runPick({ forceRefresh: true, onlyUnseen, trendingToday });
           }}
         >
-          Custom picks
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="cursor-pointer"
-          onClick={() => onPicksHiddenChange(!picksHidden)}
-        >
-          {picksHidden ? "Show picks" : "Hide picks"}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="cursor-pointer gap-2.5 py-2 pl-2 pr-2"
-          onSelect={(e) => {
-            e.preventDefault();
-            const next = !onlyUnseen;
-            onOnlyUnseenChange(next);
-            if (showRow) void runPick({ onlyUnseen: next, trendingToday });
-          }}
-        >
-          <span
-            className={cn(
-              "flex h-4 w-4 shrink-0 items-center justify-center rounded border border-muted-foreground/50 bg-background",
-              onlyUnseen && "border-primary bg-primary/15 text-primary"
-            )}
-            aria-hidden
-          >
-            {onlyUnseen ? <Check className="h-3 w-3" strokeWidth={2.5} /> : null}
-          </span>
-          <span className="text-sm text-foreground">Not seen only</span>
+          Refresh tonight
         </DropdownMenuItem>
         <DropdownMenuItem
           className="cursor-pointer gap-2.5 py-2 pl-2 pr-2"
@@ -353,7 +344,7 @@ export function PickForTonightActionsMenu({
             e.preventDefault();
             const next = !trendingToday;
             onTrendingTodayChange(next);
-            if (showRow) void runPick({ trendingToday: next, onlyUnseen });
+            if (showRow) void runPick({ trendingToday: next, onlyUnseen, forceRefresh: true });
           }}
         >
           <span
@@ -366,6 +357,13 @@ export function PickForTonightActionsMenu({
             {trendingToday ? <Check className="h-3 w-3" strokeWidth={2.5} /> : null}
           </span>
           <span className="text-sm text-foreground">Trending today</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onClick={() => onPicksHiddenChange(!picksHidden)}
+        >
+          {picksHidden ? "Show picks" : "Hide picks"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -973,7 +971,7 @@ function PickCardItem({
   );
 }
 
-const RERANK_CHIPS: Array<{ id: "lighter" | "shorter" | "intense" | "different" | "more"; label: string }> = [
+const RERANK_CHIPS: Array<{ id: RerankMode | "more"; label: string }> = [
   { id: "lighter", label: "Something lighter" },
   { id: "shorter", label: "Shorter runtime" },
   { id: "intense", label: "More intense" },
@@ -996,6 +994,7 @@ export function PickForTonightSilentSurface({
   data,
   insufficientMessage,
   runPick,
+  replacePickData,
   onlyUnseen,
   onOnlyUnseenChange,
   trendingToday,
@@ -1009,8 +1008,11 @@ export function PickForTonightSilentSurface({
     trendingToday?: boolean;
     rerankMode?: RerankMode;
     avoidTmdbId?: number;
+    avoidLeadGenre?: string | null;
+    previousTmdbId?: number;
     forceRefresh?: boolean;
   }) => Promise<void>;
+  replacePickData: (nextData: ApiPicks | null, nextInsufficientMessage?: string | null) => void;
   onlyUnseen: boolean;
   onOnlyUnseenChange: (onlyUnseen: boolean) => void;
   trendingToday: boolean;
@@ -1023,7 +1025,14 @@ export function PickForTonightSilentSurface({
   const [exploreView, setExploreView] = useState<ExploreViewMode>("cards");
   const [displayedPick, setDisplayedPick] = useState<PickForTonightCandidate | null>(null);
   const [previousPick, setPreviousPick] = useState<PickForTonightCandidate | null>(null);
-  const [pendingChip, setPendingChip] = useState<PendingMode>(null);
+  const [dismissing, setDismissing] = useState(false);
+
+  useEffect(() => {
+    if (loading && !data) {
+      setActiveChip(null);
+      setIsExploreMode(false);
+    }
+  }, [loading, data]);
 
   useEffect(() => {
     if (didAutoloadRef.current) return;
@@ -1042,36 +1051,63 @@ export function PickForTonightSilentSurface({
   }, [activeChip, data, displayedPick]);
 
   const handleRerank = async (mode: RerankMode) => {
-    if (loading) return;
+    if (loading || dismissing) return;
     setPreviousPick(displayedPick);
     setActiveChip(mode);
-    setPendingChip(mode);
-    try {
-      const moodOpts = moodRerankOpts(displayedPick, mode);
-      await runPick({
-        onlyUnseen,
-        trendingToday,
-        rerankMode: mode,
-        ...moodOpts,
-      });
-    } finally {
-      setPendingChip(null);
-    }
+    const moodOpts = moodRerankOpts(displayedPick, mode);
+    await runPick({
+      onlyUnseen,
+      trendingToday,
+      rerankMode: mode,
+      ...moodOpts,
+    });
   };
   const handleExploreMoodSelect = async (mode: RerankMode | null) => {
-    if (loading) return;
+    if (loading || dismissing) return;
     setActiveChip(mode);
-    setPendingChip(mode ?? "base");
+    const moodOpts = mode ? moodRerankOpts(displayedPick, mode) : {};
+    await runPick({
+      onlyUnseen,
+      trendingToday,
+      rerankMode: mode ?? undefined,
+      ...moodOpts,
+    });
+  };
+
+  const handleNotTonight = async () => {
+    if (!displayedPick || !data?.pool?.length || loading || dismissing) return;
+    const dismissed = displayedPick;
+    setDismissing(true);
     try {
-      const moodOpts = mode ? moodRerankOpts(displayedPick, mode) : {};
-      await runPick({
-        onlyUnseen,
-        trendingToday,
-        rerankMode: mode ?? undefined,
-        ...moodOpts,
+      const filteredPool = data.pool.filter((p) => p.tmdbId !== dismissed.tmdbId);
+      let nextPicks = activeChip
+        ? applyPickPoolRerank(filteredPool, activeChip, moodRerankOpts(dismissed, activeChip))
+        : data.picks.filter((p) => p.tmdbId !== dismissed.tmdbId);
+
+      if (nextPicks.length === 0 && filteredPool.length > 0) {
+        nextPicks = filteredPool.slice(0, 6);
+      }
+
+      if (nextPicks.length === 0) {
+        toast.info("No more picks left — fetching fresh ones.");
+        void runPick({ forceRefresh: true, onlyUnseen, trendingToday, avoidTmdbId: dismissed.tmdbId });
+      } else {
+        replacePickData({ picks: nextPicks, pool: filteredPool });
+        setDisplayedPick(nextPicks[0] ?? null);
+      }
+
+      void fetch("/api/ai/pick-for-tonight/dismiss", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tmdbId: dismissed.tmdbId,
+          mediaType: dismissed.mediaType,
+        }),
+      }).catch(() => {
+        toast.error("Could not save dismissal — pick may reappear later.");
       });
     } finally {
-      setPendingChip(null);
+      setDismissing(false);
     }
   };
 
@@ -1101,8 +1137,7 @@ export function PickForTonightSilentSurface({
   const exitExploreMode = () => {
     setIsExploreMode(false);
   };
-  const isRerankLoading = loading && pendingChip !== null;
-  const isInitialLoading = loading && pendingChip === null;
+  const isInitialLoading = loading && !data?.picks?.length && !insufficientMessage;
   const exploreMoodChips = EXPLORE_MOOD_CHIPS;
 
   return (
@@ -1202,7 +1237,7 @@ export function PickForTonightSilentSurface({
                       chip.id === activeChip && "border-primary/50 text-foreground"
                     )}
                   >
-                    {pendingChip === chip.id ? "Reranking…" : chip.label}
+                    {chip.label}
                   </Button>
                 ))}
               </div>
@@ -1210,15 +1245,24 @@ export function PickForTonightSilentSurface({
           )}
 
           <div className="w-full max-w-[530px]">
-            {isRerankLoading ? (
-              <PickCardSkeleton />
-            ) : (
-              <PickCardItem
-                item={displayedPick}
-                rationaleMode={activeChip ? "adjusted" : "primary"}
-                rerankMode={activeChip}
-              />
-            )}
+            <PickCardItem
+              item={displayedPick}
+              rationaleMode={activeChip ? "adjusted" : "primary"}
+              rerankMode={activeChip}
+            />
+          </div>
+
+          <div className="flex max-w-[530px] items-center justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={loading || dismissing}
+              onClick={() => void handleNotTonight()}
+              className="h-8 cursor-pointer px-2 text-xs font-medium text-muted-foreground hover:text-foreground disabled:cursor-not-allowed"
+            >
+              {dismissing ? "Skipping…" : "Not tonight"}
+            </Button>
           </div>
 
           {!activeChip && (
@@ -1245,11 +1289,7 @@ export function PickForTonightSilentSurface({
                         "border-primary/50 bg-muted/60 text-foreground shadow-sm dark:bg-muted/40"
                     )}
                   >
-                    {chip.id !== "more" && pendingChip === chip.id
-                      ? "Reranking…"
-                      : chip.id === "more" && loading
-                        ? "Loading…"
-                        : chip.label}
+                    {chip.id === "more" && loading ? "Loading…" : chip.label}
                   </Button>
                 ))}
               </div>
@@ -1275,9 +1315,7 @@ export function PickForTonightSilentSurface({
                     chip.id === activeChip && "border-primary/50 bg-muted/60 text-foreground dark:bg-muted/40"
                   )}
                 >
-                  {pendingChip !== null && (pendingChip === chip.id || (chip.id === null && pendingChip === "base"))
-                    ? "Reranking…"
-                    : chip.label}
+                  {chip.label}
                 </Button>
               ))}
             </div>
