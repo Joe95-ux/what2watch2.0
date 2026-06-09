@@ -52,11 +52,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
     const watchProvider = watchProviderParam ? parseInt(watchProviderParam, 10) : undefined;
     const watchRegion = searchParams.get("watchRegion") || "US";
     const pageSizeParam = searchParams.get("pageSize");
-    const parsedPageSize = pageSizeParam ? parseInt(pageSizeParam, 10) : 20;
+    const parsedPageSize = pageSizeParam ? parseInt(pageSizeParam, 10) : 24;
     const RESULTS_PER_PAGE =
       Number.isFinite(parsedPageSize) && parsedPageSize > 0
         ? Math.min(parsedPageSize, 60)
-        : 20;
+        : 24;
 
     // Allow requests with filters or sortBy even without query
     const hasQuery = query && query.trim().length > 0;

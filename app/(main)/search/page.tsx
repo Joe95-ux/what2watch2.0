@@ -95,7 +95,7 @@ function SearchResultsContent() {
     minRating: minRating > 0 ? minRating : undefined,
     sortBy,
     page,
-    pageSize: 36,
+    pageSize: 24,
     runtimeMin,
     runtimeMax,
     withOriginCountry,
@@ -383,7 +383,7 @@ function SearchResultsContent() {
         {/* Results */}
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {[...Array(20)].map((_, i) => (
+            {[...Array(24)].map((_, i) => (
               <MoreLikeThisCardSkeleton key={i} />
             ))}
           </div>
@@ -439,7 +439,7 @@ export default function SearchPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Skeleton className="h-10 w-64 mb-8" />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {[...Array(20)].map((_, i) => (
+            {[...Array(24)].map((_, i) => (
               <MoreLikeThisCardSkeleton key={i} />
             ))}
           </div>

@@ -15,7 +15,8 @@ import QuickFilters, { MoodFilter, DurationFilter, YearFilter, RegionFilter } fr
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { useMemo, useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { BrowseMediaTabSwitcher } from "@/components/browse/browse-media-tab-switcher";
+import { BrowseViewAllLink } from "@/components/browse/browse-view-all-link";
 import { useSearch } from "@/hooks/use-search";
 import {
   DropdownMenu,
@@ -438,6 +439,7 @@ export default function BrowseContent({ favoriteGenres = [], preferredTypes = ["
             type={preferredTypes.length === 1 ? preferredTypes[0] : "movie"}
             isLoading={isLoadingPersonalized}
             href="/browse/personalized"
+            viewAllHref="/browse/personalized"
           />
         )}
 
@@ -451,86 +453,60 @@ export default function BrowseContent({ favoriteGenres = [], preferredTypes = ["
           <CuratedListsSection lists={publicLists} playlists={publicPlaylists} />
         )}
 
-        {/* Popular Section with Tabs */}
+        {/* Popular Section */}
         <div className="mb-12">
-          <Tabs value={popularTab} onValueChange={(v) => setPopularTab(v as "movies" | "tv")}>
-            <div className="px-4 sm:px-6 lg:px-8 group flex items-center gap-4 mb-6">
-              <Link 
+          <div className="px-4 sm:px-6 lg:px-8 mb-6 flex items-center justify-between gap-4">
+            <div className="flex min-w-0 flex-wrap items-center gap-4">
+              <Link
                 href="/popular"
-                className="inline-flex items-center gap-2 transition-all duration-300"
+                className="group/title inline-flex items-center gap-2 transition-all duration-300"
               >
-                <h2 className="text-2xl font-medium text-foreground group-hover:text-primary transition-colors">
+                <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
                   Popular
                 </h2>
-                <CaretRight 
-                  className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" 
+                <CaretRight
+                  className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300"
                 />
               </Link>
-              <TabsList>
-                <TabsTrigger value="movies">Movies</TabsTrigger>
-                <TabsTrigger value="tv">TV Shows</TabsTrigger>
-              </TabsList>
+              <BrowseMediaTabSwitcher value={popularTab} onChange={setPopularTab} />
             </div>
-            <TabsContent value="movies">
-              <ContentRow
-                title=""
-                items={uniquePopularMovies}
-                type="movie"
-                isLoading={isLoadingPopularMovies}
-                href="/popular?type=movies"
-              />
-            </TabsContent>
-            <TabsContent value="tv">
-              <ContentRow
-                title=""
-                items={uniquePopularTV}
-                type="tv"
-                isLoading={isLoadingPopularTV}
-                href="/popular?type=tv"
-              />
-            </TabsContent>
-          </Tabs>
+            <BrowseViewAllLink href={`/popular?type=${popularTab}`} />
+          </div>
+          <ContentRow
+            title=""
+            items={popularTab === "movies" ? uniquePopularMovies : uniquePopularTV}
+            type={popularTab === "movies" ? "movie" : "tv"}
+            isLoading={popularTab === "movies" ? isLoadingPopularMovies : isLoadingPopularTV}
+            href={`/popular?type=${popularTab}`}
+          />
         </div>
 
-        {/* Top Rated Section with Tabs */}
+        {/* Top Rated Section */}
         <div className="mb-12">
-          <Tabs value={topRatedTab} onValueChange={(v) => setTopRatedTab(v as "movies" | "tv")}>
-            <div className="px-4 sm:px-6 lg:px-8 group flex items-center gap-4 mb-6">
-              <Link 
-                href={`/top-rated?type=${topRatedTab === "movies" ? "movies" : "tv"}`}
-                className="inline-flex items-center gap-2 transition-all duration-300"
+          <div className="px-4 sm:px-6 lg:px-8 mb-6 flex items-center justify-between gap-4">
+            <div className="flex min-w-0 flex-wrap items-center gap-4">
+              <Link
+                href={`/top-rated?type=${topRatedTab}`}
+                className="group/title inline-flex items-center gap-2 transition-all duration-300"
               >
-                <h2 className="text-2xl font-medium text-foreground group-hover:text-primary transition-colors">
+                <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
                   Top Rated
                 </h2>
-                <CaretRight 
-                  className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" 
+                <CaretRight
+                  className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300"
                 />
               </Link>
-              <TabsList>
-                <TabsTrigger value="movies">Movies</TabsTrigger>
-                <TabsTrigger value="tv">TV Shows</TabsTrigger>
-              </TabsList>
+              <BrowseMediaTabSwitcher value={topRatedTab} onChange={setTopRatedTab} />
             </div>
-            <TabsContent value="movies">
-              <ContentRow
-                title=""
-                items={uniqueTopRatedMovies}
-                type="movie"
-                isLoading={isLoadingTopRatedMovies}
-                href="/top-rated?type=movies"
-              />
-            </TabsContent>
-            <TabsContent value="tv">
-              <ContentRow
-                title=""
-                items={uniqueTopRatedTV}
-                type="tv"
-                isLoading={isLoadingTopRatedTV}
-                href="/top-rated?type=tv"
-              />
-            </TabsContent>
-          </Tabs>
+            <BrowseViewAllLink href={`/top-rated?type=${topRatedTab}`} />
+          </div>
+          <ContentRow
+            title=""
+            items={topRatedTab === "movies" ? uniqueTopRatedMovies : uniqueTopRatedTV}
+            type={topRatedTab === "movies" ? "movie" : "tv"}
+            isLoading={topRatedTab === "movies" ? isLoadingTopRatedMovies : isLoadingTopRatedTV}
+            href={`/top-rated?type=${topRatedTab}`}
+          />
         </div>
 
         {/* Recently Viewed Section */}
@@ -694,18 +670,19 @@ function CuratedListsSection({ lists, playlists }: { lists: List[]; playlists: P
 
   return (
     <div className="mb-12 px-4 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <Link 
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <Link
           href="/browse/personalized"
           className="group/title inline-flex items-center gap-2 transition-all duration-300"
         >
           <h2 className="text-2xl font-medium text-foreground group-hover/title:text-primary transition-colors">
             Explore Curated Lists
           </h2>
-          <CaretRight 
-            className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300" 
+          <CaretRight
+            className="h-5 w-5 text-muted-foreground opacity-0 -translate-x-2 group-hover/title:opacity-100 group-hover/title:translate-x-0 transition-all duration-300"
           />
         </Link>
+        <BrowseViewAllLink href="/browse/personalized" />
       </div>
       <div className="relative group/carousel">
         <Carousel
