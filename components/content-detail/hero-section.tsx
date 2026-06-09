@@ -124,12 +124,11 @@ export default function HeroSection({
   // Fetch IMDb rating (with TMDB fallback)
   const imdbId = details?.imdb_id || null;
   const tmdbRating = item.vote_average > 0 ? item.vote_average : null;
-  const { data: ratingData } = useIMDBRating(imdbId, tmdbRating);
+  const { data: ratingData } = useIMDBRating(imdbId, tmdbRating, item.vote_count);
   const { data: omdbData } = useOMDBData(imdbId);
-  
-  // Use IMDb rating if available, otherwise fall back to TMDB
-  const displayRating = ratingData?.rating || tmdbRating;
-  const ratingSource = ratingData?.source || (tmdbRating ? "tmdb" : null);
+
+  const displayRating = ratingData?.rating ?? null;
+  const ratingSource = ratingData?.source ?? null;
   const imdbVotes = ratingData?.votes || omdbData?.imdbVotes || null;
 
   // JustWatch streaming chart rank for hero (user can switch 1d / 7d / 30d)

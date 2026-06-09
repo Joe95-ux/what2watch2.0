@@ -23,6 +23,7 @@ import {
   useOMDBData,
 } from "@/hooks/use-content-details";
 import { cn } from "@/lib/utils";
+import { resolveDisplayRating } from "@/lib/rating-quality";
 import { createContentUrl } from "@/lib/content-slug";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import VideosCarousel from "./videos-carousel";
@@ -245,6 +246,12 @@ export default function ContentDetailModal({
   
   // Fetch OMDB data for ratings (using imdbId declared earlier)
   const { data: omdbData } = useOMDBData(imdbId);
+  const modalRating = resolveDisplayRating({
+    imdbRating: omdbData?.imdbRating ?? null,
+    imdbVotes: omdbData?.imdbVotes ?? null,
+    tmdbRating: item.vote_average > 0 ? item.vote_average : null,
+    tmdbVoteCount: item.vote_count,
+  });
 
   const title = "title" in item ? item.title : item.name;
   const backdropPath = item.backdrop_path || item.poster_path;
@@ -393,15 +400,15 @@ export default function ContentDetailModal({
                 <div>
                   <HeroStylizedTitle title={title} variant="detail" className="mb-4 max-w-xl" />
                   <div className="flex items-center gap-4 mb-6 flex-wrap">
-                    {(omdbData?.imdbRating || (item.vote_average > 0 && !omdbData?.imdbRating)) && (
+                    {modalRating && (
                       <div className="flex items-center gap-1.5">
-                        {omdbData?.imdbRating ? (
+                        {modalRating.source === "imdb" ? (
                           <IMDBBadge size={24} />
                         ) : (
                           <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
                         )}
                         <span className="text-white/90 font-semibold">
-                          {omdbData?.imdbRating ? omdbData.imdbRating.toFixed(1) : item.vote_average.toFixed(1)}
+                          {modalRating.rating.toFixed(1)}
                         </span>
                       </div>
                     )}

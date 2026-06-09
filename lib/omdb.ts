@@ -1,3 +1,5 @@
+import { hasReliableVoteCount, sanitizeRatingValue } from "@/lib/rating-quality";
+
 /**
  * OMDB API utilities
  * Documentation: http://www.omdbapi.com/
@@ -194,7 +196,7 @@ export async function getIMDBRating(imdbId: string): Promise<IMDbRating | null> 
           ? parseInt(data.imdbVotes.replace(/,/g, ''), 10) 
           : 0;
 
-        if (!isNaN(rating) && rating > 0) {
+        if (!isNaN(rating) && rating > 0 && hasReliableVoteCount(votes)) {
           return {
             rating,
             votes,

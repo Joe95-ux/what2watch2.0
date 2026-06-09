@@ -190,8 +190,9 @@ export default function ReviewsPage() {
     (details as { external_ids?: { imdb_id?: string | null } } | null)?.external_ids?.imdb_id ??
     null;
   const tmdbRatingForDisplay = rating && rating > 0 ? rating : null;
-  const { data: ratingData } = useIMDBRating(imdbId, tmdbRatingForDisplay);
-  const displayHeaderRating = ratingData?.rating || tmdbRatingForDisplay;
+  const tmdbVoteCount = (details as { vote_count?: number } | null)?.vote_count ?? null;
+  const { data: ratingData } = useIMDBRating(imdbId, tmdbRatingForDisplay, tmdbVoteCount);
+  const displayHeaderRating = ratingData?.rating ?? null;
 
   const watchlistItem = useMemo((): TMDBMovie | TMDBSeries | null => {
     if (!details) return null;

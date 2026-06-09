@@ -1,6 +1,7 @@
 import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
 import { getOMDBFullData } from "@/lib/omdb";
 import { getJustWatchAvailability } from "@/lib/justwatch";
+import { resolveDisplayRating } from "@/lib/rating-quality";
 import type { PickForTonightCandidate } from "@/lib/pick-for-tonight-types";
 import type { LightCandidate } from "@/lib/pick-for-tonight/internal-types";
 
@@ -37,6 +38,15 @@ export async function enrichLightCandidate(c: LightCandidate): Promise<PickForTo
       availability?.allOffers?.[0] ??
       null;
 
+    const voteCount = (details as { vote_count?: number }).vote_count ?? null;
+    const tmdbRating = details.vote_average > 0 ? details.vote_average : null;
+    const resolvedRating = resolveDisplayRating({
+      imdbRating: omdb?.imdbRating ?? null,
+      imdbVotes: omdb?.imdbVotes ?? null,
+      tmdbRating,
+      tmdbVoteCount: voteCount,
+    });
+
     const genres = (details as { genres?: { id?: number; name?: string }[] }).genres ?? [];
     const genreIds = genres
       .map((g) => g.id)
@@ -66,7 +76,7 @@ export async function enrichLightCandidate(c: LightCandidate): Promise<PickForTo
       rated: omdb?.rated ?? null,
       runtimeText: formatRuntime(runtimeMinutes),
       overview: details.overview ?? null,
-      imdbRating: omdb?.imdbRating ?? (details.vote_average > 0 ? Number(details.vote_average.toFixed(1)) : null),
+      imdbRating: resolvedRating?.rating ?? null,
       justwatchRank24h: availability?.ranks?.["1d"]?.rank ?? null,
       justwatchRankDelta24h: availability?.ranks?.["1d"]?.delta ?? null,
       justwatchRankUrl: availability?.fullPath ? `https://www.justwatch.com${availability.fullPath}` : null,

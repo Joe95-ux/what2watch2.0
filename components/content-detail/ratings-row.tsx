@@ -7,6 +7,7 @@ import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { JustWatchRankWindow } from "@/lib/justwatch";
+import { resolveDisplayRating } from "@/lib/rating-quality";
 
 interface RatingsRowProps {
   imdbRating: number | null;
@@ -17,6 +18,7 @@ interface RatingsRowProps {
     audience?: number | null;
   } | null;
   tmdbRating: number | null;
+  tmdbVoteCount?: number | null;
   /** JustWatch streaming chart rank (e.g. 7d rank). Shown first with small JW logo. */
   justwatchRank?: number | null;
   /** Link to JustWatch title/streaming chart page. */
@@ -33,14 +35,21 @@ export function RatingsRow({
   metascore,
   rottenTomatoes,
   tmdbRating,
+  tmdbVoteCount,
   justwatchRank,
   justwatchRankUrl,
   justwatchRanks,
   year,
 }: RatingsRowProps) {
   const [rankWindow, setRankWindow] = useState<"1d" | "7d" | "30d">("7d");
-  const ratingSource = imdbRating ? "imdb" : tmdbRating ? "tmdb" : null;
-  const displayRating = ratingSource === "imdb" ? imdbRating : tmdbRating;
+  const resolvedRating = resolveDisplayRating({
+    imdbRating,
+    imdbVotes,
+    tmdbRating,
+    tmdbVoteCount,
+  });
+  const ratingSource = resolvedRating?.source ?? null;
+  const displayRating = resolvedRating?.rating ?? null;
 
   const formatVotes = (votes: number | null) => {
     if (!votes) return null;

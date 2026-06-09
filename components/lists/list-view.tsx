@@ -2198,10 +2198,10 @@ function DetailedListItem({
   const imdbId =
     detailsWithCredits?.external_ids?.imdb_id || details?.imdb_id || null;
   const tmdbRating = item.vote_average > 0 ? item.vote_average : null;
-  const { data: ratingData } = useIMDBRating(imdbId, tmdbRating);
+  const { data: ratingData } = useIMDBRating(imdbId, tmdbRating, item.vote_count);
   const { data: omdbData } = useOMDBData(imdbId);
-  const displayRating = ratingData?.rating || tmdbRating;
-  const ratingSource = ratingData?.source || (tmdbRating ? "tmdb" : null);
+  const displayRating = ratingData?.rating ?? null;
+  const ratingSource = ratingData?.source ?? null;
 
   // Get rated and metascore from OMDB
   const rated = omdbData?.rated || null;

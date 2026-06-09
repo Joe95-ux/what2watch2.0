@@ -527,6 +527,7 @@ export async function discoverMovies(filters: {
   yearTo?: number;
   sortBy?: string;
   minRating?: number;
+  minVoteCount?: number;
   language?: string;
   keywords?: number | number[];
   runtimeMin?: number;
@@ -558,6 +559,7 @@ export async function discoverMovies(filters: {
   }
   if (filters.sortBy) params.sort_by = filters.sortBy;
   if (filters.minRating) params['vote_average.gte'] = filters.minRating;
+  if (filters.minVoteCount) params['vote_count.gte'] = filters.minVoteCount;
   if (filters.language) params.with_original_language = filters.language;
   if (filters.keywords) {
     params.with_keywords = Array.isArray(filters.keywords)
@@ -590,6 +592,7 @@ export async function discoverTV(filters: {
   yearTo?: number;
   sortBy?: string;
   minRating?: number;
+  minVoteCount?: number;
   language?: string;
   keywords?: number | number[];
   runtimeMin?: number;
@@ -621,6 +624,7 @@ export async function discoverTV(filters: {
   }
   if (filters.sortBy) params.sort_by = filters.sortBy;
   if (filters.minRating) params['vote_average.gte'] = filters.minRating;
+  if (filters.minVoteCount) params['vote_count.gte'] = filters.minVoteCount;
   if (filters.language) params.with_original_language = filters.language;
   if (filters.keywords) {
     params.with_keywords = Array.isArray(filters.keywords)

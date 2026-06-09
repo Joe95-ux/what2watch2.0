@@ -377,31 +377,23 @@ function hasOffers(data: JustWatchAvailabilityResponse) {
 /**
  * Hook to fetch IMDb rating (with TMDB fallback)
  */
-export function useIMDBRating(imdbId: string | null | undefined, tmdbRating: number | null) {
+export function useIMDBRating(
+  imdbId: string | null | undefined,
+  tmdbRating: number | null,
+  tmdbVoteCount?: number | null
+) {
   return useQuery({
-    queryKey: ["imdb-rating", imdbId, tmdbRating],
+    queryKey: ["imdb-rating", imdbId, tmdbRating, tmdbVoteCount],
     queryFn: async () => {
-      if (!imdbId) {
-        // Fallback to TMDB rating if no IMDb ID
-        if (tmdbRating && tmdbRating > 0) {
-          return { rating: tmdbRating, source: "tmdb" as const };
-        }
-        return null;
+      const params = new URLSearchParams();
+      if (imdbId) params.set("imdbId", imdbId);
+      if (tmdbRating && tmdbRating > 0) params.set("tmdbRating", tmdbRating.toString());
+      if (tmdbVoteCount != null && tmdbVoteCount > 0) {
+        params.set("tmdbVoteCount", tmdbVoteCount.toString());
       }
-
-      const params = new URLSearchParams({
-        imdbId,
-        ...(tmdbRating && tmdbRating > 0 && { tmdbRating: tmdbRating.toString() }),
-      });
 
       const response = await fetch(`/api/imdb-rating?${params.toString()}`);
-      if (!response.ok) {
-        // Fallback to TMDB rating on error
-        if (tmdbRating && tmdbRating > 0) {
-          return { rating: tmdbRating, source: "tmdb" as const };
-        }
-        return null;
-      }
+      if (!response.ok) return null;
 
       const data = await response.json();
       return data as { rating: number; votes?: number; source: "imdb" | "tmdb" };

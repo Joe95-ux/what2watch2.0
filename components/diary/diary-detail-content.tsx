@@ -208,12 +208,12 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
 
   // Get IMDb rating and OMDB data
   const tmdbRating = details?.vote_average && details.vote_average > 0 ? details.vote_average : null;
-  const { data: ratingData, isLoading: isRatingLoading } = useIMDBRating(imdbId, tmdbRating);
+  const tmdbVoteCount = (details as { vote_count?: number } | null)?.vote_count ?? null;
+  const { data: ratingData, isLoading: isRatingLoading } = useIMDBRating(imdbId, tmdbRating, tmdbVoteCount);
   const { data: omdbData, isLoading: isOmdbLoading } = useOMDBData(imdbId);
-  
-  // Use IMDb rating if available, otherwise fall back to TMDB
-  const displayRating = ratingData?.rating || tmdbRating;
-  const ratingSource = ratingData?.source || (tmdbRating ? "tmdb" : null);
+
+  const displayRating = ratingData?.rating ?? null;
+  const ratingSource = ratingData?.source ?? null;
   const imdbVotes = ratingData?.votes || omdbData?.imdbVotes || null;
 
   // JustWatch rank

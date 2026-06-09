@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { HeroStylizedTitle } from "@/components/ui/hero-stylized-title";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { resolveDisplayRating } from "@/lib/rating-quality";
 
 interface HeroSectionProps {
   featuredItem: TMDBMovie | TMDBSeries | null;
@@ -203,7 +204,14 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
         : "";
   const releaseYear = releaseYearSource ? new Date(releaseYearSource).getFullYear().toString() : "N/A";
   const rated = omdbData?.rated ?? null;
-  const imdbRating = omdbData?.imdbRating ?? (currentItem.vote_average > 0 ? currentItem.vote_average : null);
+  const heroRating = resolveDisplayRating({
+    imdbRating: omdbData?.imdbRating ?? null,
+    imdbVotes: omdbData?.imdbVotes ?? null,
+    tmdbRating: currentItem.vote_average > 0 ? currentItem.vote_average : null,
+    tmdbVoteCount: currentItem.vote_count,
+  });
+  const imdbRating = heroRating?.rating ?? null;
+  const heroRatingIsImdb = heroRating?.source === "imdb";
   const formatRuntimeMinutes = (minutes: number | null): string | null => {
     if (minutes == null || Number.isNaN(minutes) || minutes <= 0) return null;
     const h = Math.floor(minutes / 60);
@@ -313,11 +321,11 @@ export default function HeroSection({ featuredItem, featuredItems, isLoading }: 
                     <span>{rated}</span>
                   </>
                 )}
-                {imdbRating && (
+                {imdbRating != null && (
                   <>
                     <span>•</span>
                     <span className="inline-flex items-center gap-1.5">
-                      <IMDBBadge size={20} />
+                      {heroRatingIsImdb ? <IMDBBadge size={20} /> : null}
                       <span>{imdbRating.toFixed(1)}</span>
                     </span>
                   </>

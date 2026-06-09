@@ -50,6 +50,8 @@ function MyListTableRatingCell({ tmdbId, type }: { tmdbId: number; type: "movie"
   const loadingDetails = type === "movie" ? loadingMovie : loadingTv;
   const tmdbVote =
     details && "vote_average" in details && details.vote_average > 0 ? details.vote_average : null;
+  const tmdbVoteCount =
+    details && "vote_count" in details ? details.vote_count : null;
   const movieWithExt = movieDetails as
     | (typeof movieDetails & { external_ids?: { imdb_id?: string | null } })
     | null
@@ -63,7 +65,7 @@ function MyListTableRatingCell({ tmdbId, type }: { tmdbId: number; type: "movie"
       ? movieWithExt?.imdb_id || movieWithExt?.external_ids?.imdb_id || null
       : tvWithExt?.external_ids?.imdb_id || tvWithExt?.imdb_id || null;
 
-  const { data: ratingData } = useIMDBRating(imdbId ?? undefined, tmdbVote);
+  const { data: ratingData } = useIMDBRating(imdbId ?? undefined, tmdbVote, tmdbVoteCount);
 
   if (loadingDetails && !details) {
     return (

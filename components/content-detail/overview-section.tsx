@@ -320,6 +320,7 @@ export default function OverviewSection({
                   metascore={omdbData?.metascore || null}
                   rottenTomatoes={omdbData?.rottenTomatoes || null}
                   tmdbRating={item.vote_average > 0 ? item.vote_average : null}
+                  tmdbVoteCount={item.vote_count}
                 />
               </div>
             </div>
@@ -382,6 +383,7 @@ export default function OverviewSection({
                 metascore={omdbData?.metascore || null}
                 rottenTomatoes={omdbData?.rottenTomatoes || null}
                 tmdbRating={item.vote_average > 0 ? item.vote_average : null}
+                tmdbVoteCount={item.vote_count}
               />
             </div>
             {!detailsExpanded ? (

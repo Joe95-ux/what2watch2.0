@@ -3,6 +3,7 @@
 import { Award, StarIcon, TrendingUp, Star } from "lucide-react";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import { cn } from "@/lib/utils";
+import { resolveDisplayRating } from "@/lib/rating-quality";
 
 interface RatingsSectionProps {
   imdbRating: number | null;
@@ -13,6 +14,7 @@ interface RatingsSectionProps {
     audience?: number | null;
   } | null;
   tmdbRating: number | null;
+  tmdbVoteCount?: number | null;
 }
 
 export default function RatingsSection({
@@ -21,8 +23,17 @@ export default function RatingsSection({
   metascore,
   rottenTomatoes,
   tmdbRating,
+  tmdbVoteCount,
 }: RatingsSectionProps) {
-  const hasAnyRating = imdbRating || metascore || rottenTomatoes?.critic || tmdbRating;
+  const resolvedRating = resolveDisplayRating({
+    imdbRating,
+    imdbVotes,
+    tmdbRating,
+    tmdbVoteCount,
+  });
+  const displayRating = resolvedRating?.rating ?? null;
+  const displaySource = resolvedRating?.source ?? null;
+  const hasAnyRating = displayRating || metascore || rottenTomatoes?.critic;
 
   if (!hasAnyRating) {
     return null;
@@ -57,7 +68,7 @@ export default function RatingsSection({
       <h2 className="text-2xl font-bold">Ratings</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* IMDb Rating - only show if we have actual IMDb rating */}
-        {imdbRating && (
+        {displayRating && displaySource === "imdb" && (
           <div className="rounded-lg border border-border bg-card/50 p-4">
             <div className="flex items-center gap-2 mb-2">
               <IMDBBadge size={24} />
@@ -65,19 +76,18 @@ export default function RatingsSection({
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold">
-                {imdbRating.toFixed(1)}
+                {displayRating.toFixed(1)}
               </span>
               <span className="text-sm text-muted-foreground">/ 10</span>
             </div>
-            {imdbVotes && (
+            {resolvedRating?.votes ? (
               <p className="text-xs text-muted-foreground mt-1">
-                {formatVotes(imdbVotes)} votes
+                {formatVotes(resolvedRating.votes)} votes
               </p>
-            )}
+            ) : null}
           </div>
         )}
-        {/* TMDB Rating - show separately if no IMDb rating */}
-        {!imdbRating && tmdbRating && (
+        {displayRating && displaySource === "tmdb" && (
           <div className="rounded-lg border border-border bg-card/50 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
@@ -85,7 +95,7 @@ export default function RatingsSection({
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold">
-                {tmdbRating.toFixed(1)}
+                {displayRating.toFixed(1)}
               </span>
               <span className="text-sm text-muted-foreground">/ 10</span>
             </div>
@@ -125,22 +135,6 @@ export default function RatingsSection({
           </div>
         )}
 
-        {/* TMDB Rating (if no IMDb) */}
-        {!imdbRating && tmdbRating && (
-          <div className="rounded-lg border border-border bg-card/50 p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <StarIcon className="h-4 w-4 text-blue-400 fill-blue-400" />
-              <span className="text-sm font-medium text-muted-foreground">TMDB</span>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold">
-                {tmdbRating.toFixed(1)}
-              </span>
-              <span className="text-sm text-muted-foreground">/ 10</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">User rating</p>
-          </div>
-        )}
       </div>
     </div>
   );

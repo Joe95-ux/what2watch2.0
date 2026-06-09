@@ -56,7 +56,8 @@ export function SimpleMediaListItem({
   const imdbId = mediaType === "movie" ? movieDetails?.imdb_id : tvDetails?.imdb_id;
   const { data: omdbData } = useOMDBData(imdbId || null);
   const tmdbRating = details?.vote_average && details.vote_average > 0 ? details.vote_average : null;
-  const { data: ratingData } = useIMDBRating(imdbId || null, tmdbRating);
+  const tmdbVoteCount = details?.vote_count ?? null;
+  const { data: ratingData } = useIMDBRating(imdbId || null, tmdbRating, tmdbVoteCount);
   const { data: watchAvailability } = useWatchProviders(mediaType, tmdbId, "US");
   const primaryOffer =
     watchAvailability?.offersByType?.flatrate?.[0] ??
@@ -74,8 +75,8 @@ export function SimpleMediaListItem({
   const justWatchDelta = activeRankWindow?.delta ?? null;
   const metascore = omdbData?.metascore || null;
   const rated = omdbData?.rated || null;
-  const displayRating = ratingData?.rating || tmdbRating;
-  const ratingSource = ratingData?.source || (tmdbRating ? "tmdb" : null);
+  const displayRating = ratingData?.rating ?? null;
+  const ratingSource = ratingData?.source ?? null;
   const runtime =
     mediaType === "movie" ? movieDetails?.runtime : tvDetails?.episode_run_time?.[0];
   const averageEpisodeRuntime =

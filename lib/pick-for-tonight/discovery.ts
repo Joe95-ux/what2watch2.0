@@ -1,5 +1,6 @@
 import { getPickForTonightBucket } from "@/lib/pick-for-tonight/bucket";
 import { discoverMovies, discoverTV, getTrendingMovies, getTrendingTV } from "@/lib/tmdb";
+import { hasReliableVoteCount, MIN_RATING_VOTE_COUNT } from "@/lib/rating-quality";
 import type { PickMedia } from "@/lib/pick-for-tonight/media";
 import { candidateId, normMedia } from "@/lib/pick-for-tonight/media";
 import type { LightCandidate, PickReasonCode } from "@/lib/pick-for-tonight/internal-types";
@@ -127,13 +128,19 @@ export async function addDiscoveryCandidates(
   const page = discoveryPageSeed(opts.userId);
 
   const addFromResults = (
-    items: Array<{ id: number; title?: string; name?: string; poster_path?: string | null }>,
+    items: Array<{
+      id: number;
+      title?: string;
+      name?: string;
+      poster_path?: string | null;
+      vote_count?: number;
+    }>,
     mediaType: PickMedia,
     startWeight: number,
     slot: "discovery" | "stretch",
     reasonCode: "discovery" | "stretch"
   ) => {
-    items.forEach((item, index) => {
+    items.filter((item) => hasReliableVoteCount(item.vote_count)).forEach((item, index) => {
       const title = item.title ?? item.name ?? "Unknown";
       upsert(
         map,
@@ -157,6 +164,7 @@ export async function addDiscoveryCandidates(
         genre: genres,
         sortBy: "popularity.desc",
         minRating: 6.8,
+        minVoteCount: MIN_RATING_VOTE_COUNT,
         page,
       });
       addFromResults((movies.results ?? []).slice(0, 12), "movie", 16, "discovery", "discovery");
@@ -166,6 +174,7 @@ export async function addDiscoveryCandidates(
         genre: genres,
         sortBy: "popularity.desc",
         minRating: 6.8,
+        minVoteCount: MIN_RATING_VOTE_COUNT,
         page,
       });
       addFromResults((tv.results ?? []).slice(0, 12), "tv", 16, "discovery", "discovery");
@@ -179,6 +188,7 @@ export async function addDiscoveryCandidates(
           genre: [stretchGenre],
           sortBy: "vote_average.desc",
           minRating: 7,
+          minVoteCount: MIN_RATING_VOTE_COUNT,
           page: stretchPage,
         });
         addFromResults((stretch.results ?? []).slice(0, 6), "movie", 12, "stretch", "stretch");
@@ -188,6 +198,7 @@ export async function addDiscoveryCandidates(
           genre: [stretchGenre],
           sortBy: "vote_average.desc",
           minRating: 7,
+          minVoteCount: MIN_RATING_VOTE_COUNT,
           page: stretchPage,
         });
         addFromResults((stretchTv.results ?? []).slice(0, 6), "tv", 12, "stretch", "stretch");
