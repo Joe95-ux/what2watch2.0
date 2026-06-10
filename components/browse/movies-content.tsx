@@ -69,7 +69,7 @@ export default function MoviesContent({ favoriteGenres, preferredTypes }: Movies
             items={personalizedMovies}
             type="movie"
             isLoading={isLoadingPersonalized}
-            href="/browse/personalized"
+            href="/browse/personalized?tab=top-picks"
           />
         )}
 

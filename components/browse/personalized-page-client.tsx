@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { TopPicksTab } from "./personalized-tabs/top-picks-tab";
@@ -26,15 +27,35 @@ function getStoredTab(): string {
   return stored && validTabIds.has(stored) ? stored : "top-picks";
 }
 
+function resolveTab(urlTab: string | null): string {
+  if (urlTab && validTabIds.has(urlTab)) return urlTab;
+  return getStoredTab();
+}
+
 export function PersonalizedPageClient() {
-  const [activeTab, setActiveTab] = useState("top-picks");
-  const [loadedTabs, setLoadedTabs] = useState<Set<string>>(() => new Set(["top-picks"]));
+  const searchParams = useSearchParams();
+  const urlTabParam = searchParams.get("tab");
+  const urlTab = urlTabParam && validTabIds.has(urlTabParam) ? urlTabParam : null;
+
+  const [activeTab, setActiveTab] = useState(urlTab ?? "top-picks");
+  const [loadedTabs, setLoadedTabs] = useState<Set<string>>(
+    () => new Set([urlTab ?? "top-picks"])
+  );
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  // Restore tab from localStorage on mount
+  // URL tab overrides localStorage; otherwise restore persisted tab and ensure its content loads
   useEffect(() => {
-    setActiveTab(getStoredTab());
-  }, []);
+    const resolved = resolveTab(urlTab);
+    setActiveTab(resolved);
+    setLoadedTabs((prev) => {
+      const next = new Set(prev);
+      next.add(resolved);
+      return next;
+    });
+    if (urlTab) {
+      window.localStorage.setItem(TAB_STORAGE_KEY, urlTab);
+    }
+  }, [urlTab]);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);

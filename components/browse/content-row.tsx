@@ -122,7 +122,9 @@ export default function ContentRow({ title, items, type, isLoading, href, showCl
     if (titleLower.includes("latest movies") || titleLower.includes("now playing")) return "/browse/movies/latest";
     if (titleLower.includes("popular tv") || titleLower.includes("popular tv shows")) return "/browse/tv/popular";
     if (titleLower.includes("latest tv") || titleLower.includes("on the air")) return "/browse/tv/latest";
-    if (titleLower.includes("we think you'll love")) return "/browse/personalized";
+    if (titleLower.includes("we think you'll love") || titleLower.includes("made for")) {
+      return "/browse/personalized?tab=top-picks";
+    }
     // Default to browse route based on provided type
     return type === "tv" ? "/browse/tv" : "/browse/movies";
   })();

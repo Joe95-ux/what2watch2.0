@@ -438,8 +438,8 @@ export default function BrowseContent({ favoriteGenres = [], preferredTypes = ["
             items={uniquePersonalizedContent}
             type={preferredTypes.length === 1 ? preferredTypes[0] : "movie"}
             isLoading={isLoadingPersonalized}
-            href="/browse/personalized"
-            viewAllHref="/browse/personalized"
+            href="/browse/personalized?tab=top-picks"
+            viewAllHref="/browse/personalized?tab=top-picks"
           />
         )}
 

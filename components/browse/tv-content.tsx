@@ -68,7 +68,7 @@ export default function TVContent({ favoriteGenres, preferredTypes }: TVContentP
             items={personalizedTV}
             type="tv"
             isLoading={isLoadingPersonalized}
-            href="/browse/personalized"
+            href="/browse/personalized?tab=top-picks"
           />
         )}
 
