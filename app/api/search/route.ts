@@ -7,12 +7,47 @@ interface ErrorResponse {
   error: string;
 }
 
+const TMDB_PAGE_SIZE = 20;
+
 const createEmptyResponse = (): TMDBResponse<TMDBMovie | TMDBSeries> => ({
   page: 1,
   results: [],
   total_pages: 0,
   total_results: 0,
 });
+
+function tmdbPagesForLogicalPage(logicalPage: number, resultsPerPage: number): number[] {
+  const pagesPerLogical = Math.ceil(resultsPerPage / TMDB_PAGE_SIZE);
+  const start = (logicalPage - 1) * pagesPerLogical + 1;
+  return Array.from({ length: pagesPerLogical }, (_, i) => start + i);
+}
+
+function interleaveMovieAndTv(
+  movieResults: TMDBMovie[],
+  tvResults: TMDBSeries[],
+): (TMDBMovie | TMDBSeries)[] {
+  const interleaved: (TMDBMovie | TMDBSeries)[] = [];
+  const maxLen = Math.max(movieResults.length, tvResults.length);
+  for (let i = 0; i < maxLen; i++) {
+    if (i < movieResults.length) interleaved.push(movieResults[i]);
+    if (i < tvResults.length) interleaved.push(tvResults[i]);
+  }
+  return interleaved;
+}
+
+function buildPagedResponse(
+  items: (TMDBMovie | TMDBSeries)[],
+  logicalPage: number,
+  resultsPerPage: number,
+  totalResults: number,
+): TMDBResponse<TMDBMovie | TMDBSeries> {
+  return {
+    page: logicalPage,
+    results: items.slice(0, resultsPerPage),
+    total_pages: Math.max(1, Math.ceil(totalResults / resultsPerPage)),
+    total_results: totalResults,
+  };
+}
 
 export async function GET(request: NextRequest): Promise<NextResponse<TMDBResponse<TMDBMovie | TMDBSeries> | TMDBSearchPersonResponse | ErrorResponse>> {
   try {
@@ -230,19 +265,13 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
               ]);
               const movieResults = moviePages.flatMap((res) => res.results || []);
               const tvResults = tvPages.flatMap((res) => res.results || []);
-              const interleave: (TMDBMovie | TMDBSeries)[] = [];
-              const maxLen = Math.max(movieResults.length, tvResults.length);
-              for (let i = 0; i < maxLen; i++) {
-                if (i < movieResults.length) interleave.push(movieResults[i]);
-                if (i < tvResults.length) interleave.push(tvResults[i]);
-              }
               const total = (moviePages[0]?.total_results ?? 0) + (tvPages[0]?.total_results ?? 0);
-              results = {
+              results = buildPagedResponse(
+                interleaveMovieAndTv(movieResults, tvResults),
                 page,
-                results: interleave.slice(0, RESULTS_PER_PAGE),
-                total_pages: Math.ceil(total / RESULTS_PER_PAGE),
-                total_results: total,
-              };
+                RESULTS_PER_PAGE,
+                total,
+              );
             }
           } else {
             const filters = { page, ...baseFilterProps };
@@ -255,33 +284,51 @@ export async function GET(request: NextRequest): Promise<NextResponse<TMDBRespon
                 Promise.all([discoverMovies(filters), discoverTV(filters)]),
                 timeoutPromise,
               ]);
-              results = {
+              const total = movies.total_results + tv.total_results;
+              results = buildPagedResponse(
+                interleaveMovieAndTv(movies.results, tv.results),
                 page,
-                results: [...movies.results, ...tv.results],
-                total_pages: Math.max(movies.total_pages, tv.total_pages),
-                total_results: movies.total_results + tv.total_results,
-              };
+                RESULTS_PER_PAGE,
+                total,
+              );
             }
           }
         }
       } else if (query) {
-        // Regular search
+        const tmdbPages = tmdbPagesForLogicalPage(page, RESULTS_PER_PAGE);
         if (type === "movie") {
-          results = await Promise.race([searchMovies(query, page), timeoutPromise]);
-        } else if (type === "tv") {
-          results = await Promise.race([searchTV(query, page), timeoutPromise]);
-        } else {
-          // Search both and combine
-          const [movies, tv] = await Promise.race([
-            Promise.all([searchMovies(query, page), searchTV(query, page)]),
+          const moviePages = await Promise.race([
+            Promise.all(tmdbPages.map((tmdbPage) => searchMovies(query, tmdbPage))),
             timeoutPromise,
           ]);
-          results = {
+          const merged = moviePages.flatMap((res) => res.results || []);
+          const total = moviePages[0]?.total_results ?? 0;
+          results = buildPagedResponse(merged, page, RESULTS_PER_PAGE, total);
+        } else if (type === "tv") {
+          const tvPages = await Promise.race([
+            Promise.all(tmdbPages.map((tmdbPage) => searchTV(query, tmdbPage))),
+            timeoutPromise,
+          ]);
+          const merged = tvPages.flatMap((res) => res.results || []);
+          const total = tvPages[0]?.total_results ?? 0;
+          results = buildPagedResponse(merged, page, RESULTS_PER_PAGE, total);
+        } else {
+          const [moviePages, tvPages] = await Promise.race([
+            Promise.all([
+              Promise.all(tmdbPages.map((tmdbPage) => searchMovies(query, tmdbPage))),
+              Promise.all(tmdbPages.map((tmdbPage) => searchTV(query, tmdbPage))),
+            ]),
+            timeoutPromise,
+          ]);
+          const movieResults = moviePages.flatMap((res) => res.results || []);
+          const tvResults = tvPages.flatMap((res) => res.results || []);
+          const total = (moviePages[0]?.total_results ?? 0) + (tvPages[0]?.total_results ?? 0);
+          results = buildPagedResponse(
+            interleaveMovieAndTv(movieResults, tvResults),
             page,
-            results: [...movies.results, ...tv.results],
-            total_pages: Math.max(movies.total_pages, tv.total_pages),
-            total_results: movies.total_results + tv.total_results,
-          };
+            RESULTS_PER_PAGE,
+            total,
+          );
         }
       } else {
         results = createEmptyResponse();
