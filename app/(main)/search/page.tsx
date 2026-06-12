@@ -17,6 +17,8 @@ import { useWatchProviders } from "@/hooks/use-watch-providers";
 import { useWatchRegions } from "@/hooks/use-watch-regions";
 import { useQuery } from "@tanstack/react-query";
 
+const SEARCH_PAGE_SIZE = 30;
+
 function SearchResultsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -95,7 +97,7 @@ function SearchResultsContent() {
     minRating: minRating > 0 ? minRating : undefined,
     sortBy,
     page,
-    pageSize: 24,
+    pageSize: SEARCH_PAGE_SIZE,
     runtimeMin,
     runtimeMax,
     withOriginCountry,
@@ -383,7 +385,7 @@ function SearchResultsContent() {
         {/* Results */}
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {[...Array(24)].map((_, i) => (
+            {[...Array(SEARCH_PAGE_SIZE)].map((_, i) => (
               <MoreLikeThisCardSkeleton key={i} />
             ))}
           </div>
@@ -439,7 +441,7 @@ export default function SearchPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Skeleton className="h-10 w-64 mb-8" />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {[...Array(24)].map((_, i) => (
+            {[...Array(SEARCH_PAGE_SIZE)].map((_, i) => (
               <MoreLikeThisCardSkeleton key={i} />
             ))}
           </div>
