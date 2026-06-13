@@ -56,12 +56,13 @@ export function YouTubeChannelsTab() {
     };
     availableCategories: string[];
   }>({
-    queryKey: ["youtube-channels-all", page, categoryFilter, searchQuery, poolFilter],
+    queryKey: ["youtube-channels-all", page, categoryFilter, searchQuery, poolFilter, sortOrder],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: CHANNELS_PER_PAGE.toString(),
         pool: poolFilter,
+        sort: sortOrder,
       });
       if (categoryFilter !== "all") {
         params.append("category", categoryFilter);
@@ -200,7 +201,10 @@ export function YouTubeChannelsTab() {
             }}
             searchPlaceholder="Search channels..."
             sortOrder={sortOrder}
-            onSortChange={setSortOrder}
+            onSortChange={(order) => {
+              setSortOrder(order);
+              setPage(1);
+            }}
             filters={channelFilters}
             hasActiveFilters={activeFilterCount > 0}
             onClearAll={clearFilters}

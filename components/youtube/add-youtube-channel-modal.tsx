@@ -17,7 +17,7 @@ interface AddYouTubeChannelModalProps {
 export function AddYouTubeChannelModal({ open, onOpenChange }: AddYouTubeChannelModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] sm:max-w-lg max-h-[90vh] overflow-hidden flex flex-col p-0">
+      <DialogContent className="max-w-[calc(100vw-1rem)] sm:max-w-lg max-h-[90vh] overflow-hidden flex flex-col gap-0 p-0">
         <DialogHeader className="px-4 sm:px-6 pt-6 pb-4 border-b flex-shrink-0">
           <DialogTitle>Add a channel</DialogTitle>
           <DialogDescription>

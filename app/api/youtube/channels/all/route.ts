@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
     const searchQuery = searchParams.get("search");
     const channelIdsParam = searchParams.get("channelIds");
     const poolFilter = searchParams.get("pool") || "all";
+    const sortOrder = searchParams.get("sort") === "asc" ? "asc" : "desc";
 
     const limit = Math.max(1, Math.min(MAX_LIMIT, limitParam));
     const page = Math.max(1, pageParam);
@@ -63,6 +64,7 @@ export async function GET(request: NextRequest) {
         isActive: true,
         isPrivate: true,
         addedByUserId: true,
+        createdAt: true,
       },
     });
 
@@ -244,6 +246,12 @@ export async function GET(request: NextRequest) {
         );
       }
     }
+
+    filteredChannels = [...filteredChannels].sort((a, b) => {
+      const aTime = a.createdAt.getTime();
+      const bTime = b.createdAt.getTime();
+      return sortOrder === "desc" ? bTime - aTime : aTime - bTime;
+    });
 
     // Apply pagination for explorer pages, but return all requested ids for list detail.
     const total = filteredChannels.length;
