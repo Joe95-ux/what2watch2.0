@@ -20,6 +20,16 @@ interface YouTubeChannel {
   title: string;
   thumbnail?: string;
   channelUrl: string;
+  subscriberCount?: string;
+}
+
+function formatSubscriberCount(count: string | number | undefined): string {
+  if (!count) return "0";
+  const num = typeof count === "string" ? parseInt(count, 10) : count;
+  if (isNaN(num)) return "0";
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  return num.toString();
 }
 
 interface YouTubeChannelExtractorInlineProps {
@@ -252,6 +262,8 @@ export function YouTubeChannelExtractorInline({
     }
   };
 
+  const isPlain = variant === "plain";
+
   const formContent = (
     <>
         {/* Search Input */}
@@ -260,7 +272,7 @@ export function YouTubeChannelExtractorInline({
             Channel Name or URL
           </Label>
           <div className="flex gap-2">
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="channel-input"
@@ -269,24 +281,23 @@ export function YouTubeChannelExtractorInline({
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 disabled={isLoading}
-                className="pl-10 h-11"
+                className="pl-10 h-9"
               />
             </div>
             <Button
               onClick={handleExtract}
               disabled={isLoading || !input.trim()}
-              size="lg"
-              className="px-6 h-11 cursor-pointer"
+              className="h-9 shrink-0 cursor-pointer px-3 sm:px-4"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Searching...
+                  <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
+                  <span className="hidden sm:inline">Searching...</span>
                 </>
               ) : (
                 <>
-                  <Search className="h-4 w-4 mr-2" />
-                  Search
+                  <Search className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Search</span>
                 </>
               )}
             </Button>
@@ -306,43 +317,57 @@ export function YouTubeChannelExtractorInline({
               <Label className="text-sm font-semibold">Search Results</Label>
               <Badge variant="outline">{channels.length} found</Badge>
             </div>
-            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
+            <div className={isPlain ? "space-y-2" : "space-y-2 max-h-[500px] overflow-y-auto pr-2"}>
               {channels.map((channel) => (
                 <div
                   key={channel.id}
-                  className="group relative flex items-center gap-4 p-4 border rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-all duration-200"
+                  className={
+                    isPlain
+                      ? "flex flex-col gap-3 p-3 border rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-colors"
+                      : "group relative flex items-center gap-4 p-4 border rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-all duration-200"
+                  }
                 >
                   <a
                     href={channel.channelUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-4 flex-1 min-w-0"
+                    className={
+                      isPlain
+                        ? "flex items-center gap-3 min-w-0"
+                        : "group flex items-center gap-4 flex-1 min-w-0"
+                    }
                     onClick={(e) => e.stopPropagation()}
                   >
                     {channel.thumbnail ? (
-                      <div className="relative w-14 h-14 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-border">
+                      <div className={`relative rounded-full overflow-hidden flex-shrink-0 ring-2 ring-border ${isPlain ? "w-11 h-11" : "w-14 h-14"}`}>
                         <Image
                           src={channel.thumbnail}
                           alt={channel.title}
                           fill
                           className="object-cover"
-                          sizes="56px"
+                          sizes={isPlain ? "44px" : "56px"}
                           unoptimized
                         />
                       </div>
                     ) : (
-                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 ring-2 ring-border">
-                        <YouTubeBrandIcon className="h-7 w-7" />
+                      <div className={`rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 ring-2 ring-border ${isPlain ? "w-11 h-11" : "w-14 h-14"}`}>
+                        <YouTubeBrandIcon className={isPlain ? "h-6 w-6" : "h-7 w-7"} />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
+                      <p className={`font-semibold text-sm ${isPlain ? "line-clamp-2" : "truncate group-hover:text-primary transition-colors"}`}>
                         {channel.title}
                       </p>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <code className="text-xs text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded border">
-                          {channel.id}
-                        </code>
+                      <div className={`flex items-center gap-2 flex-wrap ${isPlain ? "mt-1" : "mt-1.5"}`}>
+                        {isPlain ? (
+                          <span className="text-xs text-muted-foreground">
+                            {formatSubscriberCount(channel.subscriberCount)} subscribers
+                          </span>
+                        ) : (
+                          <code className="text-xs text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded border">
+                            {channel.id}
+                          </code>
+                        )}
                         {addedIds.has(channel.id) && (
                           <Badge variant="default" className="text-xs">
                             Added
@@ -355,10 +380,12 @@ export function YouTubeChannelExtractorInline({
                         )}
                       </div>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                    {!isPlain && (
+                      <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                    )}
                   </a>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className="flex items-center gap-2 px-3 py-1.5 border rounded-md bg-background">
+                  <div className={`flex items-center gap-2 flex-shrink-0 ${isPlain ? "w-full justify-between sm:justify-end sm:w-auto" : ""}`}>
+                    <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 border rounded-md bg-background">
                       <Checkbox
                         id={`user-pool-${channel.id}`}
                         checked={addToUserPoolChannels.has(channel.id)}
@@ -371,7 +398,6 @@ export function YouTubeChannelExtractorInline({
                           }
                           setAddToUserPoolChannels(newUserPoolChannels);
                           
-                          // If channel already exists in app pool, update user pool immediately
                           if (existingChannels.has(channel.id)) {
                             toggleUserPool(channel.id, Boolean(checked));
                           }
@@ -383,8 +409,9 @@ export function YouTubeChannelExtractorInline({
                         className="text-xs cursor-pointer flex items-center gap-1.5 font-medium"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <UserPlus className="h-3 w-3" />
-                        Add to My Feed
+                        <UserPlus className="h-3 w-3 shrink-0" />
+                        <span className="hidden sm:inline">Add to My Feed</span>
+                        <span className="sm:hidden">Feed</span>
                       </Label>
                     </div>
                     {!existingChannels.has(channel.id) && (
@@ -396,41 +423,43 @@ export function YouTubeChannelExtractorInline({
                           addChannelId(channel.id);
                         }}
                         disabled={addedIds.has(channel.id) || addingChannelId === channel.id}
-                        className="gap-2 cursor-pointer"
+                        className="gap-1.5 cursor-pointer h-8"
                       >
                         {addingChannelId === channel.id ? (
                           <>
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            Adding...
+                            <span className="hidden sm:inline">Adding...</span>
                           </>
                         ) : addedIds.has(channel.id) ? (
                           <>
                             <Check className="h-3.5 w-3.5" />
-                            Added
+                            <span className="hidden sm:inline">Added</span>
                           </>
                         ) : (
                           <>
                             <Plus className="h-3.5 w-3.5" />
-                            Add
+                            <span className="hidden sm:inline">Add</span>
                           </>
                         )}
                       </Button>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        copyToClipboard(channel.id);
-                      }}
-                      className="gap-2"
-                    >
-                      {copiedId === channel.id ? (
-                        <Check className="h-3.5 w-3.5 text-green-600" />
-                      ) : (
-                        <Copy className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
+                    {!isPlain && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyToClipboard(channel.id);
+                        }}
+                        className="gap-2"
+                      >
+                        {copiedId === channel.id ? (
+                          <Check className="h-3.5 w-3.5 text-green-600" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -451,7 +480,7 @@ export function YouTubeChannelExtractorInline({
   );
 
   if (variant === "plain") {
-    return <div className="space-y-6">{formContent}</div>;
+    return <div className="space-y-4">{formContent}</div>;
   }
 
   return (

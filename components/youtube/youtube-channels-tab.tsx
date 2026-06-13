@@ -148,12 +148,11 @@ export function YouTubeChannelsTab() {
               aria-pressed={effectiveCardStyle === "centered"}
               className={
                 effectiveCardStyle === "centered"
-                  ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground"
-                  : "h-7 cursor-pointer px-2.5 text-xs"
+                  ? "h-7 cursor-pointer px-2 text-xs bg-muted text-foreground"
+                  : "h-7 cursor-pointer px-2 text-xs"
               }
             >
-              <LayoutGrid className="h-3.5 w-3.5 mr-1.5" />
-              Cards
+              <LayoutGrid className="h-3.5 w-3.5" />
             </Button>
             <Button
               type="button"
@@ -166,12 +165,11 @@ export function YouTubeChannelsTab() {
               aria-pressed={effectiveCardStyle === "horizontal"}
               className={
                 effectiveCardStyle === "horizontal"
-                  ? "h-7 cursor-pointer px-2.5 text-xs bg-muted text-foreground"
-                  : "h-7 cursor-pointer px-2.5 text-xs"
+                  ? "h-7 cursor-pointer px-2 text-xs bg-muted text-foreground"
+                  : "h-7 cursor-pointer px-2 text-xs"
               }
             >
-              <Rows3 className="h-3.5 w-3.5 mr-1.5" />
-              Rows
+              <Rows3 className="h-3.5 w-3.5" />
             </Button>
           </div>
           <Button
