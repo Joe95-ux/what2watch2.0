@@ -18,7 +18,7 @@ interface YouTubeChannelsResponse {
   items?: YouTubeChannelItem[];
 }
 
-const DEFAULT_LIMIT = 20;
+const DEFAULT_LIMIT = 32;
 const MAX_LIMIT = 50;
 
 export async function GET(request: NextRequest) {
@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
     const categoryFilter = searchParams.get("category");
     const searchQuery = searchParams.get("search");
     const channelIdsParam = searchParams.get("channelIds");
+    const poolFilter = searchParams.get("pool") || "all";
 
     const limit = Math.max(1, Math.min(MAX_LIMIT, limitParam));
     const page = Math.max(1, pageParam);
@@ -225,6 +226,23 @@ export async function GET(request: NextRequest) {
           channel.title?.toLowerCase().includes(query) ||
           channel.slug?.toLowerCase().includes(query)
       );
+    }
+
+    // Filter by user feed pool before pagination (client used to filter after fetch, yielding <32 items)
+    if (poolFilter === "inMyFeed") {
+      if (!currentUserId) {
+        filteredChannels = [];
+      } else {
+        filteredChannels = filteredChannels.filter((channel) =>
+          userChannelPoolIds.has(channel.channelId)
+        );
+      }
+    } else if (poolFilter === "notInMyFeed") {
+      if (currentUserId) {
+        filteredChannels = filteredChannels.filter(
+          (channel) => !userChannelPoolIds.has(channel.channelId)
+        );
+      }
     }
 
     // Apply pagination for explorer pages, but return all requested ids for list detail.

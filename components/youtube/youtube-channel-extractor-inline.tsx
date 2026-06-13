@@ -24,9 +24,13 @@ interface YouTubeChannel {
 
 interface YouTubeChannelExtractorInlineProps {
   onChannelAdded?: () => void;
+  variant?: "card" | "plain";
 }
 
-export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannelExtractorInlineProps = {}) {
+export function YouTubeChannelExtractorInline({
+  onChannelAdded,
+  variant = "card",
+}: YouTubeChannelExtractorInlineProps = {}) {
   const queryClient = useQueryClient();
   const [input, setInput] = useState("");
   const [channels, setChannels] = useState<YouTubeChannel[]>([]);
@@ -172,6 +176,8 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
         
         await queryClient.invalidateQueries({ queryKey: ["youtube-channels"] });
         await queryClient.invalidateQueries({ queryKey: ["youtube-channels-manage"] });
+        await queryClient.invalidateQueries({ queryKey: ["youtube-channels-all"] });
+        await queryClient.invalidateQueries({ queryKey: ["feed-channels"] });
         await queryClient.refetchQueries({ queryKey: ["youtube-channels"] });
         await queryClient.refetchQueries({ queryKey: ["youtube-channels-manage"] });
         
@@ -224,6 +230,8 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
         
         await queryClient.invalidateQueries({ queryKey: ["youtube-channels"] });
         await queryClient.invalidateQueries({ queryKey: ["youtube-channels-manage"] });
+        await queryClient.invalidateQueries({ queryKey: ["youtube-channels-all"] });
+        await queryClient.invalidateQueries({ queryKey: ["feed-channels"] });
         await queryClient.refetchQueries({ queryKey: ["youtube-channels"] });
         await queryClient.refetchQueries({ queryKey: ["youtube-channels-manage"] });
       } else {
@@ -244,25 +252,8 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
     }
   };
 
-  return (
-    <Card className="border-2 shadow-lg">
-      <CardHeader className="pb-0 space-y-1">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <YouTubeBrandIcon className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle className="text-xl font-semibold">Channel Extractor</CardTitle>
-              <CardDescription className="text-sm mt-1">
-                Search and add YouTube channels to your collection
-              </CardDescription>
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-      <Separator />
-      <CardContent className="pt-0 space-y-6">
+  const formContent = (
+    <>
         {/* Search Input */}
         <div className="space-y-2">
           <Label htmlFor="channel-input" className="text-sm font-medium">
@@ -447,7 +438,7 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
           </div>
         )}
 
-        {channels.length === 0 && !isLoading && !error && (
+        {channels.length === 0 && !isLoading && !error && variant === "card" && (
           <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/30">
             <div className="p-3 rounded-full bg-primary/10 w-fit mx-auto mb-4">
               <YouTubeBrandIcon className="h-6 w-6" />
@@ -456,7 +447,32 @@ export function YouTubeChannelExtractorInline({ onChannelAdded }: YouTubeChannel
             <p className="text-xs text-muted-foreground">Enter a channel name or URL above to get started</p>
           </div>
         )}
-      </CardContent>
+    </>
+  );
+
+  if (variant === "plain") {
+    return <div className="space-y-6">{formContent}</div>;
+  }
+
+  return (
+    <Card className="border-2 shadow-lg">
+      <CardHeader className="pb-0 space-y-1">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <YouTubeBrandIcon className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-xl font-semibold">Channel Extractor</CardTitle>
+              <CardDescription className="text-sm mt-1">
+                Search and add YouTube channels to your collection
+              </CardDescription>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      <Separator />
+      <CardContent className="pt-0 space-y-6">{formContent}</CardContent>
     </Card>
   );
 }
