@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useMemo, type ReactNode } from "react";
 import Image from "next/image";
 import { Play, Clapperboard, Images, Star, Plus, Check, ChevronUp, ChevronDown, HelpCircle } from "lucide-react";
 import { IoBookmarkSharp } from "react-icons/io5";
@@ -60,6 +60,11 @@ interface HeroSectionProps {
   onCollectionClick?: () => void;
   /** Shared with discussions tab — one query + one Pusher subscription per title page. */
   titleWatchingData?: WatchingTitlePresenceResponse;
+  /** TV season/episode scope for watcher counts and starting a session. */
+  watchingTitleScope?: {
+    seasonNumber?: number | null;
+    episodeNumber?: number | null;
+  };
 }
 
 export default function HeroSection({
@@ -71,6 +76,7 @@ export default function HeroSection({
   watchAvailability,
   onCollectionClick,
   titleWatchingData,
+  watchingTitleScope,
 }: HeroSectionProps) {
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [initialVideoId, setInitialVideoId] = useState<string | null>(null);
@@ -262,12 +268,41 @@ export default function HeroSection({
         title,
         posterPath: item.poster_path || null,
         backdropPath: item.backdrop_path || null,
+        ...(type === "tv" &&
+          watchingTitleScope?.seasonNumber != null &&
+          watchingTitleScope.seasonNumber > 0 && {
+            seasonNumber: watchingTitleScope.seasonNumber,
+            episodeNumber:
+              watchingTitleScope.episodeNumber != null && watchingTitleScope.episodeNumber > 0
+                ? watchingTitleScope.episodeNumber
+                : null,
+          }),
       });
       toast.success("You are now marked as watching this.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to start watching session");
     }
-  }, [isSignedIn, promptSignIn, watchingMutation, item.id, item.poster_path, item.backdrop_path, type, title]);
+  }, [
+    isSignedIn,
+    promptSignIn,
+    watchingMutation,
+    item.id,
+    item.poster_path,
+    item.backdrop_path,
+    type,
+    title,
+    watchingTitleScope,
+  ]);
+
+  const watchingScopeLabel = useMemo(() => {
+    if (type !== "tv" || !watchingTitleScope?.seasonNumber) return "";
+    const season = String(watchingTitleScope.seasonNumber).padStart(2, "0");
+    if (watchingTitleScope.episodeNumber != null && watchingTitleScope.episodeNumber > 0) {
+      const episode = String(watchingTitleScope.episodeNumber).padStart(2, "0");
+      return ` · S${season}E${episode}`;
+    }
+    return ` · Season ${watchingTitleScope.seasonNumber}`;
+  }, [type, watchingTitleScope]);
 
   const videoStatLabel = formatStatLabel(videoCount, "Videos");
   const photoStatLabel = formatStatLabel(photoCount, "Photos");
@@ -315,7 +350,9 @@ export default function HeroSection({
                       })}
                     </div>
                     <p className="truncate text-xs text-muted-foreground">
-                      {titleWatchingData.watcherCount} {titleWatchingData.watcherCount === 1 ? "person" : "people"} watching
+                      {titleWatchingData.watcherCount}{" "}
+                      {titleWatchingData.watcherCount === 1 ? "person" : "people"} watching
+                      {watchingScopeLabel}
                     </p>
                   </div>
                   {titleWatchingData.isCurrentUserWatching ? (

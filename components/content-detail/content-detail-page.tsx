@@ -377,6 +377,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
           videosData={videosData || null}
           watchAvailability={watchAvailability}
           titleWatchingData={watchingTitleData}
+          watchingTitleScope={watchingTitleScope}
           onCollectionClick={() => setIsCollectionSectionOpen(!isCollectionSectionOpen)}
         />
       </div>

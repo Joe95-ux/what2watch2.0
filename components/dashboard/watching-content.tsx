@@ -54,6 +54,7 @@ import { useWatchPartyRoomPusher } from "@/hooks/use-watch-party-room-pusher";
 import {
   parseWatchPartyRoomSummary,
   useWatchPartyRoomSummary,
+  type WatchPartyRoomSummary,
 } from "@/hooks/use-watch-party-room-summary";
 import {
   ensureWatchPartyMembership,
@@ -85,6 +86,7 @@ import { getPosterUrl, type TMDBMovie, type TMDBSeries } from "@/lib/tmdb";
 import WatchBreakdownSection from "@/components/content-detail/watch-breakdown-section";
 import { JoinDiscussionComposer } from "@/components/content-detail/join-discussion-composer";
 import { WatchPartyRoomPanel } from "@/components/dashboard/watch-party-room-panel";
+import { WatchPartyEndedBanner } from "@/components/dashboard/watch-party-ended-banner";
 import { watchPartyHostPlaybackSnapshot } from "@/components/dashboard/watch-party-host-controls-bar";
 import { WatchRoomActionsMenu } from "@/components/dashboard/watch-room-actions-menu";
 import { WatchingPulseSubtitle } from "@/components/dashboard/watching-pulse-subtitle";
@@ -2814,6 +2816,7 @@ export default function WatchingContent() {
   const [joiningRoomKey, setJoiningRoomKey] = useState<string | null>(null);
   const [endingWatchPartyRoomKey, setEndingWatchPartyRoomKey] = useState<string | null>(null);
   const [leavingWatchPartyRoomKey, setLeavingWatchPartyRoomKey] = useState<string | null>(null);
+  const [endedPartyNotice, setEndedPartyNotice] = useState<{ title: string } | null>(null);
   const [activeCardContext, setActiveCardContext] = useState<{
     tmdbId: number;
     mediaType: "movie" | "tv";
@@ -3298,7 +3301,15 @@ export default function WatchingContent() {
   });
 
   const dismissEndedWatchParty = useCallback(
-    (endedPartyId: string, feedRoomKey?: string | null) => {
+    (
+      endedPartyId: string,
+      feedRoomKey?: string | null,
+      partyTitle?: string | null,
+      showNotice = true
+    ) => {
+      if (showNotice && partyTitle?.trim()) {
+        setEndedPartyNotice({ title: partyTitle.trim() });
+      }
       clearWatchPartySessionStorage(endedPartyId);
       removeWatchPartyQueries(queryClient, endedPartyId);
       const focusKey =
@@ -3327,10 +3338,13 @@ export default function WatchingContent() {
         void queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
       },
       onPartyEnded: (feedRoomKey) => {
-        if (partyId) dismissEndedWatchParty(partyId, feedRoomKey);
+        if (!partyId) return;
+        const cached = queryClient.getQueryData<WatchPartyRoomSummary>(["watch-party-room", partyId]);
+        dismissEndedWatchParty(partyId, feedRoomKey, cached?.title ?? null);
       },
       onError: (error) => {
         if (error instanceof WatchPartyJoinError) {
+          if (error.status === 410) return;
           toast.error(error.message);
           return;
         }
@@ -3574,7 +3588,7 @@ export default function WatchingContent() {
     const partyOver =
       partyRoomSummary.status === "ENDED" || userFinishedPartyTitle;
     if (!partyOver) return;
-    dismissEndedWatchParty(partyId, partyRoomSummary.feedRoomKey);
+    dismissEndedWatchParty(partyId, partyRoomSummary.feedRoomKey, partyRoomSummary.title);
   }, [
     partyId,
     partyRoomSummary,
@@ -3597,7 +3611,7 @@ export default function WatchingContent() {
           toast.error(typeof err.error === "string" ? err.error : "Could not end watch party.");
           return;
         }
-        dismissEndedWatchParty(partyId, feedRoomKey);
+        dismissEndedWatchParty(partyId, feedRoomKey, partyRoomSummary?.title, false);
         void queryClient.invalidateQueries({ queryKey: ["watching-dashboard"] });
         toast.success("Watch party ended.");
       } catch {
@@ -3606,7 +3620,7 @@ export default function WatchingContent() {
         setEndingWatchPartyRoomKey(null);
       }
     },
-    [partyId, dismissEndedWatchParty, queryClient]
+    [partyId, partyRoomSummary?.title, dismissEndedWatchParty, queryClient]
   );
 
   const leaveWatchPartyForFeedRoom = useCallback(
@@ -3823,7 +3837,9 @@ export default function WatchingContent() {
   const activeSession = watchingData?.currentSession ?? null;
   useWatchPartyRoomPusher(partyId, Boolean(partyId), {
     onPartyEnded: (feedRoomKey) => {
-      if (partyId) dismissEndedWatchParty(partyId, feedRoomKey);
+      if (!partyId) return;
+      const cached = queryClient.getQueryData<WatchPartyRoomSummary>(["watch-party-room", partyId]);
+      dismissEndedWatchParty(partyId, feedRoomKey, cached?.title ?? null);
     },
   });
   const isWatchingActive = Boolean(activeSession) && !isChangingTitle;
@@ -4005,13 +4021,18 @@ export default function WatchingContent() {
   }
 
   if (!currentUser) {
+    const hasPartyInvite = Boolean(partyIdFromUrl);
     return (
       <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
         <Card className="mx-auto max-w-xl border-border/70">
           <CardHeader>
-            <p className="text-lg font-semibold">Sign in required</p>
+            <p className="text-lg font-semibold">
+              {hasPartyInvite ? "Sign in to join the watch party" : "Sign in required"}
+            </p>
             <p className="text-sm text-muted-foreground">
-              Please sign in to view what people are watching right now.
+              {hasPartyInvite
+                ? "Your invite link is saved. After signing in, you'll return here and join automatically."
+                : "Please sign in to view what people are watching right now."}
             </p>
           </CardHeader>
           <CardContent>
@@ -4035,6 +4056,12 @@ export default function WatchingContent() {
         )}
       >
         <main className="watching-page-scroll relative pb-16 min-w-0 space-y-4 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
+          {endedPartyNotice ? (
+            <WatchPartyEndedBanner
+              title={endedPartyNotice.title}
+              onDismiss={() => setEndedPartyNotice(null)}
+            />
+          ) : null}
           <Button
             type="button"
             size="icon"
