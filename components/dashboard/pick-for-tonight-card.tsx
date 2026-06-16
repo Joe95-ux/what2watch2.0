@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Bookmark, Check, Heart, MoreVertical, ThumbsUp } from "lucide-react";
@@ -449,6 +449,93 @@ function providerWatchLabel(provider: NonNullable<PickForTonightCandidate["provi
   return `watch on ${name}`;
 }
 
+function resolveProviderLink(
+  pick: PickForTonightCandidate,
+  provider: NonNullable<PickForTonightCandidate["provider"]>
+): { href: string; external: boolean } {
+  const direct = provider.deepLinkUrl ?? provider.standardWebUrl;
+  if (direct) return { href: direct, external: true };
+  if (pick.justwatchRankUrl) return { href: pick.justwatchRankUrl, external: true };
+  return { href: detailHref(pick), external: false };
+}
+
+function PickProviderBadge({
+  pick,
+  provider,
+  className,
+  mobileLabel,
+  desktopLabel,
+  onClick,
+}: {
+  pick: PickForTonightCandidate;
+  provider: NonNullable<PickForTonightCandidate["provider"]>;
+  className?: string;
+  mobileLabel?: string;
+  desktopLabel?: string;
+  onClick?: (e: MouseEvent) => void;
+}) {
+  const { href, external } = resolveProviderLink(pick, provider);
+  const fullLabel = normalizeLabelWhitespace(providerWatchLabel(provider));
+  const mobile = mobileLabel ?? truncateToWords(fullLabel, 3);
+  const desktop = desktopLabel ?? truncateToMaxChars(fullLabel, 18);
+  const sharedClassName = cn(
+    "inline-flex h-8 w-fit max-w-max items-stretch overflow-hidden rounded-md border border-border/60 bg-muted capitalize text-[14px] font-medium leading-none transition-colors hover:bg-muted/80",
+    className
+  );
+  const inner = (
+    <>
+      {provider.iconUrl ? (
+        <>
+          <Image
+            src={provider.iconUrl}
+            alt={provider.providerName}
+            width={32}
+            height={32}
+            className="h-8 w-8 shrink-0 object-contain"
+            unoptimized
+          />
+          {mobileLabel != null || desktopLabel != null ? (
+            <>
+              <span className="flex min-w-0 flex-1 items-center truncate px-2.5 sm:hidden">{mobile}</span>
+              <span className="hidden min-w-0 flex-1 items-center truncate px-2.5 sm:flex">{desktop}</span>
+            </>
+          ) : (
+            <span className="flex min-w-0 items-center truncate px-2">{desktop}</span>
+          )}
+        </>
+      ) : mobileLabel != null || desktopLabel != null ? (
+        <>
+          <span className="flex min-w-0 flex-1 items-center truncate px-2.5 sm:hidden">{mobile}</span>
+          <span className="hidden min-w-0 flex-1 items-center truncate px-2.5 sm:flex">{desktop}</span>
+        </>
+      ) : (
+        <span className="flex min-w-0 items-center truncate px-2">{desktop}</span>
+      )}
+    </>
+  );
+
+  if (external) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={fullLabel}
+        onClick={onClick}
+        className={sharedClassName}
+      >
+        {inner}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} title={fullLabel} onClick={onClick} className={sharedClassName}>
+      {inner}
+    </Link>
+  );
+}
+
 function pickIntentFallback(item: PickForTonightCandidate): string {
   const hints = item.hints?.filter(Boolean) ?? [];
   if (hints.length >= 2) {
@@ -630,7 +717,6 @@ function PickExploreTable({
           {picks.map((pick) => {
             const meta = [pick.releaseYear, pick.rated, pick.runtimeText].filter(Boolean).join(" • ") || "—";
             const provider = pick.provider;
-            const providerHref = provider?.deepLinkUrl ?? provider?.standardWebUrl ?? null;
             return (
               <TableRow key={`row-${pick.id}`}>
                 <TableCell className="max-w-[280px]">
@@ -664,28 +750,14 @@ function PickExploreTable({
                   </p>
                 </TableCell>
                 <TableCell className="hidden text-xs sm:table-cell">
-                  {provider && providerHref ? (
-                    <a
-                      href={providerHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={normalizeLabelWhitespace(providerWatchLabel(provider))}
-                      className="inline-flex h-8 max-w-[240px] cursor-pointer items-stretch overflow-hidden rounded-md border border-border/60 bg-muted text-[12px] font-medium capitalize leading-none transition-colors hover:bg-muted/80"
-                    >
-                      {provider.iconUrl ? (
-                        <Image
-                          src={provider.iconUrl}
-                          alt={provider.providerName}
-                          width={32}
-                          height={32}
-                          className="h-8 w-8 shrink-0 object-contain"
-                          unoptimized
-                        />
-                      ) : null}
-                      <span className="flex min-w-0 items-center truncate px-2">
-                        {truncateToMaxChars(normalizeLabelWhitespace(providerWatchLabel(provider)), 22)}
-                      </span>
-                    </a>
+                  {provider ? (
+                    <PickProviderBadge
+                      pick={pick}
+                      provider={provider}
+                      className="max-w-[240px] cursor-pointer text-[12px]"
+                      desktopLabel={truncateToMaxChars(normalizeLabelWhitespace(providerWatchLabel(provider)), 22)}
+                      mobileLabel={truncateToMaxChars(normalizeLabelWhitespace(providerWatchLabel(provider)), 22)}
+                    />
                   ) : (
                     <span className="text-muted-foreground">Unavailable</span>
                   )}
@@ -796,7 +868,6 @@ function PickCardItem({
 
   const metadata = [item.releaseYear, item.rated, item.runtimeText].filter(Boolean).join(" • ");
   const provider = item.provider;
-  const providerHref = provider?.deepLinkUrl ?? provider?.standardWebUrl ?? "#";
 
   const providerLinkLabels = useMemo(() => {
     if (!provider) return null;
@@ -926,42 +997,14 @@ function PickCardItem({
           />
 
           {provider && providerLinkLabels ? (
-            <a
-              href={providerHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={providerLinkLabels.full}
+            <PickProviderBadge
+              pick={item}
+              provider={provider}
+              className="mt-2"
+              mobileLabel={providerLinkLabels.mobile}
+              desktopLabel={providerLinkLabels.desktop}
               onClick={(e) => e.stopPropagation()}
-              className="mt-2 inline-flex h-8 w-fit max-w-max items-stretch overflow-hidden rounded-md border border-border/60 bg-muted capitalize text-[14px] font-medium leading-none hover:bg-muted/80 transition-colors"
-            >
-              {provider.iconUrl ? (
-                <>
-                  <Image
-                    src={provider.iconUrl}
-                    alt={provider.providerName}
-                    width={32}
-                    height={32}
-                    className="h-8 w-8 shrink-0 object-contain"
-                    unoptimized
-                  />
-                  <span className="flex min-w-0 flex-1 items-center truncate px-2.5 sm:hidden">
-                    {providerLinkLabels.mobile}
-                  </span>
-                  <span className="hidden min-w-0 flex-1 items-center truncate px-2.5 sm:flex">
-                    {providerLinkLabels.desktop}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className="flex min-w-0 flex-1 items-center truncate px-2.5 sm:hidden">
-                    {providerLinkLabels.mobile}
-                  </span>
-                  <span className="hidden min-w-0 flex-1 items-center truncate px-2.5 sm:flex">
-                    {providerLinkLabels.desktop}
-                  </span>
-                </>
-              )}
-            </a>
+            />
           ) : (
             <span className="mt-2 text-[11px] text-muted-foreground">Provider info unavailable</span>
           )}
