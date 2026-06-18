@@ -99,6 +99,7 @@ export function usePickForTonight() {
   const [trendingToday, setTrendingToday] = useState(() => initialCache?.trendingToday ?? false);
   const pickInFlightRef = useRef(false);
   const hydratedFromCache = initialCache != null;
+  const [refreshGeneration, setRefreshGeneration] = useState(0);
 
   const runPick = useCallback(
     async (options?: {
@@ -209,6 +210,7 @@ export function usePickForTonight() {
         if (json.picks) {
           const nextData = json as ApiPicks;
           setData(nextData);
+          if (forceRefresh) setRefreshGeneration((g) => g + 1);
           writePickCacheToStorage({
             dayKey: getPickForTonightBucket(),
             onlyUnseen: unseenFlag,
@@ -262,6 +264,7 @@ export function usePickForTonight() {
     trendingToday,
     setTrendingToday,
     hydratedFromCache,
+    refreshGeneration,
   };
 }
 
@@ -1042,6 +1045,7 @@ export function PickForTonightSilentSurface({
   onOnlyUnseenChange,
   trendingToday,
   skipAutoload = false,
+  refreshGeneration = 0,
 }: {
   loading: boolean;
   data: ApiPicks | null;
@@ -1061,6 +1065,8 @@ export function PickForTonightSilentSurface({
   trendingToday: boolean;
   /** True when picks were restored from localStorage for this 6h bucket — skip network autoload. */
   skipAutoload?: boolean;
+  /** Bumps after a successful force-refresh so the hero pick can resync. */
+  refreshGeneration?: number;
 }) {
   const didAutoloadRef = useRef(false);
   const [activeChip, setActiveChip] = useState<RerankMode | null>(null);
@@ -1069,6 +1075,14 @@ export function PickForTonightSilentSurface({
   const [displayedPick, setDisplayedPick] = useState<PickForTonightCandidate | null>(null);
   const [previousPick, setPreviousPick] = useState<PickForTonightCandidate | null>(null);
   const [dismissing, setDismissing] = useState(false);
+  const prevDataRef = useRef<ApiPicks | null>(null);
+
+  useEffect(() => {
+    if (refreshGeneration === 0) return;
+    setActiveChip(null);
+    setIsExploreMode(false);
+    setPreviousPick(null);
+  }, [refreshGeneration]);
 
   useEffect(() => {
     if (loading && !data) {
@@ -1086,11 +1100,21 @@ export function PickForTonightSilentSurface({
 
   useEffect(() => {
     if (!data?.picks?.length) return;
+    const nextPrimary = data.picks[0] ?? null;
+    const dataChanged = prevDataRef.current !== data;
+    prevDataRef.current = data;
+
     if (activeChip) {
-      setDisplayedPick(data.picks[0] ?? null);
+      setDisplayedPick(nextPrimary);
       return;
     }
-    if (!displayedPick) setDisplayedPick(data.picks[0] ?? null);
+
+    if (dataChanged) {
+      setDisplayedPick(nextPrimary);
+      return;
+    }
+
+    if (!displayedPick) setDisplayedPick(nextPrimary);
   }, [activeChip, data, displayedPick]);
 
   const handleRerank = async (mode: RerankMode) => {
