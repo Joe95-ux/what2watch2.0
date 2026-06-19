@@ -180,24 +180,25 @@ export function YouTubeChannelExtractorInline({
       });
 
       if (response.ok) {
-        const data = await response.json();
         setAddedIds((prev) => new Set(prev).add(channelId));
         toast.success(`Channel added successfully!`);
-        
-        await queryClient.invalidateQueries({ queryKey: ["youtube-channels"] });
-        await queryClient.invalidateQueries({ queryKey: ["youtube-channels-manage"] });
-        await queryClient.invalidateQueries({ queryKey: ["youtube-channels-all"] });
-        await queryClient.invalidateQueries({ queryKey: ["feed-channels"] });
-        await queryClient.refetchQueries({ queryKey: ["youtube-channels"] });
-        await queryClient.refetchQueries({ queryKey: ["youtube-channels-manage"] });
-        
+
         setInput("");
         setChannels([]);
         setError(null);
-        
+
         if (onChannelAdded) {
           onChannelAdded();
         }
+
+        void (async () => {
+          await queryClient.invalidateQueries({ queryKey: ["youtube-channels"] });
+          await queryClient.invalidateQueries({ queryKey: ["youtube-channels-manage"] });
+          await queryClient.invalidateQueries({ queryKey: ["youtube-channels-all"] });
+          await queryClient.invalidateQueries({ queryKey: ["feed-channels"] });
+          await queryClient.refetchQueries({ queryKey: ["youtube-channels"] });
+          await queryClient.refetchQueries({ queryKey: ["youtube-channels-manage"] });
+        })();
       } else {
         const errorData = await response.json().catch(() => ({}));
         if (response.status === 400 && errorData.error?.includes("already exists")) {
@@ -237,13 +238,15 @@ export function YouTubeChannelExtractorInline({
         }
         setAddToUserPoolChannels(newUserPoolChannels);
         toast.success(addToPool ? "Channel added to your feed" : "Channel removed from your feed");
-        
-        await queryClient.invalidateQueries({ queryKey: ["youtube-channels"] });
-        await queryClient.invalidateQueries({ queryKey: ["youtube-channels-manage"] });
-        await queryClient.invalidateQueries({ queryKey: ["youtube-channels-all"] });
-        await queryClient.invalidateQueries({ queryKey: ["feed-channels"] });
-        await queryClient.refetchQueries({ queryKey: ["youtube-channels"] });
-        await queryClient.refetchQueries({ queryKey: ["youtube-channels-manage"] });
+
+        void (async () => {
+          await queryClient.invalidateQueries({ queryKey: ["youtube-channels"] });
+          await queryClient.invalidateQueries({ queryKey: ["youtube-channels-manage"] });
+          await queryClient.invalidateQueries({ queryKey: ["youtube-channels-all"] });
+          await queryClient.invalidateQueries({ queryKey: ["feed-channels"] });
+          await queryClient.refetchQueries({ queryKey: ["youtube-channels"] });
+          await queryClient.refetchQueries({ queryKey: ["youtube-channels-manage"] });
+        })();
       } else {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.error || errorData.message || "Failed to update channel pool";
