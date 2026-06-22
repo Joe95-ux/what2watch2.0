@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Heart, Bookmark, Sparkles, X, ChevronLeft, ChevronRight, ArrowUpDown, SlidersHorizontal, Edit, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -94,6 +94,7 @@ export function YouTubeChannelSidebar({
   const { data: recommendations } = useYouTubeRecommendations();
   const { data: feedChannels = [], isLoading: isLoadingFeedChannels, refetch: refetchFeedChannels } = useFeedChannels();
   const [isCustomizeFeedOpen, setIsCustomizeFeedOpen] = useState(false);
+  const activeChannelRef = useRef<HTMLButtonElement>(null);
 
   // Use feed channels and filter/search
   const filteredChannels = useMemo(() => {
@@ -160,8 +161,22 @@ export function YouTubeChannelSidebar({
       });
     }
 
+    // Pin the active channel to the top so it stays in view (same idea as watch provider focus in filters).
+    if (currentChannelId) {
+      const activeIndex = channels.findIndex((c) => c.id === currentChannelId);
+      if (activeIndex > 0) {
+        const [active] = channels.splice(activeIndex, 1);
+        channels.unshift(active);
+      }
+    }
+
     return Array.isArray(channels) ? channels : [];
-  }, [feedChannels, searchQuery, filterBy, categoryFilter, sortBy, favoriteChannels, channelCategoriesData]);
+  }, [feedChannels, searchQuery, filterBy, categoryFilter, sortBy, favoriteChannels, channelCategoriesData, currentChannelId]);
+
+  useEffect(() => {
+    if (!currentChannelId) return;
+    activeChannelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [currentChannelId, filteredChannels]);
 
   const handleChannelClick = (targetChannelId: string, slug?: string | null) => {
     if (targetChannelId === currentChannelId) {
@@ -554,6 +569,7 @@ export function YouTubeChannelSidebar({
               const channelButton = (
                 <button
                   type="button"
+                  ref={isActive ? activeChannelRef : undefined}
                   onClick={() => handleChannelClick(channel.id, channel.slug)}
                   className={cn(
                     "w-full flex cursor-pointer items-center rounded-md text-left transition-colors",
