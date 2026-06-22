@@ -101,6 +101,8 @@ export function YouTubeChannelReviews({
   const viewerState = data?.viewerState;
   const reviews = data?.reviews ?? [];
   const pagination = data?.pagination;
+  const hasReviews = (pagination?.total ?? 0) > 0;
+  const reviewControlsDisabled = isLoading || !hasReviews;
 
   const handleRequireAuth = (action: () => void) => {
     if (!isSignedIn) {
@@ -340,7 +342,8 @@ export function YouTubeChannelReviews({
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9 rounded-full cursor-pointer"
+                    disabled={reviewControlsDisabled}
+                    className="h-9 w-9 rounded-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                     aria-label="Sort reviews"
                   >
                     <ArrowUpDown className="h-4 w-4" />
@@ -368,7 +371,8 @@ export function YouTubeChannelReviews({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 rounded-full cursor-pointer"
+                  disabled={reviewControlsDisabled}
+                  className="h-9 w-9 rounded-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={() => void handleWriteReview()}
                   aria-label={
                     viewerState?.hasReview ? "Edit your review" : "Write a review"
