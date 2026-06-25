@@ -240,7 +240,7 @@ export function YouTubeChannelsTab() {
       <AddYouTubeChannelModal open={addChannelOpen} onOpenChange={setAddChannelOpen} />
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
           {Array.from({ length: CHANNELS_PER_PAGE }).map((_, index) =>
             effectiveCardStyle === "horizontal" ? (
               <YouTubeChannelCardHorizontalSkeleton key={index} />
@@ -273,7 +273,7 @@ export function YouTubeChannelsTab() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
             {channels.map((channel) =>
               effectiveCardStyle === "horizontal" ? (
                 <YouTubeChannelCardHorizontal key={channel.id} channel={channel} />

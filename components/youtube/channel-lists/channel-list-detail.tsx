@@ -209,7 +209,7 @@ function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListI
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
         {items.map((_, index) => 
           effectiveCardStyle === "horizontal" ? (
             <YouTubeChannelCardHorizontalSkeleton key={index} />
@@ -235,7 +235,7 @@ function ChannelListChannelsGrid({ items, listId }: { items: YouTubeChannelListI
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
         {visibleChannels.map((channel: ChannelData) =>
           effectiveCardStyle === "horizontal" ? (
             <YouTubeChannelCardHorizontal key={channel.id} channel={channel} />
