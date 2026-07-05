@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
+import { cn } from "@/lib/utils";
 
 interface YouTubeChannel {
   id: string;
@@ -49,6 +50,7 @@ export function YouTubeChannelExtractorInline({
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [addToUserPoolChannels, setAddToUserPoolChannels] = useState<Set<string>>(new Set());
   const [existingChannels, setExistingChannels] = useState<Set<string>>(new Set());
+  const [feedChannelIds, setFeedChannelIds] = useState<Set<string>>(new Set());
   const [addingChannelId, setAddingChannelId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,6 +63,8 @@ export function YouTubeChannelExtractorInline({
     setIsLoading(true);
     setError(null);
     setChannels([]);
+    setFeedChannelIds(new Set());
+    setAddToUserPoolChannels(new Set());
 
     try {
       const isUrl = input.includes("youtube.com") || input.includes("youtu.be");
@@ -107,7 +111,8 @@ export function YouTubeChannelExtractorInline({
       });
       if (response.ok) {
         const data = await response.json();
-        const existingIds = new Set(data.existingIds || []);
+        const existingIds = new Set<string>(data.existingIds || []);
+        const feedIds = new Set<string>(data.feedIds || []);
         const existing = new Set<string>();
         channelIds.forEach((id) => {
           if (existingIds.has(id)) {
@@ -115,6 +120,8 @@ export function YouTubeChannelExtractorInline({
           }
         });
         setExistingChannels(existing);
+        setFeedChannelIds(feedIds);
+        setAddToUserPoolChannels(new Set(feedIds));
       }
     } catch (err) {
       console.error("[YT CID Extractor] Error checking existing channels:", err);
@@ -181,6 +188,10 @@ export function YouTubeChannelExtractorInline({
 
       if (response.ok) {
         setAddedIds((prev) => new Set(prev).add(channelId));
+        if (addToUserPool) {
+          setFeedChannelIds((prev) => new Set(prev).add(channelId));
+          setAddToUserPoolChannels((prev) => new Set(prev).add(channelId));
+        }
         toast.success(`Channel added successfully!`);
 
         setInput("");
@@ -233,8 +244,14 @@ export function YouTubeChannelExtractorInline({
         const newUserPoolChannels = new Set(addToUserPoolChannels);
         if (addToPool) {
           newUserPoolChannels.add(channelId);
+          setFeedChannelIds((prev) => new Set(prev).add(channelId));
         } else {
           newUserPoolChannels.delete(channelId);
+          setFeedChannelIds((prev) => {
+            const next = new Set(prev);
+            next.delete(channelId);
+            return next;
+          });
         }
         setAddToUserPoolChannels(newUserPoolChannels);
         toast.success(addToPool ? "Channel added to your feed" : "Channel removed from your feed");
@@ -376,9 +393,14 @@ export function YouTubeChannelExtractorInline({
                             Added
                           </Badge>
                         )}
+                        {feedChannelIds.has(channel.id) && (
+                          <Badge variant="outline" className="text-xs">
+                            In your feed
+                          </Badge>
+                        )}
                         {existingChannels.has(channel.id) && !addedIds.has(channel.id) && (
                           <Badge variant="secondary" className="text-xs">
-                            Exists
+                            In app
                           </Badge>
                         )}
                       </div>
@@ -391,8 +413,10 @@ export function YouTubeChannelExtractorInline({
                     <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 border rounded-md bg-background">
                       <Checkbox
                         id={`user-pool-${channel.id}`}
-                        checked={addToUserPoolChannels.has(channel.id)}
+                        checked={feedChannelIds.has(channel.id) || addToUserPoolChannels.has(channel.id)}
+                        disabled={feedChannelIds.has(channel.id)}
                         onCheckedChange={(checked) => {
+                          if (feedChannelIds.has(channel.id)) return;
                           const newUserPoolChannels = new Set(addToUserPoolChannels);
                           if (checked) {
                             newUserPoolChannels.add(channel.id);
@@ -400,7 +424,7 @@ export function YouTubeChannelExtractorInline({
                             newUserPoolChannels.delete(channel.id);
                           }
                           setAddToUserPoolChannels(newUserPoolChannels);
-                          
+
                           if (existingChannels.has(channel.id)) {
                             toggleUserPool(channel.id, Boolean(checked));
                           }
@@ -409,12 +433,21 @@ export function YouTubeChannelExtractorInline({
                       />
                       <Label
                         htmlFor={`user-pool-${channel.id}`}
-                        className="text-xs cursor-pointer flex items-center gap-1.5 font-medium"
+                        className={cn(
+                          "text-xs flex items-center gap-1.5 font-medium",
+                          feedChannelIds.has(channel.id) ? "text-muted-foreground cursor-default" : "cursor-pointer"
+                        )}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <UserPlus className="h-3 w-3 shrink-0" />
-                        <span className="hidden sm:inline">Add to My Feed</span>
-                        <span className="sm:hidden">Feed</span>
+                        {feedChannelIds.has(channel.id) ? (
+                          <span>In your feed</span>
+                        ) : (
+                          <>
+                            <span className="hidden sm:inline">Add to My Feed</span>
+                            <span className="sm:hidden">Feed</span>
+                          </>
+                        )}
                       </Label>
                     </div>
                     {!existingChannels.has(channel.id) && (
@@ -425,7 +458,11 @@ export function YouTubeChannelExtractorInline({
                           e.stopPropagation();
                           addChannelId(channel.id);
                         }}
-                        disabled={addedIds.has(channel.id) || addingChannelId === channel.id}
+                        disabled={
+                          addedIds.has(channel.id) ||
+                          addingChannelId === channel.id ||
+                          feedChannelIds.has(channel.id)
+                        }
                         className="gap-1.5 cursor-pointer h-8"
                       >
                         {addingChannelId === channel.id ? (
