@@ -26,14 +26,9 @@ import { IMDBBadge } from "@/components/ui/imdb-badge";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
-} from "@/components/ui/dialog";
+import { ResponsiveDialogSurface } from "@/components/ui/responsive-dialog-surface";
+import { ResponsiveMenuSurface } from "@/components/ui/responsive-menu-surface";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -1041,26 +1036,28 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
 
       {/* Where to Watch - Full Modal */}
       {watchAvailability && (
-        <Dialog open={isWatchModalOpen} onOpenChange={setIsWatchModalOpen}>
-          <DialogContent className="sm:max-w-none lg:max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col">
-            <DialogHeader>
-              <DialogTitle className="text-muted-foreground">
-                Where to Watch{" "}
-                <span className="text-foreground font-semibold">{title}</span>
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex-1 overflow-y-auto scrollbar-thin px-1 py-4 min-h-0">
-              <WatchBreakdownSection
-                availability={watchAvailability}
-                isLoading={false}
-                watchCountry={watchCountry}
-                onWatchCountryChange={setWatchCountry}
-                justwatchCountries={justwatchCountries}
-                compact
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
+        <ResponsiveDialogSurface
+          open={isWatchModalOpen}
+          onOpenChange={setIsWatchModalOpen}
+          title={
+            <>
+              Where to Watch{" "}
+              <span className="text-foreground font-semibold">{title}</span>
+            </>
+          }
+          dialogClassName="sm:max-w-none lg:max-w-4xl w-full max-h-[95vh]"
+          drawerClassName="max-h-[90vh]"
+          bodyClassName="px-4 py-4"
+        >
+          <WatchBreakdownSection
+            availability={watchAvailability}
+            isLoading={false}
+            watchCountry={watchCountry}
+            onWatchCountryChange={setWatchCountry}
+            justwatchCountries={justwatchCountries}
+            compact
+          />
+        </ResponsiveDialogSurface>
       )}
       
       {/* Log Again Dialog */}
@@ -1078,24 +1075,23 @@ export default function DiaryDetailContent({ log: initialLog, user }: DiaryDetai
       )}
       
       {/* Delete Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Review</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this review? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+      <ResponsiveDialogSurface
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete Review"
+        description="Are you sure you want to delete this review? This action cannot be undone."
+        dialogClassName="sm:max-w-md"
+        footer={
+          <>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="cursor-pointer">
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleteLog.isPending} className="cursor-pointer">
               {deleteLog.isPending ? "Deleting..." : "Delete"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      />
       
       {/* Trailer Modal */}
       {selectedVideo && (
@@ -1206,16 +1202,28 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] h-auto overflow-hidden p-0 flex flex-col max-h-[80vh]">
-        <DialogHeader className="sticky top-0 z-10 bg-background px-6 pt-6 pb-4 border-b">
-          <DialogTitle>Edit Review</DialogTitle>
-          <DialogDescription>
-            Update your review for &quot;{log.title}&quot;.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-4 min-h-0">
-          <div className="space-y-4">
+    <ResponsiveDialogSurface
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title="Edit Review"
+      description={`Update your review for "${log.title}".`}
+      dialogClassName="sm:max-w-[500px]"
+      drawerClassName="max-h-[85vh]"
+      bodyClassName="px-6 py-4"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose} disabled={isPending || updateLog.isPending} className="cursor-pointer">
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={isPending || updateLog.isPending} className="cursor-pointer">
+            {isPending || updateLog.isPending ? "Updating..." : "Update"}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
           {/* Favorite Button */}
           <div className="flex items-center gap-2">
             <Button
@@ -1325,18 +1333,8 @@ function EditLogDialog({ isOpen, onClose, log, onUpdate, isPending }: EditLogDia
               Separate multiple tags with commas
             </p>
           </div>
-          </div>
-        </div>
-        <DialogFooter className="sticky bottom-0 z-10 bg-background border-t px-6 py-4">
-          <Button variant="outline" onClick={onClose} disabled={isPending || updateLog.isPending} className="cursor-pointer">
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={isPending || updateLog.isPending} className="cursor-pointer">
-            {isPending || updateLog.isPending ? "Updating..." : "Update"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </ResponsiveDialogSurface>
   );
 }
 
@@ -1422,16 +1420,28 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
     : null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] h-auto overflow-hidden p-0 flex flex-col max-h-[90vh]">
-        <DialogHeader className="sticky top-0 z-10 bg-background px-6 pt-6 pb-4 border-b">
-          <DialogTitle>Log Again</DialogTitle>
-          <DialogDescription>
-            Log another viewing of &quot;{log.title}&quot;{releaseYear ? ` (${releaseYear})` : ""}.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-4 min-h-0">
-          <div className="space-y-4">
+    <ResponsiveDialogSurface
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title="Log Again"
+      description={`Log another viewing of "${log.title}"${releaseYear ? ` (${releaseYear})` : ""}.`}
+      dialogClassName="sm:max-w-[500px]"
+      drawerClassName="max-h-[90vh]"
+      bodyClassName="px-6 py-4"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose} className="cursor-pointer">
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={logViewing.isPending || !hasWatched} className="cursor-pointer">
+            {logViewing.isPending ? "Logging..." : "Log Film"}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
           {/* Movie Name and Release Year */}
           <div className="pb-2 border-b">
             <h3 className="font-semibold text-lg">{log.title}</h3>
@@ -1563,18 +1573,8 @@ function LogAgainDialog({ isOpen, onClose, log, onSuccess, isPending }: LogAgain
               Separate multiple tags with commas
             </p>
           </div>
-          </div>
-        </div>
-        <DialogFooter className="sticky bottom-0 z-10 bg-background border-t px-6 py-4">
-          <Button variant="outline" onClick={onClose} className="cursor-pointer">
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={logViewing.isPending || !hasWatched} className="cursor-pointer">
-            {logViewing.isPending ? "Logging..." : "Log Film"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </ResponsiveDialogSurface>
   );
 }
 
@@ -1830,6 +1830,79 @@ interface CommentItemProps {
   formatTimeAgo: (date: string) => string;
 }
 
+const commentActionRowClass =
+  "flex w-full items-center gap-2 px-4 py-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors";
+
+function CommentActionsMenu({
+  onEdit,
+  onDelete,
+}: {
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+
+  const trigger = (
+    <Button variant="ghost" size="icon" className="h-6 w-6 cursor-pointer">
+      <MoreVertical className="h-4 w-4" />
+    </Button>
+  );
+
+  if (isMobile) {
+    return (
+      <ResponsiveMenuSurface
+        open={open}
+        onOpenChange={setOpen}
+        trigger={trigger}
+        accessibilityTitle="Comment actions"
+        header={<p className="text-base font-semibold">Comment</p>}
+        drawerClassName="max-h-[50vh]"
+        bodyClassName="px-0 py-0"
+      >
+        <button
+          type="button"
+          className={commentActionRowClass}
+          onClick={() => {
+            onEdit();
+            setOpen(false);
+          }}
+        >
+          <Edit className="h-4 w-4" />
+          Edit
+        </button>
+        <button
+          type="button"
+          className={cn(commentActionRowClass, "text-destructive")}
+          onClick={() => {
+            onDelete();
+            setOpen(false);
+          }}
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </button>
+      </ResponsiveMenuSurface>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={onEdit}>
+          <Edit className="h-4 w-4 mr-2" />
+          Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onDelete} className="text-destructive cursor-pointer">
+          <Trash2 className="h-4 w-4 mr-2" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function CommentItem({
   comment,
   logId,
@@ -2014,30 +2087,14 @@ function CommentItem({
               </span>
             </div>
             {isOwner && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 cursor-pointer">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleStartEdit}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      if (confirm("Are you sure you want to delete this comment?")) {
-                        onDelete(comment.id);
-                      }
-                    }}
-                    className="text-destructive cursor-pointer"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <CommentActionsMenu
+                onEdit={() => handleStartEdit()}
+                onDelete={() => {
+                  if (confirm("Are you sure you want to delete this comment?")) {
+                    onDelete(comment.id);
+                  }
+                }}
+              />
             )}
           </div>
 

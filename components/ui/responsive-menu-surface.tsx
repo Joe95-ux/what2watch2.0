@@ -11,10 +11,42 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+
+type TriggerElementProps = {
+  onClick?: React.MouseEventHandler;
+  onPointerDown?: React.PointerEventHandler;
+  "data-slot"?: string;
+};
+
+function createMobileDrawerTrigger(
+  trigger: React.ReactNode,
+  onOpenChange: (open: boolean) => void,
+): React.ReactNode {
+  if (!React.isValidElement(trigger)) {
+    return (
+      <button type="button" data-slot="drawer-trigger" onClick={() => onOpenChange(true)}>
+        {trigger}
+      </button>
+    );
+  }
+
+  const triggerElement = trigger as React.ReactElement<TriggerElementProps>;
+
+  return React.cloneElement(triggerElement, {
+    "data-slot": "drawer-trigger",
+    onPointerDown: (e: React.PointerEvent) => {
+      triggerElement.props.onPointerDown?.(e);
+      e.stopPropagation();
+    },
+    onClick: (e: React.MouseEvent) => {
+      triggerElement.props.onClick?.(e);
+      onOpenChange(true);
+    },
+  });
+}
 
 export type ResponsiveMenuSurfaceProps = {
   open: boolean;
@@ -62,7 +94,7 @@ export function ResponsiveMenuSurface({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange} direction="bottom">
-        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
+        {createMobileDrawerTrigger(trigger, onOpenChange)}
         <DrawerContent
           className={cn("flex max-h-[85vh] flex-col gap-0 p-0", drawerClassName)}
           onClick={handleContentClick}

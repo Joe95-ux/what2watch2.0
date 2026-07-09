@@ -213,7 +213,9 @@ export default function MoreLikeThisCard({
       !target.closest('[data-radix-dropdown-trigger]') &&
       !target.closest('[data-radix-dropdown-content]') &&
       !target.closest('[data-radix-tooltip-trigger]') &&
-      !target.closest('[data-radix-tooltip-content]')
+      !target.closest('[data-radix-tooltip-content]') &&
+      !target.closest('[data-slot="drawer-trigger"]') &&
+      !target.closest('[data-slot="drawer-content"]')
     ) {
       // Use callback if provided, otherwise navigate directly
       if (onItemClick) {

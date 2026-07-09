@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Facebook, Twitter, Mail, Link2, Share2 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ interface ShareMenuItemsProps {
 }
 
 /** Shared menu items for share options. Use inside DropdownMenuContent or DropdownMenuSubContent. */
-export function ShareMenuItems({
+function useShareActions({
   shareUrl,
   title,
   description,
@@ -79,6 +80,23 @@ export function ShareMenuItems({
     }
   };
 
+  return { handleCopyLink, handleSocialShare };
+}
+
+/** Shared menu items for share options. Use inside DropdownMenuContent or DropdownMenuSubContent. */
+export function ShareMenuItems({
+  shareUrl,
+  title,
+  description,
+  onShare,
+}: ShareMenuItemsProps) {
+  const { handleSocialShare } = useShareActions({
+    shareUrl,
+    title,
+    description,
+    onShare,
+  });
+
   return (
     <>
       <DropdownMenuItem
@@ -117,6 +135,53 @@ export function ShareMenuItems({
         Copy Link
       </DropdownMenuItem>
     </>
+  );
+}
+
+const shareActionRows: Array<{
+  platform: SharePlatform;
+  label: string;
+  icon: React.ReactNode;
+}> = [
+  { platform: "facebook", label: "Facebook", icon: <Facebook className="h-4 w-4" /> },
+  { platform: "twitter", label: "X (Twitter)", icon: <Twitter className="h-4 w-4" /> },
+  { platform: "whatsapp", label: "WhatsApp", icon: <FaWhatsapp className="h-4 w-4" /> },
+  { platform: "email", label: "Email", icon: <Mail className="h-4 w-4" /> },
+  { platform: "link", label: "Copy Link", icon: <Link2 className="h-4 w-4" /> },
+];
+
+/** Full-width action rows for mobile drawers. */
+export function ShareActionRows({
+  shareUrl,
+  title,
+  description,
+  onShare,
+  onAction,
+}: ShareMenuItemsProps & { onAction?: () => void }) {
+  const { handleSocialShare } = useShareActions({
+    shareUrl,
+    title,
+    description,
+    onShare,
+  });
+
+  return (
+    <div className="py-1">
+      {shareActionRows.map((row) => (
+        <button
+          key={row.platform}
+          type="button"
+          onClick={() => {
+            handleSocialShare(row.platform);
+            onAction?.();
+          }}
+          className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors"
+        >
+          {row.icon}
+          {row.label}
+        </button>
+      ))}
+    </div>
   );
 }
 

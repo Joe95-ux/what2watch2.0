@@ -309,6 +309,8 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
             !target.closest('[data-radix-dropdown-content]') &&
             !target.closest('[data-radix-tooltip-trigger]') &&
             !target.closest('[data-radix-tooltip-content]') &&
+            !target.closest('[data-slot="drawer-trigger"]') &&
+            !target.closest('[data-slot="drawer-content"]') &&
             !isTrailerModalOpen
           ) {
             // Navigate to details page when clicking on the card

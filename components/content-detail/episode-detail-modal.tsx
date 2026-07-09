@@ -8,12 +8,7 @@ import { FaBookmark, FaPlay } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { TMDBSeries, TMDBVideo, getPosterUrl } from "@/lib/tmdb";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ResponsiveDialogSurface } from "@/components/ui/responsive-dialog-surface";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
 import TrailerModal from "@/components/browse/trailer-modal";
@@ -387,6 +382,7 @@ export default function EpisodeDetailModal({
 }: EpisodeDetailModalProps) {
   const router = useRouter();
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("details");
   const { isInWatchlist, toggle, isLoading: isWatchlistLoading } = useToggleWatchlist();
   const { data: seasonAvailability, isLoading: isLoadingSeasonAvailability } = useSeasonWatchProviders(
     tvShow?.id ?? null,
@@ -450,14 +446,51 @@ export default function EpisodeDetailModal({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="w-full max-w-[calc(100vw-1rem)] sm:max-w-3xl lg:max-w-[50rem] max-h-[90vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-0">
-            <DialogTitle className="sr-only">Episode Details</DialogTitle>
-          </DialogHeader>
-
-          {/* First section: poster + film metadata */}
-          <div className="px-6 pt-4 pb-4 border-b border-border">
+      <ResponsiveDialogSurface
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
+        accessibilityTitle="Episode Details"
+        dialogClassName="w-full max-w-[calc(100vw-1rem)] sm:max-w-3xl lg:max-w-[50rem]"
+        drawerClassName="max-h-[90vh]"
+        header={
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="w-fit">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="watch">Where to Watch</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        }
+        footer={
+          <div className="flex items-center justify-center gap-3 overflow-x-auto px-4 py-4">
+            {trailer && (
+              <Button
+                variant="default"
+                onClick={handleOpenTrailer}
+                className="cursor-pointer rounded-[25px]"
+              >
+                <FaPlay className="h-4 w-4" />
+                <span>Watch Trailer</span>
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              onClick={handleAddToWatchlist}
+              disabled={isWatchlistLoading}
+              className="cursor-pointer rounded-[25px]"
+            >
+              <FaBookmark
+                className="h-4 w-4"
+                style={isInWatchlistValue ? { fill: "#e0b416" } : {}}
+              />
+              <span>{isInWatchlistValue ? "In watchlist" : "Add to watchlist"}</span>
+            </Button>
+          </div>
+        }
+      >
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col min-h-0">
+          <div className="border-b border-border px-4 sm:px-6 pt-4 pb-4">
             <div className="flex flex-row gap-4">
               {posterPath ? (
                 <div className="relative w-20 h-28 sm:w-24 sm:h-36 rounded overflow-hidden flex-shrink-0 bg-muted">
@@ -512,18 +545,9 @@ export default function EpisodeDetailModal({
             </div>
           </div>
 
-          <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-            <div className="px-6 pt-3">
-              <TabsList className="w-fit">
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="watch">Where to Watch</TabsTrigger>
-              </TabsList>
-            </div>
-            <TabsContent value="details" className="flex-1 overflow-y-auto scrollbar-thin mt-0 px-6">
-              <div className="space-y-6 pb-6">
-              {/* Episode Synopsis, Creator, Stars */}
+          <TabsContent value="details" className="mt-0 px-4 sm:px-6">
+            <div className="space-y-6 pb-6">
               <div className="space-y-4 pt-4">
-                {/* Episode Title */}
                 <div>
                   <h4 className="text-xl font-bold mb-2">
                     S{episode.season_number.toString().padStart(2, "0")}E{episode.episode_number.toString().padStart(2, "0")}: {episode.name}
@@ -535,7 +559,6 @@ export default function EpisodeDetailModal({
                   )}
                 </div>
 
-                {/* Episode Synopsis */}
                 {episode.overview && (
                   <div>
                     <h5 className="text-sm font-semibold mb-2 text-muted-foreground">Synopsis</h5>
@@ -543,7 +566,6 @@ export default function EpisodeDetailModal({
                   </div>
                 )}
 
-                {/* Creator */}
                 <div>
                   <h5 className="text-sm font-semibold mb-2 text-muted-foreground">Creators</h5>
                   {creators.length > 0 ? (
@@ -568,7 +590,6 @@ export default function EpisodeDetailModal({
                   )}
                 </div>
 
-                {/* Stars */}
                 <div>
                   <h5 className="text-sm font-semibold mb-2 text-muted-foreground">Stars</h5>
                   {topCast.length > 0 ? (
@@ -594,50 +615,18 @@ export default function EpisodeDetailModal({
                 </div>
               </div>
             </div>
-            </TabsContent>
+          </TabsContent>
 
-            <TabsContent value="watch" className="flex-1 overflow-y-auto scrollbar-thin mt-0 px-6">
-              <EpisodeModalWhereToWatch
-                seasonNumber={episode.season_number}
-                availability={seasonAvailability}
-                fallbackAvailability={fallbackAvailability}
-                isLoading={isLoadingSeasonAvailability}
-              />
-            </TabsContent>
-          </Tabs>
-
-          {/* Footer: Watch Trailer and Add to Watchlist */}
-          <div className="border-t px-6 py-4 flex items-center justify-center gap-3 overflow-x-auto">
-            {trailer && (
-              <Button
-                variant="default"
-                onClick={handleOpenTrailer}
-                className="cursor-pointer rounded-[25px]"
-              >
-                <FaPlay className="h-4 w-4" />
-                <span>Watch Trailer</span>
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              onClick={handleAddToWatchlist}
-              disabled={isWatchlistLoading}
-              className="cursor-pointer rounded-[25px]"
-            >
-              <FaBookmark 
-                className="h-4 w-4" 
-                style={isInWatchlistValue ? { fill: "#e0b416" } : {}}
-              />
-              <span className="hidden sm:inline">
-                {isInWatchlistValue ? "In watchlist" : "Add to watchlist"}
-              </span>
-              <span className="sm:hidden">
-                {isInWatchlistValue ? "In watchlist" : "Add to watchlist"}
-              </span>
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+          <TabsContent value="watch" className="mt-0 px-4 sm:px-6">
+            <EpisodeModalWhereToWatch
+              seasonNumber={episode.season_number}
+              availability={seasonAvailability}
+              fallbackAvailability={fallbackAvailability}
+              isLoading={isLoadingSeasonAvailability}
+            />
+          </TabsContent>
+        </Tabs>
+      </ResponsiveDialogSurface>
 
       {trailer && (
         <TrailerModal

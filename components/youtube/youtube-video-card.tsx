@@ -200,7 +200,9 @@ export default function YouTubeVideoCard({
       !target.closest('[data-radix-tooltip-trigger]') &&
       !target.closest('[data-radix-tooltip-content]') &&
       !target.closest('[data-radix-dropdown-menu-trigger]') &&
-      !target.closest('[data-radix-dropdown-menu-content]')
+      !target.closest('[data-radix-dropdown-menu-content]') &&
+      !target.closest('[data-slot="drawer-trigger"]') &&
+      !target.closest('[data-slot="drawer-content"]')
     ) {
       recordView();
       if (onVideoClick) {
