@@ -3,28 +3,29 @@
 import { useState } from "react";
 import { usePlaylists, useAddItemToPlaylist, type Playlist } from "@/hooks/use-playlists";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { ResponsiveMenuSurface, ResponsiveMenuPlaceholder } from "@/components/ui/responsive-menu-surface";
 import { Button } from "@/components/ui/button";
 import { Plus, Check, ListCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import CreatePlaylistModal from "./create-playlist-modal";
 import { useIsMobile } from "@/hooks/use-mobile";
+
 interface AddToPlaylistDropdownProps {
   item: TMDBMovie | TMDBSeries;
   type: "movie" | "tv";
   trigger?: React.ReactNode;
   onOpenChange?: (open: boolean) => void;
-  onAddSuccess?: () => void; // Callback when item is successfully added
+  onAddSuccess?: () => void;
 }
 
-export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChange, onAddSuccess }: AddToPlaylistDropdownProps) {
+export default function AddToPlaylistDropdown({
+  item,
+  type,
+  trigger,
+  onOpenChange,
+  onAddSuccess,
+}: AddToPlaylistDropdownProps) {
   const { data: playlists = [], isLoading } = usePlaylists();
   const addItemToPlaylist = useAddItemToPlaylist();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -38,6 +39,7 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
   };
 
   const handleAddToPlaylist = async (playlistId: string) => {
+    setPendingPlaylistId(playlistId);
     try {
       const title = "title" in item ? item.title : item.name;
       const releaseDate = type === "movie" ? (item as TMDBMovie).release_date : undefined;
@@ -56,7 +58,8 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
         },
       });
       toast.success(`Added to "${playlists.find((p) => p.id === playlistId)?.name}"`);
-      onAddSuccess?.(); // Call callback after successful addition
+      onAddSuccess?.();
+      setIsDropdownOpen(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add to playlist";
       if (errorMessage.includes("already in playlist")) {
@@ -65,6 +68,8 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
         toast.error("Failed to add to playlist");
       }
       console.error(error);
+    } finally {
+      setPendingPlaylistId(null);
     }
   };
 
@@ -81,88 +86,131 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
     </Button>
   );
 
+  const header = <p className="px-2 text-sm font-medium text-foreground">Add to Playlist</p>;
+
+  const footer = isMobile ? (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDropdownOpen(false);
+        setIsCreateModalOpen(true);
+      }}
+      className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors"
+    >
+      <Plus className="h-4 w-4" />
+      {playlists.length === 0 ? "Create Playlist" : "Create New Playlist"}
+    </button>
+  ) : (
+    <div className="px-1 py-1">
+      <DropdownMenuSeparator />
+      <DropdownMenuItem
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDropdownOpen(false);
+          setIsCreateModalOpen(true);
+        }}
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        {playlists.length === 0 ? "Create Playlist" : "Create New Playlist"}
+      </DropdownMenuItem>
+    </div>
+  );
+
+  const renderRows = () => {
+    if (isLoading) {
+      return isMobile ? (
+        <ResponsiveMenuPlaceholder>Loading playlists...</ResponsiveMenuPlaceholder>
+      ) : (
+        <DropdownMenuItem disabled>Loading playlists...</DropdownMenuItem>
+      );
+    }
+    if (playlists.length === 0) {
+      return isMobile ? (
+        <ResponsiveMenuPlaceholder>No playlists yet</ResponsiveMenuPlaceholder>
+      ) : (
+        <DropdownMenuItem disabled>No playlists yet</DropdownMenuItem>
+      );
+    }
+
+    return playlists.map((playlist) => {
+      const isInPlaylist = isItemInPlaylist(playlist);
+      const isRowPending = pendingPlaylistId === playlist.id;
+
+      if (isMobile) {
+        return (
+          <button
+            key={playlist.id}
+            type="button"
+            disabled={isInPlaylist || isRowPending}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!isInPlaylist) void handleAddToPlaylist(playlist.id);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-muted disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isInPlaylist ? (
+              <Check className="h-4 w-4 shrink-0" />
+            ) : isRowPending ? (
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+            ) : (
+              <ListCheck className="h-4 w-4 shrink-0 text-muted-foreground" />
+            )}
+            <span className="flex-1 truncate">{playlist.name}</span>
+            {isInPlaylist ? <span className="text-xs text-muted-foreground">Added</span> : null}
+          </button>
+        );
+      }
+
+      return (
+        <DropdownMenuItem
+          key={playlist.id}
+          onClick={async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!isInPlaylist) await handleAddToPlaylist(playlist.id);
+          }}
+          disabled={isInPlaylist || isRowPending}
+        >
+          {isInPlaylist ? (
+            <>
+              <Check className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span className="flex-1">{playlist.name}</span>
+              <span className="text-xs text-muted-foreground">Added</span>
+            </>
+          ) : (
+            <>
+              {isRowPending ? (
+                <Loader2 className="h-4 w-4 mr-2 flex-shrink-0 animate-spin text-muted-foreground" />
+              ) : (
+                <ListCheck className="h-4 w-4 mr-2 flex-shrink-0 text-muted-foreground" />
+              )}
+              <span className="flex-1">{playlist.name}</span>
+            </>
+          )}
+        </DropdownMenuItem>
+      );
+    });
+  };
+
   return (
     <>
-      <DropdownMenu open={isDropdownOpen} onOpenChange={handleOpenChange}>
-        <DropdownMenuTrigger asChild>
-          {trigger || defaultTrigger}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent 
-          align="end" 
-          alignOffset={isMobile ? -12 : 0}
-          sideOffset={4}
-          className="ml-2 w-80 z-[110] p-0 flex flex-col max-h-[400px]"
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-        >
-          {/* Fixed Header */}
-          <div className="px-2 py-1.5 border-b border-border">
-            <DropdownMenuLabel className="px-2">Add to Playlist</DropdownMenuLabel>
-          </div>
-
-          {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0 px-2">
-            {isLoading ? (
-              <DropdownMenuItem disabled>Loading playlists...</DropdownMenuItem>
-            ) : playlists.length === 0 ? (
-              <DropdownMenuItem disabled>No playlists yet</DropdownMenuItem>
-            ) : (
-              playlists.map((playlist) => {
-                const isInPlaylist = isItemInPlaylist(playlist);
-                const isRowPending = pendingPlaylistId === playlist.id;
-                return (
-                  <DropdownMenuItem
-                    key={playlist.id}
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!isInPlaylist) {
-                        await handleAddToPlaylist(playlist.id);
-                        setIsDropdownOpen(false);
-                      }
-                    }}
-                    disabled={isInPlaylist || isRowPending}
-                  >
-                    {isInPlaylist ? (
-                      <>
-                        <Check className="h-4 w-4 mr-2 flex-shrink-0" />
-                        <span className="flex-1">{playlist.name}</span>
-                        <span className="text-xs text-muted-foreground">Added</span>
-                      </>
-                    ) : (
-                      <>
-                        {isRowPending ? (
-                          <Loader2 className="h-4 w-4 mr-2 flex-shrink-0 animate-spin text-muted-foreground" />
-                        ) : (
-                          <ListCheck className="h-4 w-4 mr-2 flex-shrink-0 text-muted-foreground" />
-                        )}
-                        <span className="flex-1">{playlist.name}</span>
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                );
-              })
-            )}
-          </div>
-
-          {/* Fixed Footer */}
-          <div className="px-1">
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsDropdownOpen(false);
-                setIsCreateModalOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {playlists.length === 0 ? "Create Playlist" : "Create New Playlist"}
-            </DropdownMenuItem>
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ResponsiveMenuSurface
+        open={isDropdownOpen}
+        onOpenChange={handleOpenChange}
+        trigger={trigger || defaultTrigger}
+        accessibilityTitle="Add to playlist"
+        header={header}
+        footer={footer}
+        dropdownClassName="ml-2 w-80"
+        dropdownAlignOffset={isMobile ? -12 : 0}
+        bodyClassName="px-2"
+      >
+        {renderRows()}
+      </ResponsiveMenuSurface>
 
       <CreatePlaylistModal
         isOpen={isCreateModalOpen}
@@ -172,4 +220,3 @@ export default function AddToPlaylistDropdown({ item, type, trigger, onOpenChang
     </>
   );
 }
-

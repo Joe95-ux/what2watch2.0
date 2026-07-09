@@ -5,12 +5,10 @@ import { usePlaylists, useAddItemToPlaylist, useRemoveItemFromPlaylist, type Pla
 import { useLists, useUpdateList, useRemoveItemFromList, type List } from "@/hooks/use-lists";
 import { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ResponsiveMenuSurface, ResponsiveMenuPlaceholder } from "@/components/ui/responsive-menu-surface";
 import { Button } from "@/components/ui/button";
 import { Plus, ListCheck, ChevronRight, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -213,202 +211,280 @@ export default function AddToListDropdown({ item, type, trigger, onOpenChange, o
     </Button>
   );
 
+  const tabsHeader = (
+    <div className="px-2 py-1.5">
+      <div className="flex items-center gap-0">
+        <button
+          type="button"
+          onClick={() => setActiveTab("playlist")}
+          className={cn(
+            "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer",
+            activeTab === "playlist"
+              ? "bg-muted text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Playlist
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("list")}
+          className={cn(
+            "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer",
+            activeTab === "list"
+              ? "bg-muted text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          List
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderPlaylistRows = () => {
+    if (isLoadingPlaylists) {
+      return isMobile ? (
+        <ResponsiveMenuPlaceholder>Loading playlists...</ResponsiveMenuPlaceholder>
+      ) : (
+        <DropdownMenuItem disabled>Loading playlists...</DropdownMenuItem>
+      );
+    }
+    if (playlists.length === 0) {
+      return isMobile ? (
+        <ResponsiveMenuPlaceholder>No playlists yet</ResponsiveMenuPlaceholder>
+      ) : (
+        <DropdownMenuItem disabled>No playlists yet</DropdownMenuItem>
+      );
+    }
+    return playlists.map((playlist) => {
+      const isInPlaylist = isItemInPlaylist(playlist);
+      const isRowPending = pendingPlaylistId === playlist.id;
+      const row = (
+        <div className="flex items-center w-full">
+          <button
+            type="button"
+            onClick={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              await handleTogglePlaylist(playlist.id);
+            }}
+            className="flex items-center gap-2 flex-1 min-w-0 px-2 py-2 hover:bg-muted rounded transition-colors cursor-pointer"
+          >
+            {isRowPending ? (
+              <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-muted-foreground" />
+            ) : (
+              <ListCheck
+                className={cn(
+                  "h-4 w-4 flex-shrink-0",
+                  isInPlaylist ? "text-green-500" : "text-muted-foreground"
+                )}
+              />
+            )}
+            <span className="truncate text-left">{playlist.name}</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              router.push(`/dashboard/playlists/${playlist.id}`);
+              setIsDropdownOpen(false);
+            }}
+            className="p-2 hover:bg-muted rounded transition-colors flex-shrink-0 cursor-pointer"
+          >
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </div>
+      );
+      if (isMobile) {
+        return (
+          <div key={playlist.id} className={cn(isRowPending && "opacity-60 pointer-events-none")}>
+            {row}
+          </div>
+        );
+      }
+      return (
+        <DropdownMenuItem
+          key={playlist.id}
+          disabled={isRowPending}
+          className="p-0"
+          onSelect={(e) => e.preventDefault()}
+        >
+          {row}
+        </DropdownMenuItem>
+      );
+    });
+  };
+
+  const renderListRows = () => {
+    if (isLoadingLists) {
+      return isMobile ? (
+        <ResponsiveMenuPlaceholder>Loading lists...</ResponsiveMenuPlaceholder>
+      ) : (
+        <DropdownMenuItem disabled>Loading lists...</DropdownMenuItem>
+      );
+    }
+    if (lists.length === 0) {
+      return isMobile ? (
+        <ResponsiveMenuPlaceholder>No lists yet</ResponsiveMenuPlaceholder>
+      ) : (
+        <DropdownMenuItem disabled>No lists yet</DropdownMenuItem>
+      );
+    }
+    return lists.map((list) => {
+      const isInList = isItemInList(list);
+      const isRowPending = pendingListId === list.id;
+      const row = (
+        <div className="flex items-center w-full">
+          <button
+            type="button"
+            onClick={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              await handleToggleList(list.id);
+            }}
+            className="flex items-center gap-2 flex-1 min-w-0 px-2 py-2 hover:bg-muted rounded transition-colors cursor-pointer"
+          >
+            {isRowPending ? (
+              <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-muted-foreground" />
+            ) : (
+              <ListCheck
+                className={cn(
+                  "h-4 w-4 flex-shrink-0",
+                  isInList ? "text-green-500" : "text-muted-foreground"
+                )}
+              />
+            )}
+            <span className="truncate text-left">{list.name}</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              router.push(`/dashboard/lists/${list.id}`);
+              setIsDropdownOpen(false);
+            }}
+            className="p-2 hover:bg-muted rounded transition-colors flex-shrink-0 cursor-pointer"
+          >
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </div>
+      );
+      if (isMobile) {
+        return (
+          <div key={list.id} className={cn(isRowPending && "opacity-60 pointer-events-none")}>
+            {row}
+          </div>
+        );
+      }
+      return (
+        <DropdownMenuItem
+          key={list.id}
+          disabled={isRowPending}
+          className="p-0"
+          onSelect={(e) => e.preventDefault()}
+        >
+          {row}
+        </DropdownMenuItem>
+      );
+    });
+  };
+
+  const createFooter = isMobile ? (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isSignedIn) {
+          toast.info(`Sign in to create ${activeTab === "playlist" ? "playlists" : "lists"}.`);
+          if (openSignIn) {
+            openSignIn({
+              afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+            });
+          }
+          setIsDropdownOpen(false);
+          return;
+        }
+        setIsDropdownOpen(false);
+        if (activeTab === "playlist") {
+          setIsCreatePlaylistModalOpen(true);
+        } else {
+          setIsCreateListModalOpen(true);
+        }
+      }}
+      disabled={!isSignedIn}
+      className={cn(
+        "flex w-full items-center gap-2 px-4 py-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors",
+        !isSignedIn && "opacity-50 cursor-not-allowed"
+      )}
+    >
+      <Plus className="h-4 w-4" />
+      {activeTab === "playlist"
+        ? playlists.length === 0
+          ? "Create Playlist"
+          : "Create New Playlist"
+        : lists.length === 0
+          ? "Create List"
+          : "Create New List"}
+    </button>
+  ) : (
+    <div className="px-1 py-1">
+      <DropdownMenuSeparator />
+      <DropdownMenuItem
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!isSignedIn) {
+            toast.info(`Sign in to create ${activeTab === "playlist" ? "playlists" : "lists"}.`);
+            if (openSignIn) {
+              openSignIn({
+                afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
+              });
+            }
+            setIsDropdownOpen(false);
+            return;
+          }
+          setIsDropdownOpen(false);
+          if (activeTab === "playlist") {
+            setIsCreatePlaylistModalOpen(true);
+          } else {
+            setIsCreateListModalOpen(true);
+          }
+        }}
+        disabled={!isSignedIn}
+        className={cn("cursor-pointer", !isSignedIn && "opacity-50 cursor-not-allowed")}
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        {activeTab === "playlist"
+          ? playlists.length === 0
+            ? "Create Playlist"
+            : "Create New Playlist"
+          : lists.length === 0
+            ? "Create List"
+            : "Create New List"}
+      </DropdownMenuItem>
+    </div>
+  );
+
   return (
     <>
-      <DropdownMenu open={isDropdownOpen} onOpenChange={handleOpenChange}>
-        <DropdownMenuTrigger asChild>
-          {trigger || defaultTrigger}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent 
-          align="end" 
-          alignOffset={isMobile ? -12 : 0}
-          sideOffset={4}
-          className="w-72 z-[110] p-0 flex flex-col max-h-[400px]"
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
-        >
-          {/* Tabs Header */}
-          <div className="px-2 py-1.5 border-b border-border">
-            <div className="flex items-center gap-0">
-              <button
-                type="button"
-                onClick={() => setActiveTab("playlist")}
-                className={cn(
-                  "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer",
-                  activeTab === "playlist" 
-                    ? "bg-muted text-foreground" 
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Playlist
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("list")}
-                className={cn(
-                  "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer",
-                  activeTab === "list" 
-                    ? "bg-muted text-foreground" 
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                List
-              </button>
-            </div>
-          </div>
-
-          {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0 px-2 pt-1">
-            {activeTab === "playlist" ? (
-              <>
-                {isLoadingPlaylists ? (
-                  <DropdownMenuItem disabled>Loading playlists...</DropdownMenuItem>
-                ) : playlists.length === 0 ? (
-                  <DropdownMenuItem disabled>No playlists yet</DropdownMenuItem>
-                ) : (
-                  playlists.map((playlist) => {
-                    const isInPlaylist = isItemInPlaylist(playlist);
-                    const isRowPending = pendingPlaylistId === playlist.id;
-                    return (
-                      <DropdownMenuItem
-                        key={playlist.id}
-                        disabled={isRowPending}
-                        className="p-0"
-                        onSelect={(e) => e.preventDefault()}
-                      >
-                        <div className="flex items-center w-full">
-                          <button
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              await handleTogglePlaylist(playlist.id);
-                            }}
-                            className="flex items-center gap-2 flex-1 min-w-0 px-2 py-2 hover:bg-muted rounded transition-colors cursor-pointer"
-                          >
-                            {isRowPending ? (
-                              <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-muted-foreground" />
-                            ) : (
-                              <ListCheck 
-                                className={cn(
-                                  "h-4 w-4 flex-shrink-0",
-                                  isInPlaylist ? "text-green-500" : "text-muted-foreground"
-                                )} 
-                              />
-                            )}
-                            <span className="truncate text-left">{playlist.name}</span>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              router.push(`/dashboard/playlists/${playlist.id}`);
-                              setIsDropdownOpen(false);
-                            }}
-                            className="p-2 hover:bg-muted rounded transition-colors flex-shrink-0 cursor-pointer"
-                          >
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                          </button>
-                        </div>
-                      </DropdownMenuItem>
-                    );
-                  })
-                )}
-              </>
-            ) : (
-              <>
-                {isLoadingLists ? (
-                  <DropdownMenuItem disabled>Loading lists...</DropdownMenuItem>
-                ) : lists.length === 0 ? (
-                  <DropdownMenuItem disabled>No lists yet</DropdownMenuItem>
-                ) : (
-                  lists.map((list) => {
-                    const isInList = isItemInList(list);
-                    const isRowPending = pendingListId === list.id;
-                    return (
-                      <DropdownMenuItem
-                        key={list.id}
-                        disabled={isRowPending}
-                        className="p-0"
-                        onSelect={(e) => e.preventDefault()}
-                      >
-                        <div className="flex items-center w-full">
-                          <button
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              await handleToggleList(list.id);
-                            }}
-                            className="flex items-center gap-2 flex-1 min-w-0 px-2 py-2 hover:bg-muted rounded transition-colors cursor-pointer"
-                          >
-                            {isRowPending ? (
-                              <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-muted-foreground" />
-                            ) : (
-                              <ListCheck 
-                                className={cn(
-                                  "h-4 w-4 flex-shrink-0",
-                                  isInList ? "text-green-500" : "text-muted-foreground"
-                                )} 
-                              />
-                            )}
-                            <span className="truncate text-left">{list.name}</span>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              router.push(`/dashboard/lists/${list.id}`);
-                              setIsDropdownOpen(false);
-                            }}
-                            className="p-2 hover:bg-muted rounded transition-colors flex-shrink-0 cursor-pointer"
-                          >
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                          </button>
-                        </div>
-                      </DropdownMenuItem>
-                    );
-                  })
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Fixed Footer */}
-          <div className="px-1 py-1">
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (!isSignedIn) {
-                  toast.info(`Sign in to create ${activeTab === "playlist" ? "playlists" : "lists"}.`);
-                  if (openSignIn) {
-                    openSignIn({
-                      afterSignInUrl: typeof window !== "undefined" ? window.location.href : undefined,
-                    });
-                  }
-                  setIsDropdownOpen(false);
-                  return;
-                }
-                setIsDropdownOpen(false);
-                if (activeTab === "playlist") {
-                  setIsCreatePlaylistModalOpen(true);
-                } else {
-                  setIsCreateListModalOpen(true);
-                }
-              }}
-              disabled={!isSignedIn}
-              className={cn("cursor-pointer", !isSignedIn && "opacity-50 cursor-not-allowed")}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {activeTab === "playlist" 
-                ? (playlists.length === 0 ? "Create Playlist" : "Create New Playlist")
-                : (lists.length === 0 ? "Create List" : "Create New List")
-              }
-            </DropdownMenuItem>
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ResponsiveMenuSurface
+        open={isDropdownOpen}
+        onOpenChange={handleOpenChange}
+        trigger={trigger || defaultTrigger}
+        accessibilityTitle="Add to list or playlist"
+        header={tabsHeader}
+        footer={createFooter}
+        dropdownClassName="w-72"
+        dropdownAlignOffset={isMobile ? -12 : 0}
+        bodyClassName="px-2 pt-1"
+        drawerClassName="max-h-[80vh]"
+      >
+        {activeTab === "playlist" ? renderPlaylistRows() : renderListRows()}
+      </ResponsiveMenuSurface>
 
       <CreatePlaylistModal
         isOpen={isCreatePlaylistModalOpen}

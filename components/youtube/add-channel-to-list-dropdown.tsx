@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { ChevronRight, ListCheck, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { ResponsiveMenuSurface, ResponsiveMenuPlaceholder } from "@/components/ui/responsive-menu-surface";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   useUpdateYouTubeChannelList,
   useYouTubeChannelList,
@@ -37,15 +39,13 @@ export function YouTubeAddToListDropdown({ channel, trigger }: YouTubeAddToListD
   const [open, setOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
-  // Pull selected list detail so we always patch from latest server state.
   const { data: selectedList } = useYouTubeChannelList(selectedListId);
-
   const normalizedTitle = channel.title || "Unknown Channel";
 
-  const listMap = useMemo(() => {
-    return new Map(myLists.map((list) => [list.id, list]));
-  }, [myLists]);
+  const listMap = useMemo(() => new Map(myLists.map((list) => [list.id, list])), [myLists]);
+  const [localMembership, setLocalMembership] = useState<Record<string, boolean>>({});
 
   const requireAuth = () => {
     if (isSignedIn) return true;
@@ -56,10 +56,13 @@ export function YouTubeAddToListDropdown({ channel, trigger }: YouTubeAddToListD
     return false;
   };
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen && !requireAuth()) return;
+    setOpen(nextOpen);
+  };
+
   const isChannelInList = (list: YouTubeChannelList) =>
     list.items.some((item) => item.channelId === channel.channelId);
-
-  const [localMembership, setLocalMembership] = useState<Record<string, boolean>>({});
 
   const handleToggleInList = async (listId: string) => {
     if (!requireAuth()) return;
@@ -108,14 +111,9 @@ export function YouTubeAddToListDropdown({ channel, trigger }: YouTubeAddToListD
         ];
 
     try {
-      await updateList.mutateAsync({
-        listId,
-        channels: nextItems,
-      });
+      await updateList.mutateAsync({ listId, channels: nextItems });
       setLocalMembership((prev) => ({ ...prev, [listId]: !exists }));
-      toast.success(
-        exists ? `Removed from "${baseList.name}"` : `Added to "${baseList.name}"`
-      );
+      toast.success(exists ? `Removed from "${baseList.name}"` : `Added to "${baseList.name}"`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update list");
     }
@@ -132,97 +130,136 @@ export function YouTubeAddToListDropdown({ channel, trigger }: YouTubeAddToListD
     </Button>
   );
 
-  return (
-    <>
-      <DropdownMenu
-        open={open}
-        onOpenChange={(nextOpen) => {
-          if (nextOpen && !requireAuth()) return;
-          setOpen(nextOpen);
+  const header = (
+    <p className="text-sm font-medium text-foreground">Add channel to list</p>
+  );
+
+  const footer = isMobile ? (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(false);
+        setBuilderOpen(true);
+      }}
+      className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium cursor-pointer hover:bg-muted transition-colors"
+    >
+      <Plus className="h-4 w-4" />
+      Create list
+    </button>
+  ) : (
+    <div className="p-1">
+      <DropdownMenuSeparator />
+      <DropdownMenuItem
+        className="cursor-pointer"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen(false);
+          setBuilderOpen(true);
         }}
       >
-        <DropdownMenuTrigger asChild>{trigger || defaultTrigger}</DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          sideOffset={4}
-          className="w-64 p-0 flex flex-col max-h-[360px]"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="px-2 py-2 border-b border-border text-sm font-medium text-foreground">
-            Add channel to list
-          </div>
-          <div className="overflow-y-auto scrollbar-thin p-2 space-y-1">
-            {isLoading ? (
-              <DropdownMenuItem disabled>Loading your lists...</DropdownMenuItem>
-            ) : myLists.length === 0 ? (
-              <DropdownMenuItem disabled>No lists yet</DropdownMenuItem>
-            ) : (
-              myLists.map((list) => {
-                const isInList = localMembership[list.id] ?? isChannelInList(list);
-                return (
-                  <DropdownMenuItem
-                    key={list.id}
-                    onSelect={(e) => e.preventDefault()}
-                    className="p-0"
-                    disabled={updateList.isPending}
-                  >
-                    <div className="flex items-center w-full">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleToggleInList(list.id);
-                        }}
-                        className={cn(
-                          "flex items-center gap-2 flex-1 min-w-0 px-2 py-2 rounded transition-colors text-left cursor-pointer hover:bg-muted",
-                          isInList && "bg-muted/70 text-primary"
-                        )}
-                      >
-                        <ListCheck
-                          className={cn(
-                            "h-4 w-4 flex-shrink-0",
-                            isInList ? "text-green-500" : "text-muted-foreground"
-                          )}
-                        />
-                        <span className="truncate">{list.name}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          router.push(`/youtube-channel/lists/${list.id}`);
-                          setOpen(false);
-                        }}
-                        className="p-2 rounded transition-colors flex-shrink-0 hover:bg-muted cursor-pointer"
-                        title="Open list"
-                      >
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      </button>
-                    </div>
-                  </DropdownMenuItem>
-                );
-              })
+        <Plus className="h-4 w-4 mr-2" />
+        Create list
+      </DropdownMenuItem>
+    </div>
+  );
+
+  const renderRows = () => {
+    if (isLoading) {
+      return isMobile ? (
+        <ResponsiveMenuPlaceholder>Loading your lists...</ResponsiveMenuPlaceholder>
+      ) : (
+        <DropdownMenuItem disabled>Loading your lists...</DropdownMenuItem>
+      );
+    }
+    if (myLists.length === 0) {
+      return isMobile ? (
+        <ResponsiveMenuPlaceholder>No lists yet</ResponsiveMenuPlaceholder>
+      ) : (
+        <DropdownMenuItem disabled>No lists yet</DropdownMenuItem>
+      );
+    }
+
+    return myLists.map((list) => {
+      const isInList = localMembership[list.id] ?? isChannelInList(list);
+      const row = (
+        <div className="flex items-center w-full">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void handleToggleInList(list.id);
+            }}
+            className={cn(
+              "flex items-center gap-2 flex-1 min-w-0 px-2 py-2 rounded transition-colors text-left cursor-pointer hover:bg-muted",
+              isInList && "bg-muted/70 text-primary"
             )}
+          >
+            <ListCheck
+              className={cn(
+                "h-4 w-4 flex-shrink-0",
+                isInList ? "text-green-500" : "text-muted-foreground"
+              )}
+            />
+            <span className="truncate">{list.name}</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              router.push(`/youtube-channel/lists/${list.id}`);
+              setOpen(false);
+            }}
+            className="p-2 rounded transition-colors flex-shrink-0 hover:bg-muted cursor-pointer"
+            title="Open list"
+          >
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </div>
+      );
+
+      if (isMobile) {
+        return (
+          <div
+            key={list.id}
+            className={cn(updateList.isPending && "opacity-60 pointer-events-none")}
+          >
+            {row}
           </div>
-          <div className="p-1">
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setOpen(false);
-                setBuilderOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create list
-            </DropdownMenuItem>
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        );
+      }
+
+      return (
+        <DropdownMenuItem
+          key={list.id}
+          onSelect={(e) => e.preventDefault()}
+          className="p-0"
+          disabled={updateList.isPending}
+        >
+          {row}
+        </DropdownMenuItem>
+      );
+    });
+  };
+
+  return (
+    <>
+      <ResponsiveMenuSurface
+        open={open}
+        onOpenChange={handleOpenChange}
+        trigger={trigger || defaultTrigger}
+        accessibilityTitle="Add channel to list"
+        header={header}
+        footer={footer}
+        dropdownClassName="w-64 max-h-[360px]"
+        bodyClassName="p-2 space-y-1"
+      >
+        {renderRows()}
+      </ResponsiveMenuSurface>
 
       <ChannelListBuilder
         isOpen={builderOpen}
@@ -232,4 +269,3 @@ export function YouTubeAddToListDropdown({ channel, trigger }: YouTubeAddToListD
     </>
   );
 }
-
