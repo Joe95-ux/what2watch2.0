@@ -125,14 +125,21 @@ export function ResponsiveMenuSurface({
         align={dropdownAlign}
         alignOffset={dropdownAlignOffset}
         sideOffset={dropdownSideOffset}
-        className={cn("z-[110] flex max-h-[400px] flex-col p-0", dropdownClassName)}
+        className={cn(
+          "z-[110] flex max-h-[400px] flex-col overflow-hidden p-0",
+          dropdownClassName
+        )}
         onClick={handleContentClick}
       >
-        {header ? <div className="shrink-0 border-b border-border">{header}</div> : null}
+        {header ? (
+          <div className="shrink-0 border-b border-border px-3 py-2">{header}</div>
+        ) : null}
         <div className={cn("min-h-0 flex-1 overflow-y-auto scrollbar-thin", bodyClassName)}>
           {children}
         </div>
-        {footer ? <div className="shrink-0 border-t border-border">{footer}</div> : null}
+        {footer ? (
+          <div className="shrink-0 border-t border-border bg-popover">{footer}</div>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

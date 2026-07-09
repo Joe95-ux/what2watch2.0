@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { ChevronRight, ListCheck, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { ResponsiveMenuSurface, ResponsiveMenuPlaceholder } from "@/components/ui/responsive-menu-surface";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -149,21 +149,18 @@ export function YouTubeAddToListDropdown({ channel, trigger }: YouTubeAddToListD
       Create list
     </button>
   ) : (
-    <div className="p-1">
-      <DropdownMenuSeparator />
-      <DropdownMenuItem
-        className="cursor-pointer"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setOpen(false);
-          setBuilderOpen(true);
-        }}
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        Create list
-      </DropdownMenuItem>
-    </div>
+    <DropdownMenuItem
+      className="cursor-pointer rounded-none"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(false);
+        setBuilderOpen(true);
+      }}
+    >
+      <Plus className="h-4 w-4 mr-2" />
+      Create list
+    </DropdownMenuItem>
   );
 
   const renderRows = () => {
