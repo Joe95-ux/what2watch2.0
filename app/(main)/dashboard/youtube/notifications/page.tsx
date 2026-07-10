@@ -26,7 +26,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { decodeHtmlEntities } from "@/lib/utils";
+import { NotificationUnreadIndicator } from "@/components/notifications/notification-unread-indicator";
+import { DeleteAllNotificationsDialog } from "@/components/notifications/delete-all-notifications-dialog";
 
 function NotificationSkeleton() {
   return (
@@ -51,6 +52,7 @@ export default function YouTubeNotificationsPage() {
   const [sortField, setSortField] = useState<"date" | "channel">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const ITEMS_PER_PAGE = 20;
   
   const { data, isLoading } = useYouTubeNotifications(filter === "unread");
@@ -137,9 +139,14 @@ export default function YouTubeNotificationsPage() {
   };
 
   const handleDeleteAll = () => {
-    if (confirm("Are you sure you want to delete all notifications? This action cannot be undone.")) {
-      deleteNotifications.mutate({ deleteAll: true });
-    }
+    setDeleteAllDialogOpen(true);
+  };
+
+  const handleDeleteAllConfirm = () => {
+    deleteNotifications.mutate(
+      { deleteAll: true },
+      { onSuccess: () => setDeleteAllDialogOpen(false) }
+    );
   };
 
   return (
@@ -455,12 +462,12 @@ export default function YouTubeNotificationsPage() {
             {paginatedNotifications.map((notification) => (
             <div
               key={notification.id}
-              className={cn(
-                "p-4 hover:bg-muted/50 transition-colors",
-                !notification.isRead && "border-l-[3px] border-l-[#1447E6] bg-blue-50 dark:[background:var(--unread-notification-bg)]"
-              )}
+              className="p-4 hover:bg-muted/50 transition-colors"
             >
               <div className="flex gap-3">
+                {!notification.isRead ? (
+                  <NotificationUnreadIndicator className="mt-4" />
+                ) : null}
                 {/* Channel Avatar */}
                 <Avatar className="h-12 w-12 flex-shrink-0">
                   <AvatarImage 
@@ -572,6 +579,15 @@ export default function YouTubeNotificationsPage() {
           />
         </>
       )}
+
+      <DeleteAllNotificationsDialog
+        open={deleteAllDialogOpen}
+        onOpenChange={(open) => {
+          if (!deleteNotifications.isPending) setDeleteAllDialogOpen(open);
+        }}
+        onConfirm={handleDeleteAllConfirm}
+        isPending={deleteNotifications.isPending}
+      />
     </div>
   );
 }

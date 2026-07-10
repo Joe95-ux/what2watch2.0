@@ -28,7 +28,8 @@ import { useAvatar } from "@/contexts/avatar-context";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { NotificationUnreadIndicator } from "@/components/notifications/notification-unread-indicator";
+import { DeleteAllNotificationsDialog } from "@/components/notifications/delete-all-notifications-dialog";
 
 function NotificationSkeleton() {
   return (
@@ -123,8 +124,10 @@ export function ForumNotificationsTab() {
   };
 
   const handleDeleteAllConfirm = () => {
-    deleteNotifications.mutate({ deleteAll: true });
-    setDeleteAllDialogOpen(false);
+    deleteNotifications.mutate(
+      { deleteAll: true },
+      { onSuccess: () => setDeleteAllDialogOpen(false) }
+    );
   };
 
   return (
@@ -243,12 +246,12 @@ export function ForumNotificationsTab() {
             return (
               <div
                 key={notification.id}
-                className={cn(
-                  "p-4 hover:bg-muted/50 transition-colors",
-                  !notification.isRead && "border-l-[3px] border-l-[#1447E6] bg-blue-50 dark:[background:var(--unread-notification-bg)]"
-                )}
+                className="p-4 hover:bg-muted/50 transition-colors"
               >
                 <div className="flex gap-3">
+                  {!notification.isRead ? (
+                    <NotificationUnreadIndicator className="mt-4" />
+                  ) : null}
                   {/* Actor Avatar */}
                   <Avatar className="h-12 w-12 flex-shrink-0">
                     <AvatarImage 
@@ -358,27 +361,14 @@ export function ForumNotificationsTab() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete All Confirmation Dialog */}
-      <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete All Notifications</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete all notifications? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteAllConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={deleteNotifications.isPending}
-            >
-              {deleteNotifications.isPending ? "Deleting..." : "Delete All"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteAllNotificationsDialog
+        open={deleteAllDialogOpen}
+        onOpenChange={(open) => {
+          if (!deleteNotifications.isPending) setDeleteAllDialogOpen(open);
+        }}
+        onConfirm={handleDeleteAllConfirm}
+        isPending={deleteNotifications.isPending}
+      />
     </div>
   );
 }

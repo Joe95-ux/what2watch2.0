@@ -16,7 +16,8 @@ import { useForumNotifications, useMarkForumNotificationsAsRead, useDeleteForumN
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { NotificationUnreadIndicator } from "@/components/notifications/notification-unread-indicator";
+import { DeleteAllNotificationsDialog } from "@/components/notifications/delete-all-notifications-dialog";
 
 function NotificationSkeleton() {
   return (
@@ -73,6 +74,7 @@ function getNotificationLink(notification: ForumNotification): string {
 
 export function ForumNotificationsPageClient() {
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const { data, isLoading } = useForumNotifications(filter === "unread");
   const markAsRead = useMarkForumNotificationsAsRead();
   const deleteNotifications = useDeleteForumNotifications();
@@ -93,9 +95,14 @@ export function ForumNotificationsPageClient() {
   };
 
   const handleDeleteAll = () => {
-    if (confirm("Are you sure you want to delete all notifications? This action cannot be undone.")) {
-      deleteNotifications.mutate({ deleteAll: true });
-    }
+    setDeleteAllDialogOpen(true);
+  };
+
+  const handleDeleteAllConfirm = () => {
+    deleteNotifications.mutate(
+      { deleteAll: true },
+      { onSuccess: () => setDeleteAllDialogOpen(false) }
+    );
   };
 
   return (
@@ -177,12 +184,12 @@ export function ForumNotificationsPageClient() {
           {notifications.map((notification) => (
             <div
               key={notification.id}
-              className={cn(
-                "p-4 hover:bg-muted/50 transition-colors",
-                !notification.isRead && "border-l-[3px] border-l-[#1447E6] bg-blue-50 dark:[background:var(--unread-notification-bg)]"
-              )}
+              className="p-4 hover:bg-muted/50 transition-colors"
             >
               <div className="flex gap-3">
+                {!notification.isRead ? (
+                  <NotificationUnreadIndicator className="mt-4" />
+                ) : null}
                 {/* Actor Avatar */}
                 <Avatar className="h-12 w-12 flex-shrink-0">
                   <AvatarImage 
@@ -268,6 +275,15 @@ export function ForumNotificationsPageClient() {
           ))}
         </div>
       )}
+
+      <DeleteAllNotificationsDialog
+        open={deleteAllDialogOpen}
+        onOpenChange={(open) => {
+          if (!deleteNotifications.isPending) setDeleteAllDialogOpen(open);
+        }}
+        onConfirm={handleDeleteAllConfirm}
+        isPending={deleteNotifications.isPending}
+      />
     </div>
   );
 }
