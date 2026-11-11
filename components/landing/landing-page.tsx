@@ -250,9 +250,6 @@ function DuneWatchProvidersCard() {
         ) : (
           <ContentDetailWhereToWatch
             watchAvailability={displayData}
-            watchCountry={normalizedCountry}
-            onWatchCountryChange={(code) => setWatchCountry(code.toUpperCase())}
-            justwatchCountries={countries}
             isLoading={false}
           />
         )}
