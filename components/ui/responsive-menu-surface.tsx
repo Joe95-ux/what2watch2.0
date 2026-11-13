@@ -86,6 +86,16 @@ export function ResponsiveMenuSurface({
   stopPropagation = true,
 }: ResponsiveMenuSurfaceProps) {
   const isMobile = useIsMobile();
+  const wasMobileRef = React.useRef(isMobile);
+
+  // Close + remount cleanly when crossing the mobile breakpoint so Radix/Vaul
+  // don't keep portal state across chassis switches (common resize crash).
+  React.useEffect(() => {
+    if (wasMobileRef.current !== isMobile) {
+      wasMobileRef.current = isMobile;
+      if (open) onOpenChange(false);
+    }
+  }, [isMobile, open, onOpenChange]);
 
   const handleContentClick = (e: React.MouseEvent) => {
     if (stopPropagation) e.stopPropagation();
@@ -93,7 +103,7 @@ export function ResponsiveMenuSurface({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange} direction="bottom">
+      <Drawer key="mobile-drawer" open={open} onOpenChange={onOpenChange} direction="bottom">
         {createMobileDrawerTrigger(trigger, onOpenChange)}
         <DrawerContent
           className={cn("flex max-h-[85vh] flex-col gap-0 p-0", drawerClassName)}
@@ -119,7 +129,7 @@ export function ResponsiveMenuSurface({
   }
 
   return (
-    <DropdownMenu open={open} onOpenChange={onOpenChange}>
+    <DropdownMenu key="desktop-menu" open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
       <DropdownMenuContent
         align={dropdownAlign}

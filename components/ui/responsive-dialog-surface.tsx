@@ -49,8 +49,16 @@ export function ResponsiveDialogSurface({
   showCloseButton = true,
 }: ResponsiveDialogSurfaceProps) {
   const isMobile = useIsMobile();
+  const wasMobileRef = React.useRef(isMobile);
   const srTitle =
     accessibilityTitle ?? (typeof title === "string" ? title : "Dialog");
+
+  React.useEffect(() => {
+    if (wasMobileRef.current !== isMobile) {
+      wasMobileRef.current = isMobile;
+      if (open) onOpenChange(false);
+    }
+  }, [isMobile, open, onOpenChange]);
 
   const defaultHeader =
     title || description ? (
@@ -66,7 +74,7 @@ export function ResponsiveDialogSurface({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange} direction="bottom">
+      <Drawer key="mobile-drawer" open={open} onOpenChange={onOpenChange} direction="bottom">
         <DrawerContent
           className={cn("flex max-h-[90vh] flex-col gap-0 p-0", drawerClassName)}
         >
@@ -92,7 +100,7 @@ export function ResponsiveDialogSurface({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog key="desktop-dialog" open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
           "flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0",

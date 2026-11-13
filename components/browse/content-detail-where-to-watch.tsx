@@ -56,6 +56,17 @@ export default function ContentDetailWhereToWatch({
     return presentationType.toUpperCase();
   };
 
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(() => {
+    if (!search.trim()) return justwatchCountries;
+    const q = search.toLowerCase().trim();
+    return justwatchCountries.filter(
+      (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+    );
+  }, [justwatchCountries, search]);
+  const selected = justwatchCountries.find((c) => c.code === watchCountry);
+
   if (!watchAvailability && !isLoading) return null;
 
   // Build rows array with alternating backgrounds
@@ -102,17 +113,6 @@ export default function ContentDetailWhereToWatch({
   }
 
   if (rows.length === 0) return null;
-
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const filtered = useMemo(() => {
-    if (!search.trim()) return justwatchCountries;
-    const q = search.toLowerCase().trim();
-    return justwatchCountries.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
-    );
-  }, [justwatchCountries, search]);
-  const selected = justwatchCountries.find((c) => c.code === watchCountry);
 
   return (
     <div className="space-y-4">
