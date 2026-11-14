@@ -51,6 +51,7 @@ import {
 import { ChevronsUpDown, Check } from "lucide-react";
 import { getCountryFlagEmoji } from "@/hooks/use-watch-regions";
 import { FAQAccordion } from "@/components/landing/faq-accordion";
+import { Parallax, Reveal } from "@/components/landing/scroll-motion";
 
 function CuratedListsCarousel() {
   const { data: lists = [], isLoading: isLoadingLists } = usePublicLists(10);
@@ -296,14 +297,18 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden border-b pb-0">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[100px] opacity-50" />
-          <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] opacity-50" />
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <Parallax speed={0.22} className="absolute top-1/4 left-1/4 w-[400px] h-[400px]">
+            <div className="h-full w-full bg-primary/10 rounded-full blur-[100px] opacity-50" />
+          </Parallax>
+          <Parallax speed={-0.18} className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px]">
+            <div className="h-full w-full bg-blue-500/10 rounded-full blur-[120px] opacity-50" />
+          </Parallax>
           <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background to-background z-10" />
         </div>
 
         <div className="relative z-20 container mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 lg:pt-32 pb-0">
-          <div className="mx-auto max-w-4xl text-center mb-12">
+          <Reveal className="mx-auto max-w-4xl text-center mb-12">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-background/80 backdrop-blur-sm px-4 py-1.5 text-sm font-medium text-foreground shadow-sm">
               <Sparkles className="h-4 w-4 text-primary" />
               Discover what to watch next
@@ -340,30 +345,36 @@ export default function LandingPage() {
                 <Link href="/browse">Browse Library</Link>
               </Button>
             </div>
-          </div>
-          <div className="relative mx-auto max-w-5xl -mb-8">
-            <div className="relative rounded-2xl overflow-hidden border border-border/50">
-              <div className="relative aspect-[13/8] w-full">
-                <Image
-                  src="/hero-list-img.png"
-                  alt="Watchlist"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1280px"
-                  priority
-                  quality={90}
-                />
+          </Reveal>
+          <Parallax speed={0.12} className="relative mx-auto max-w-5xl -mb-8">
+            <Reveal delay={120} distance={40}>
+              <div className="relative rounded-2xl overflow-hidden border border-border/50 shadow-xl shadow-black/5">
+                <div className="relative aspect-[13/8] w-full">
+                  <Image
+                    src="/hero-list-img.png"
+                    alt="Watchlist"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1280px"
+                    priority
+                    quality={90}
+                  />
+                </div>
               </div>
-            </div>
-            <div className="absolute -bottom-6 left-0 right-0 h-12 bg-background rounded-t-3xl" />
-          </div>
+              <div className="absolute -bottom-6 left-0 right-0 h-12 bg-background rounded-t-3xl" />
+            </Reveal>
+          </Parallax>
         </div>
       </section>
 
       <section className="py-16 sm:py-20 lg:py-24 relative overflow-hidden bg-gradient-to-b from-background to-muted/20">
+        <Parallax
+          speed={0.1}
+          className="pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full bg-primary/5 blur-3xl"
+        />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-12 xl:gap-16">
-            <div className="w-full shrink-0 lg:basis-[45%] lg:max-w-[45%]">
+            <Reveal className="w-full shrink-0 lg:basis-[45%] lg:max-w-[45%]">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-background px-4 py-1.5 text-sm font-medium">
                 <Search className="h-4 w-4 text-primary" />
                 Global Availability
@@ -387,11 +398,13 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </Reveal>
 
-            <div className="w-full min-w-0 lg:basis-[55%] lg:max-w-[55%]">
-              <DuneWatchProvidersCard />
-            </div>
+            <Parallax speed={-0.08} className="w-full min-w-0 lg:basis-[55%] lg:max-w-[55%]">
+              <Reveal delay={140} distance={36}>
+                <DuneWatchProvidersCard />
+              </Reveal>
+            </Parallax>
           </div>
         </div>
       </section>
@@ -400,12 +413,12 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
             {stats.map((stat, index) => (
-              <div key={index} className="text-center">
+              <Reveal key={index} delay={index * 70} className="text-center">
                 <div className="mb-2 text-3xl font-bold text-foreground sm:text-4xl">
                   {stat.value}
                 </div>
                 <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -413,70 +426,74 @@ export default function LandingPage() {
 
       <section className="py-20 sm:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-xl mb-16">
+          <Reveal className="max-w-xl mb-16">
             <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
               Everything you need to discover great content
             </h2>
             <p className="text-lg text-muted-foreground">
               Powerful features designed to help you find, organize, and share your favorite entertainment.
             </p>
-          </div>
+          </Reveal>
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, index) => (
-              <div
-                key={index}
-                className="group relative rounded-xl border bg-card p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden"
-              >
-                <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-lg ${feature.bg} transition-transform group-hover:scale-110`}>
-                  <feature.icon className={`h-6 w-6 ${feature.color}`} />
+              <Reveal key={index} delay={index * 90}>
+                <div className="group relative rounded-xl border bg-card p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden h-full">
+                  <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-lg ${feature.bg} transition-transform group-hover:scale-110`}>
+                    <feature.icon className={`h-6 w-6 ${feature.color}`} />
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
                 </div>
-                <h3 className="mb-2 text-lg font-semibold">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="border-t bg-muted/20 py-20 sm:py-24">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="border-t bg-muted/20 py-20 sm:py-24 relative overflow-hidden">
+        <Parallax
+          speed={-0.12}
+          className="pointer-events-none absolute left-1/2 top-0 h-64 w-[36rem] -translate-x-1/2 rounded-full bg-primary/5 blur-3xl"
+        />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="mx-auto max-w-4xl">
-            <div className="mb-12 text-center">
+            <Reveal className="mb-12 text-center">
               <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
                 How it works
               </h2>
               <p className="text-lg text-muted-foreground">
                 Get started in minutes with our simple onboarding process
               </p>
-            </div>
+            </Reveal>
             <div className="grid gap-8 md:grid-cols-3">
-              <div className="text-center">
-                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-muted text-foreground shadow-sm">
-                  <span className="text-xl font-bold tabular-nums">1</span>
-                </div>
-                <h3 className="mb-2 text-lg font-semibold">Sign Up</h3>
-                <p className="text-sm text-muted-foreground">
-                  Create your account and complete a quick onboarding to personalize your experience
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-muted text-foreground shadow-sm">
-                  <span className="text-xl font-bold tabular-nums">2</span>
-                </div>
-                <h3 className="mb-2 text-lg font-semibold">Discover</h3>
-                <p className="text-sm text-muted-foreground">
-                  Browse trending content, explore personalized recommendations, and find your next watch
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-muted text-foreground shadow-sm">
-                  <span className="text-xl font-bold tabular-nums">3</span>
-                </div>
-                <h3 className="mb-2 text-lg font-semibold">Share</h3>
-                <p className="text-sm text-muted-foreground">
-                  Create playlists, share with friends, and join the community to discuss your favorites
-                </p>
-              </div>
+              {[
+                {
+                  step: "1",
+                  title: "Sign Up",
+                  description:
+                    "Create your account and complete a quick onboarding to personalize your experience",
+                },
+                {
+                  step: "2",
+                  title: "Discover",
+                  description:
+                    "Browse trending content, explore personalized recommendations, and find your next watch",
+                },
+                {
+                  step: "3",
+                  title: "Share",
+                  description:
+                    "Create playlists, share with friends, and join the community to discuss your favorites",
+                },
+              ].map((item, index) => (
+                <Reveal key={item.step} delay={index * 100} className="text-center">
+                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-muted text-foreground shadow-sm">
+                    <span className="text-xl font-bold tabular-nums">{item.step}</span>
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                </Reveal>
+              ))}
             </div>
           </div>
         </div>
@@ -484,7 +501,7 @@ export default function LandingPage() {
 
       <section className="border-t py-20 sm:py-24 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 overflow-hidden">
-          <div className="mb-8 flex items-center justify-between">
+          <Reveal className="mb-8 flex items-center justify-between">
             <div>
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
                 Explore User Lists
@@ -496,61 +513,71 @@ export default function LandingPage() {
             <Link href="/lists" className="hidden text-sm text-muted-foreground hover:text-foreground sm:block">
               View all →
             </Link>
-          </div>
-          <div className="overflow-hidden sm:overflow-visible group">
-            <CuratedListsCarousel />
-          </div>
+          </Reveal>
+          <Reveal delay={100}>
+            <div className="overflow-hidden sm:overflow-visible group">
+              <CuratedListsCarousel />
+            </div>
+          </Reveal>
         </div>
       </section>
 
-      <section className="border-t py-20 sm:py-24">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl rounded-2xl border bg-gradient-to-br from-primary/10 to-primary/5 p-8 text-center sm:p-12">
-            <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
-              Ready to discover your next favorite?
-            </h2>
-            <p className="mb-8 text-lg text-muted-foreground">
-              Join thousands of users discovering great content every day
-            </p>
-            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-              {isSignedIn ? (
-                <Button size="lg" className="w-full sm:w-auto" asChild>
-                  <Link href="/dashboard/profile">
-                    Visit Profile
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              ) : (
-                <SignInButton
-                  mode="modal"
-                  fallbackRedirectUrl={typeof window !== "undefined" ? window.location.href : "/browse"}
-                >
-                  <Button size="lg" className="w-full sm:w-auto">
-                    Get Started Free
-                    <ArrowRight className="ml-2 h-4 w-4" />
+      <section className="border-t py-20 sm:py-24 relative overflow-hidden">
+        <Parallax
+          speed={0.14}
+          className="pointer-events-none absolute -left-20 bottom-0 h-56 w-56 rounded-full bg-blue-500/10 blur-3xl"
+        />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <Reveal>
+            <div className="mx-auto max-w-3xl rounded-2xl border bg-gradient-to-br from-primary/10 to-primary/5 p-8 text-center sm:p-12">
+              <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
+                Ready to discover your next favorite?
+              </h2>
+              <p className="mb-8 text-lg text-muted-foreground">
+                Join thousands of users discovering great content every day
+              </p>
+              <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+                {isSignedIn ? (
+                  <Button size="lg" className="w-full sm:w-auto" asChild>
+                    <Link href="/dashboard/profile">
+                      Visit Profile
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
                   </Button>
-                </SignInButton>
-              )}
-              <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
-                <Link href="/browse">Explore Now</Link>
-              </Button>
+                ) : (
+                  <SignInButton
+                    mode="modal"
+                    fallbackRedirectUrl={typeof window !== "undefined" ? window.location.href : "/browse"}
+                  >
+                    <Button size="lg" className="w-full sm:w-auto">
+                      Get Started Free
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </SignInButton>
+                )}
+                <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
+                  <Link href="/browse">Explore Now</Link>
+                </Button>
+              </div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       <section className="border-t bg-muted/20 py-20 sm:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl">
-            <div className="mb-12 text-center">
+            <Reveal className="mb-12 text-center">
               <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
                 Frequently Asked Questions
               </h2>
               <p className="text-lg text-muted-foreground">
                 Everything you need to know about What2Watch
               </p>
-            </div>
-            <FAQAccordion />
+            </Reveal>
+            <Reveal delay={80}>
+              <FAQAccordion />
+            </Reveal>
           </div>
         </div>
       </section>
