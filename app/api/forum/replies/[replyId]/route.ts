@@ -31,7 +31,7 @@ export async function PATCH(
     }
 
     // Rate limiting - 20 edits per hour
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       `edit-reply:${user.id}`,
       20,
       60 * 60 * 1000 // 1 hour

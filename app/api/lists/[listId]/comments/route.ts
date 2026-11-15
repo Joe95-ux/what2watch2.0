@@ -226,7 +226,7 @@ export async function POST(
     }
 
     // Rate limiting
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       user.id,
       COMMENT_RATE_LIMIT.maxRequests,
       COMMENT_RATE_LIMIT.windowMs

@@ -124,20 +124,11 @@ export interface RateLimitResult {
   error?: string;
 }
 
-/**
- * Check if a request should be rate limited
- * @param identifier - Unique identifier (e.g., userId)
- * @param maxRequests - Maximum number of requests allowed
- * @param windowMs - Time window in milliseconds
- * @returns RateLimitResult (or Promise<RateLimitResult> if using Redis)
- */
-export function checkRateLimit(
+function checkRateLimitMemory(
   identifier: string,
   maxRequests: number,
   windowMs: number
 ): RateLimitResult {
-  // NOTE: If using Redis, change return type to Promise<RateLimitResult>
-  // and add 'async' keyword, then update all call sites to use 'await'
   const now = Date.now();
   const key = identifier;
   const entry = rateLimitStore.get(key);
@@ -179,11 +170,89 @@ export function checkRateLimit(
   };
 }
 
+async function checkRateLimitUpstash(
+  identifier: string,
+  maxRequests: number,
+  windowMs: number
+): Promise<RateLimitResult | null> {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+
+  const key = `rate_limit:${identifier}`;
+  const ttlSeconds = Math.ceil(windowMs / 1000);
+  const now = Date.now();
+
+  try {
+    const response = await fetch(`${url.replace(/\/$/, "")}/pipeline`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify([
+        ["INCR", key],
+        ["EXPIRE", key, ttlSeconds, "NX"],
+        ["PTTL", key],
+      ]),
+    });
+
+    if (!response.ok) return null;
+
+    const payload = (await response.json()) as Array<{ result?: number }> | { result?: Array<{ result?: number }> };
+    const rows = Array.isArray(payload) ? payload : payload.result;
+    const count = Number(rows?.[0]?.result);
+    const pttl = Number(rows?.[2]?.result);
+    if (!Number.isFinite(count)) return null;
+
+    const resetTime = now + (Number.isFinite(pttl) && pttl > 0 ? pttl : windowMs);
+    if (count > maxRequests) {
+      const secondsUntilReset = Math.max(1, Math.ceil((resetTime - now) / 1000));
+      return {
+        allowed: false,
+        remaining: 0,
+        resetTime,
+        error: `Rate limit exceeded. Please try again in ${secondsUntilReset} second${secondsUntilReset !== 1 ? "s" : ""}.`,
+      };
+    }
+
+    return {
+      allowed: true,
+      remaining: Math.max(0, maxRequests - count),
+      resetTime,
+    };
+  } catch (error) {
+    console.error("Redis rate limit error, using in-memory fallback:", error);
+    return null;
+  }
+}
+
+/**
+ * Check if a request should be rate limited.
+ * Uses Upstash Redis when UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set.
+ * Otherwise falls back to in-memory counters so missing Redis does not fail requests.
+ */
+export async function checkRateLimit(
+  identifier: string,
+  maxRequests: number,
+  windowMs: number
+): Promise<RateLimitResult> {
+  const remote = await checkRateLimitUpstash(identifier, maxRequests, windowMs);
+  if (remote) return remote;
+  return checkRateLimitMemory(identifier, maxRequests, windowMs);
+}
+
 /**
  * Rate limit configuration for comments
  */
 export const COMMENT_RATE_LIMIT = {
   maxRequests: 10, // Maximum 10 comments
   windowMs: 60 * 1000, // Per 60 seconds (1 minute)
+};
+
+/** Shared cap for OpenAI-backed chat and transcription. */
+export const AI_RATE_LIMIT = {
+  maxRequests: 20,
+  windowMs: 60 * 1000,
 };
 

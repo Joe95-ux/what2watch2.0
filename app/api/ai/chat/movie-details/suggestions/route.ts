@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import OpenAI from "openai";
+import { AI_RATE_LIMIT, checkRateLimit } from "@/lib/rate-limit";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -12,6 +13,18 @@ export async function POST(request: NextRequest) {
 
     if (!clerkUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimitResult = await checkRateLimit(
+      `ai-suggestions:${clerkUserId}`,
+      AI_RATE_LIMIT.maxRequests,
+      AI_RATE_LIMIT.windowMs
+    );
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: rateLimitResult.error || "Rate limit exceeded. Please try again later." },
+        { status: 429 }
+      );
     }
 
     const body = await request.json();

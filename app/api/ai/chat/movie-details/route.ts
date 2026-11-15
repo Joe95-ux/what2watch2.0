@@ -7,6 +7,7 @@ import { getJustWatchAvailability } from "@/lib/justwatch";
 import { searchWeb, formatWebSearchResults } from "@/lib/web-search";
 import { PRO_PRICE_USD_MONTHLY } from "@/lib/billing";
 import { resolveMaxChatQuestions } from "@/lib/subscription";
+import { AI_RATE_LIMIT, checkRateLimit } from "@/lib/rate-limit";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -27,6 +28,18 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const rateLimitResult = await checkRateLimit(
+      `ai-movie-chat:${user.id}`,
+      AI_RATE_LIMIT.maxRequests,
+      AI_RATE_LIMIT.windowMs
+    );
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: rateLimitResult.error || "Rate limit exceeded. Please try again later." },
+        { status: 429 }
+      );
     }
 
     const body = await request.json();

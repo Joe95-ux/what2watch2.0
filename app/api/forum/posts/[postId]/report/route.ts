@@ -42,7 +42,7 @@ export async function POST(
     }
 
     // Rate limiting - 10 reports per hour
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       user.id,
       10,
       60 * 60 * 1000 // 1 hour

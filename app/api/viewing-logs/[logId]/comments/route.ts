@@ -142,7 +142,7 @@ export async function POST(
     }
 
     // Rate limiting - check if user has exceeded comment limit
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       user.id,
       COMMENT_RATE_LIMIT.maxRequests,
       COMMENT_RATE_LIMIT.windowMs

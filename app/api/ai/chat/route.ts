@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { AiChatIntent } from "@prisma/client";
 import OpenAI from "openai";
 import { searchMovies, searchTV, searchPerson, getPersonMovieCredits, getPersonTVCredits, discoverMovies, discoverTV, TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { AI_RATE_LIMIT, checkRateLimit } from "@/lib/rate-limit";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -160,6 +161,18 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const rateLimitResult = await checkRateLimit(
+      `ai-chat:${user.id}`,
+      AI_RATE_LIMIT.maxRequests,
+      AI_RATE_LIMIT.windowMs
+    );
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: rateLimitResult.error || "Rate limit exceeded. Please try again later." },
+        { status: 429 }
+      );
     }
 
     const body = await request.json();

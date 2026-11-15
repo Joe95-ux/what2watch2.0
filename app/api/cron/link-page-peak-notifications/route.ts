@@ -11,7 +11,8 @@ function startOfDayUTC(d: Date): Date {
 
 /**
  * Cron: check for link page activity peaks and send push + email.
- * Call with GET/POST; optional Bearer CRON_SECRET.
+ * Call with GET/POST and `Authorization: Bearer $CRON_SECRET`.
+ * Requests are rejected when the secret is missing or does not match.
  */
 export async function GET(request: NextRequest) {
   return runPeakCheck(request);
@@ -25,7 +26,7 @@ async function runPeakCheck(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");
     const expectedToken = process.env.CRON_SECRET;
-    if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {
+    if (!expectedToken || authHeader !== `Bearer ${expectedToken}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

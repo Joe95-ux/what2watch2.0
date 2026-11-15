@@ -29,9 +29,9 @@ export function SafeHtmlContent({ content, className }: SafeHtmlContentProps) {
         "a", "img", "div", "span"
       ],
       ALLOWED_ATTR: [
-        "href", "target", "rel", "src", "alt", "class", "style"
+        "href", "target", "rel", "src", "alt", "class"
       ],
-      ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+      ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel):|\/|#)/i,
     });
   }, [content]);
 

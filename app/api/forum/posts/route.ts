@@ -357,7 +357,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limiting - 5 posts per hour
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       user.id,
       5,
       60 * 60 * 1000 // 1 hour
