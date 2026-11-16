@@ -12,12 +12,14 @@ export default function MainLayout({
   const pathname = usePathname();
   const isDashboard = pathname === "/dashboard" || pathname?.startsWith("/dashboard/");
   const isForum = pathname === "/forum" || pathname?.startsWith("/forum/");
+  const isYouTubeChannelDetail =
+    !!pathname?.startsWith("/youtube-channel/") && !pathname.startsWith("/youtube-channel/lists");
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1">{children}</main>
-      {!isDashboard && !isForum && <Footer />}
+      {!isDashboard && !isForum && !isYouTubeChannelDetail && <Footer />}
     </div>
   );
 }
