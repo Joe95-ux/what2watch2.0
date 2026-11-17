@@ -2251,7 +2251,6 @@ function RightRail({
   onChangeTitle,
   isSubmitting,
   watchMomentLabel,
-  uiNowTick,
 }: {
   currentSession: WatchingSessionDTO | null;
   /** In a watch party but no matching watching session — prompt to start. */
@@ -2289,9 +2288,15 @@ function RightRail({
   }) => void;
   isSubmitting: boolean;
   watchMomentLabel: string;
-  uiNowTick: number;
 }) {
   const isMobile = useIsMobile();
+  const sessionIsLive = currentSession?.status === "WATCHING_NOW";
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    if (!sessionIsLive) return;
+    const t = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, [sessionIsLive]);
   const { textareaRef: thoughtTextareaRef, resize: resizeThoughtTextarea } = useAutoGrowingTextarea(thoughtText);
   const trendingLabel = useMemo(() => {
     const part = watchMomentLabel.split(" ").pop()?.toLowerCase() ?? "today";
@@ -2308,9 +2313,9 @@ function RightRail({
         runtimeMinutes: currentSession.runtimeMinutes,
         progressPercent: currentSession.progressPercent,
       },
-      uiNowTick
+      nowMs
     );
-  }, [currentSession, uiNowTick]);
+  }, [currentSession, nowMs]);
   const [showAllAlsoWatching, setShowAllAlsoWatching] = useState(false);
   const [alsoWatchingPage, setAlsoWatchingPage] = useState(1);
   const [showAllRepliesToYou, setShowAllRepliesToYou] = useState(false);
@@ -2917,10 +2922,12 @@ export default function WatchingContent() {
     watchCountry
   );
 
+  const hasRecentlyFinished = (watchingData?.justFinished?.length ?? 0) > 0;
   useEffect(() => {
-    const t = window.setInterval(() => setUiNowTick(Date.now()), 1000);
+    if (!hasRecentlyFinished) return;
+    const t = window.setInterval(() => setUiNowTick(Date.now()), 30_000);
     return () => window.clearInterval(t);
-  }, []);
+  }, [hasRecentlyFinished]);
 
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -2952,7 +2959,7 @@ export default function WatchingContent() {
 
   const watchingNow = useMemo(
     () => (watchingData?.watchingNow ?? []).map(toFeedCard),
-    [watchingData?.watchingNow, uiNowTick]
+    [watchingData?.watchingNow]
   );
   const watchingNowRooms = useMemo<WatchingNowRoomCard[]>(() => {
     const sessions = watchingData?.watchingNow ?? [];
@@ -4809,7 +4816,6 @@ export default function WatchingContent() {
               }}
               isSubmitting={watchingMutation.isPending}
               watchMomentLabel={watchMomentLabel}
-              uiNowTick={uiNowTick}
             />
           </div>
         </aside>
@@ -4861,7 +4867,6 @@ export default function WatchingContent() {
             }}
             isSubmitting={watchingMutation.isPending}
             watchMomentLabel={watchMomentLabel}
-            uiNowTick={uiNowTick}
           />
         </SheetContent>
       </Sheet>

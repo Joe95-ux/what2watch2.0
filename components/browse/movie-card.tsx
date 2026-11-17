@@ -26,7 +26,8 @@ import { useContentVideos } from "@/hooks/use-content-details";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import MoreLikeThisCard from "./more-like-this-card";
-import { useQuery } from "@tanstack/react-query";
+import { useDisplayRating } from "@/hooks/use-display-rating";
+import { useNearViewport } from "@/hooks/use-near-viewport";
 import { useIsWatched, useQuickWatch, useUnwatch } from "@/hooks/use-viewing-logs";
 import { useContentReactions, useLikeContent } from "@/hooks/use-content-reactions";
 
@@ -56,21 +57,23 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const quickWatch = useQuickWatch();
   const unwatch = useUnwatch();
   const { isSignedIn } = useUser();
-  const { data: watchedData } = useIsWatched(item.id, type, isSignedIn);
+  const { ref: cardRef, near: cardNear } = useNearViewport<HTMLDivElement>();
+  const rendersMobileCard = isMobile && variant !== "dashboard";
+  const loadCardMeta = cardNear && !rendersMobileCard;
+  const { data: watchedData } = useIsWatched(item.id, type, Boolean(isSignedIn) && loadCardMeta);
   const isWatched = watchedData?.isWatched || false;
   const watchedLogId = watchedData?.logId || null;
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
   const [isTrailerModalOpen, setIsTrailerModalOpen] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
   const { openSignIn } = useClerk();
-  const cardRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const attemptedFetchRef = useRef<number | null>(null); // Track which item ID we've attempted to fetch
   const [trailerError, setTrailerError] = useState<string | null>(null);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
   
   // Content reactions (likes)
-  const { data: reactionData } = useContentReactions(item.id, type, isSignedIn);
+  const { data: reactionData } = useContentReactions(item.id, type, Boolean(isSignedIn) && loadCardMeta);
   const likeContent = useLikeContent();
   const isLiked = reactionData?.isLiked || false;
   const likeCount = reactionData?.likeCount || 0;
@@ -94,21 +97,7 @@ export default function MovieCard({ item, type, className, canScrollPrev = false
   const year = releaseDate ? new Date(releaseDate).getFullYear() : null;
   const hideOverlayForAudio = !isVideoMuted && !isMobile && variant !== "dashboard";
 
-  // Fetch IMDb rating
-  const { data: ratingData } = useQuery({
-    queryKey: ["imdb-rating-by-tmdb", item.id, type],
-    queryFn: async () => {
-      const response = await fetch(`/api/imdb-rating-by-tmdb?tmdbId=${item.id}&type=${type}`);
-      if (!response.ok) return null;
-      return response.json() as Promise<{ rating: number | null; source: "imdb" | "tmdb" | null } | null>;
-    },
-    staleTime: 24 * 60 * 60 * 1000, // 24 hours
-    gcTime: 7 * 24 * 60 * 60 * 1000, // 7 days
-    retry: 1,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
-  });
+  const { data: ratingData } = useDisplayRating(item.id, type, loadCardMeta);
 
   // Reset fetch state when item changes
   useEffect(() => {

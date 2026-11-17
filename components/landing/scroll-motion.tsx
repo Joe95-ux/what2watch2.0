@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -35,45 +34,59 @@ type ParallaxProps = {
   style?: CSSProperties;
 };
 
+const parallaxListeners = new Set<() => void>();
+let parallaxAttached = false;
+let parallaxRaf = 0;
+
+function notifyParallax() {
+  cancelAnimationFrame(parallaxRaf);
+  parallaxRaf = requestAnimationFrame(() => {
+    parallaxListeners.forEach((listener) => listener());
+  });
+}
+
+function subscribeParallax(listener: () => void) {
+  parallaxListeners.add(listener);
+  if (!parallaxAttached && typeof window !== "undefined") {
+    parallaxAttached = true;
+    window.addEventListener("scroll", notifyParallax, { passive: true });
+    window.addEventListener("resize", notifyParallax, { passive: true });
+  }
+  listener();
+  return () => {
+    parallaxListeners.delete(listener);
+    if (parallaxListeners.size === 0 && parallaxAttached) {
+      parallaxAttached = false;
+      cancelAnimationFrame(parallaxRaf);
+      window.removeEventListener("scroll", notifyParallax);
+      window.removeEventListener("resize", notifyParallax);
+    }
+  };
+}
+
 /** Subtle translateY parallax tied to the element's distance from viewport center. */
 export function Parallax({ children, speed = 0.15, className, style }: ParallaxProps) {
   const ref = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
-  const [offset, setOffset] = useState(0);
-
-  const update = useCallback(() => {
-    const el = ref.current;
-    if (!el || reduced) {
-      setOffset(0);
-      return;
-    }
-    const rect = el.getBoundingClientRect();
-    const viewCenter = window.innerHeight / 2;
-    const elCenter = rect.top + rect.height / 2;
-    setOffset((elCenter - viewCenter) * speed);
-  }, [reduced, speed]);
+  const speedRef = useRef(speed);
+  speedRef.current = speed;
 
   useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
     if (reduced) {
-      setOffset(0);
+      el.style.transform = style?.transform ?? "";
       return;
     }
 
-    let raf = 0;
-    const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(update);
-    };
-
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, [reduced, update]);
+    return subscribeParallax(() => {
+      const rect = el.getBoundingClientRect();
+      const viewCenter = window.innerHeight / 2;
+      const elCenter = rect.top + rect.height / 2;
+      const offset = (elCenter - viewCenter) * speedRef.current;
+      el.style.transform = `translate3d(0, ${offset.toFixed(2)}px, 0)`;
+    });
+  }, [reduced, style?.transform]);
 
   return (
     <div
@@ -81,7 +94,6 @@ export function Parallax({ children, speed = 0.15, className, style }: ParallaxP
       className={className}
       style={{
         ...style,
-        transform: reduced ? style?.transform : `translate3d(0, ${offset.toFixed(2)}px, 0)`,
         willChange: reduced ? undefined : "transform",
       }}
     >

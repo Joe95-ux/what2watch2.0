@@ -87,7 +87,9 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
   const [isCollectionSectionOpen, setIsCollectionSectionOpen] = useState(false);
   const [isSeenAllModalOpen, setIsSeenAllModalOpen] = useState(false);
   const [watchCountry, setWatchCountry] = useState("US");
+  const [secondaryReady, setSecondaryReady] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
+  const recentViewKeyRef = useRef<string | null>(null);
 
   // Fetch details
   const { data: movieDetails, isLoading: isLoadingMovie } = useMovieDetails(
@@ -102,18 +104,23 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     type === "tv" ? item.id : null,
     selectedSeason
   );
-  const { data: recommendedMovies } = useRecommendedMovies(type === "movie" ? item.id : null);
-  const { data: recommendedTV } = useRecommendedTV(type === "tv" ? item.id : null);
+  const { data: recommendedMovies, isLoading: isLoadingRecommendedMovies } = useRecommendedMovies(
+    secondaryReady && type === "movie" ? item.id : null
+  );
+  const { data: recommendedTV, isLoading: isLoadingRecommendedTV } = useRecommendedTV(
+    secondaryReady && type === "tv" ? item.id : null
+  );
   const {
     data: watchAvailability,
     isLoading: isLoadingWatchAvailability,
   } = useWatchProviders(type, item.id, watchCountry);
+  const watchTabActive = activeTab === "watch";
   const { data: seasonAvailability, isLoading: isLoadingSeasonAvailability } = useSeasonWatchProviders(
-    type === "tv" ? item.id : null,
-    type === "tv" ? selectedSeason : null,
+    type === "tv" && watchTabActive ? item.id : null,
+    type === "tv" && watchTabActive ? selectedSeason : null,
     watchCountry
   );
-  const { data: justwatchCountries = [] } = useJustWatchCountries();
+  const { data: justwatchCountries = [] } = useJustWatchCountries(watchTabActive);
   const watchingTitleScope = useMemo(() => {
     if (type !== "tv") return undefined;
     if (selectedEpisode) {
@@ -134,7 +141,7 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     true,
     watchingTitleScope
   );
-  const { data: watchingDashboard } = useWatchingDashboard(true);
+  const { data: watchingDashboard } = useWatchingDashboard(secondaryReady);
   const currentSessionForTitle = useMemo(() => {
     const session = watchingDashboard?.currentSession;
     if (!session) return null;
@@ -173,11 +180,32 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
   // Track scroll for sticky nav
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 100);
+      const next = window.scrollY > 100;
+      setIsScrolled((prev) => (prev === next ? prev : next));
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (secondaryReady) return;
+    let timeoutId = 0;
+    let idleId = 0;
+    const enable = () => setSecondaryReady(true);
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (typeof win.requestIdleCallback === "function") {
+      idleId = win.requestIdleCallback(enable, { timeout: 1200 });
+    } else {
+      timeoutId = window.setTimeout(enable, 400);
+    }
+    return () => {
+      if (idleId && typeof win.cancelIdleCallback === "function") win.cancelIdleCallback(idleId);
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [secondaryReady]);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -196,20 +224,31 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
     }
   }, [type, seasonsData, selectedSeason]);
 
-  // Track recently viewed when page loads
+  // Track recently viewed after the first paint so it does not compete with details/providers.
   useEffect(() => {
-    const title = type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name;
-    addRecentlyViewed.mutate({
-      tmdbId: item.id,
-      mediaType: type,
-      title: title,
-      posterPath: item.poster_path || null,
-      backdropPath: item.backdrop_path || null,
-      releaseDate: "release_date" in item ? item.release_date || null : null,
-      firstAirDate: "first_air_date" in item ? item.first_air_date || null : null,
-    });
+    const key = `${type}:${item.id}`;
+    if (recentViewKeyRef.current === key) return;
+    let cancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      if (cancelled || recentViewKeyRef.current === key) return;
+      recentViewKeyRef.current = key;
+      const title = type === "movie" ? (item as TMDBMovie).title : (item as TMDBSeries).name;
+      addRecentlyViewed.mutate({
+        tmdbId: item.id,
+        mediaType: type,
+        title: title,
+        posterPath: item.poster_path || null,
+        backdropPath: item.backdrop_path || null,
+        releaseDate: "release_date" in item ? item.release_date || null : null,
+        firstAirDate: "first_air_date" in item ? item.first_air_date || null : null,
+      });
+    }, 800);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item.id, type]); // Only depend on item.id and type - mutation function is stable
+  }, [item.id, type]);
 
 
   // Get cast and crew from details (with type assertion for credits)
@@ -438,7 +477,10 @@ export default function ContentDetailPage({ item, type }: ContentDetailPageProps
             <MoreLikeThisSection
               items={moreLikeThisItems}
               type={type}
-              isLoading={false}
+              isLoading={
+                !secondaryReady ||
+                (type === "movie" ? isLoadingRecommendedMovies : isLoadingRecommendedTV)
+              }
             />
             <div className="border-t border-border my-12" />
             {/* Recently Viewed */}

@@ -16,8 +16,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
 import { IMDBBadge } from "@/components/ui/imdb-badge";
+import { useDisplayRating } from "@/hooks/use-display-rating";
+import { useNearViewport } from "@/hooks/use-near-viewport";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,14 +81,18 @@ export default function MoreLikeThisCard({
   const quickWatch = useQuickWatch();
   const unwatch = useUnwatch();
   const { isSignedIn } = useUser();
-  const { data: watchedData } = useIsWatched(item.id, type, isSignedIn);
+  const { ref: cardRef, near: cardNear } = useNearViewport<HTMLDivElement>();
+  const { data: watchedData } = useIsWatched(item.id, type, Boolean(isSignedIn) && cardNear);
   const isWatched = watchedData?.isWatched || false;
   const watchedLogId = watchedData?.logId || null;
   const isMobile = useIsMobile();
   
   // For TV shows: calculate progress percentage
-  const { data: seenSeasons = [] } = useSeenSeasons(type === "tv" ? item.id : null, isSignedIn);
-  const { data: tvSeasonsData } = useTVSeasons(type === "tv" ? item.id : null);
+  const { data: seenSeasons = [] } = useSeenSeasons(
+    type === "tv" ? item.id : null,
+    Boolean(isSignedIn) && cardNear
+  );
+  const { data: tvSeasonsData } = useTVSeasons(cardNear && type === "tv" ? item.id : null);
   
   // Calculate progress percentage for TV shows
   const watchProgress = (() => {
@@ -107,7 +112,7 @@ export default function MoreLikeThisCard({
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
   
   // Content reactions (likes)
-  const { data: reactionData } = useContentReactions(item.id, type, isSignedIn);
+  const { data: reactionData } = useContentReactions(item.id, type, Boolean(isSignedIn) && cardNear);
   const likeContent = useLikeContent();
   const isLiked = reactionData?.isLiked || false;
   const likeCount = reactionData?.likeCount || 0;
@@ -132,21 +137,7 @@ export default function MoreLikeThisCard({
   
   const runtimeText = formatRuntime(runtime || initialRuntime);
   
-  // Fetch IMDb rating
-  const { data: ratingData } = useQuery({
-    queryKey: ["imdb-rating-by-tmdb", item.id, type],
-    queryFn: async () => {
-      const response = await fetch(`/api/imdb-rating-by-tmdb?tmdbId=${item.id}&type=${type}`);
-      if (!response.ok) return null;
-      return response.json() as Promise<{ rating: number | null; source: "imdb" | "tmdb" | null } | null>;
-    },
-    staleTime: 24 * 60 * 60 * 1000, // 24 hours
-    gcTime: 7 * 24 * 60 * 60 * 1000, // 7 days
-    retry: 1,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
-  });
+  const { data: ratingData } = useDisplayRating(item.id, type, cardNear);
 
   // Reset fetch attempt tracking when item changes
   useEffect(() => {
@@ -163,7 +154,13 @@ export default function MoreLikeThisCard({
     // 2. We don't have runtime yet
     // 3. We're not currently loading
     // 4. We haven't already attempted to fetch for this item (prevents infinite loops)
-    if (!initialRuntime && !runtime && !isLoadingRuntime && attemptedRuntimeFetchRef.current !== item.id) {
+    if (
+      cardNear &&
+      !initialRuntime &&
+      !runtime &&
+      !isLoadingRuntime &&
+      attemptedRuntimeFetchRef.current !== item.id
+    ) {
       attemptedRuntimeFetchRef.current = item.id;
       setIsLoadingRuntime(true);
       fetch(`/api/${type === "movie" ? "movies" : "tv"}/${item.id}`)
@@ -194,7 +191,7 @@ export default function MoreLikeThisCard({
         })
         .finally(() => setIsLoadingRuntime(false));
     }
-  }, [item.id, type, initialRuntime, runtime, isLoadingRuntime]);
+  }, [item.id, type, initialRuntime, runtime, isLoadingRuntime, cardNear]);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -253,6 +250,7 @@ export default function MoreLikeThisCard({
   return (
     <>
       <div
+        ref={cardRef}
         className={cn("relative bg-card rounded-lg overflow-hidden cursor-pointer group", className)}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

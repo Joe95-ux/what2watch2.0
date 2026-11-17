@@ -9,7 +9,7 @@ import {
 } from "@/lib/tmdb";
 import { JustWatchAvailabilityResponse, JustWatchOffer, JustWatchCountry } from "@/lib/justwatch";
 
-export function useJustWatchCountries() {
+export function useJustWatchCountries(enabled = true) {
   return useQuery({
     queryKey: ["justwatch-countries"],
     queryFn: async () => {
@@ -18,6 +18,7 @@ export function useJustWatchCountries() {
       const data = (await res.json()) as JustWatchCountry[];
       return data;
     },
+    enabled,
     staleTime: 24 * 60 * 60 * 1000,
   });
 }
