@@ -28,7 +28,7 @@ import { useAvatar } from "@/contexts/avatar-context";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { NotificationUnreadIndicator } from "@/components/notifications/notification-unread-indicator";
+import { NotificationUnreadIndicator, notificationItemClass } from "@/components/notifications/notification-unread-indicator";
 import { DeleteAllNotificationsDialog } from "@/components/notifications/delete-all-notifications-dialog";
 
 function NotificationSkeleton() {
@@ -228,7 +228,7 @@ export function ForumNotificationsTab() {
 
       {/* Notifications List */}
       {isLoading ? (
-        <div className="bg-card border rounded-lg divide-y">
+        <div className="bg-card border rounded-lg divide-y overflow-hidden">
           {Array.from({ length: 8 }).map((_, i) => (
             <NotificationSkeleton key={i} />
           ))}
@@ -238,7 +238,7 @@ export function ForumNotificationsTab() {
           <p>No notifications</p>
         </div>
       ) : (
-        <div className="bg-card border rounded-lg divide-y">
+        <div className="bg-card border rounded-lg divide-y overflow-hidden">
           {notifications.map((notification) => {
             const isOwnProfile = currentUser?.id === notification.actor?.id;
             const avatarUrl = isOwnProfile && contextAvatarUrl ? contextAvatarUrl : notification.actor?.avatarUrl || undefined;
@@ -246,7 +246,7 @@ export function ForumNotificationsTab() {
             return (
               <div
                 key={notification.id}
-                className="p-4 hover:bg-muted/50 transition-colors"
+                className={notificationItemClass(notification.isRead, "p-4")}
               >
                 <div className="flex gap-3">
                   {!notification.isRead ? (

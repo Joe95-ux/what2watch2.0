@@ -22,7 +22,8 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAvatar } from "@/contexts/avatar-context";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { cn, decodeHtmlEntities } from "@/lib/utils";
+import { decodeHtmlEntities } from "@/lib/utils";
+import { notificationItemClass } from "@/components/notifications/notification-unread-indicator";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -256,9 +257,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                 {youtubeNotifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className={cn(
-                      "p-4 hover:bg-muted/50 transition-colors"
-                    )}
+                    className={notificationItemClass(notification.isRead, "p-4")}
                   >
                     <div className="flex gap-3">
                       {!notification.isRead ? <span className="mt-4 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" /> : null}
@@ -366,9 +365,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                   <div
                     key={notification.id}
                     onClick={() => handleGeneralNotificationClick(notification)}
-                    className={cn(
-                      "p-4 hover:bg-muted/50 transition-colors cursor-pointer"
-                    )}
+                    className={notificationItemClass(notification.isRead, "cursor-pointer p-4")}
                   >
                     <div className="flex gap-3">
                       {!notification.isRead ? <span className="mt-4 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" /> : null}
@@ -466,9 +463,7 @@ export function UnifiedNotificationCenterMobile({ onClose }: UnifiedNotification
                     }}
                   >
                     <div
-                      className={cn(
-                        "p-4 hover:bg-muted/50 transition-colors"
-                      )}
+                      className={notificationItemClass(notification.isRead, "p-4")}
                     >
                       <div className="flex gap-3">
                         {!notification.isRead ? <span className="mt-4 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" /> : null}

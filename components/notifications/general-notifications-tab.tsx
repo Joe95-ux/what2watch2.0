@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { X, Megaphone, Bell, CheckCheck, Trash2, MoreVertical, MoreHorizontal, TrendingUp } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { NotificationUnreadIndicator } from "@/components/notifications/notification-unread-indicator";
+import { NotificationUnreadIndicator, notificationItemClass } from "@/components/notifications/notification-unread-indicator";
 import { DeleteAllNotificationsDialog } from "@/components/notifications/delete-all-notifications-dialog";
 import { useRouter } from "next/navigation";
 import {
@@ -203,12 +203,12 @@ export function GeneralNotificationsTab() {
           </DropdownMenu>
         )}
       </div>
-      <div className="bg-card border rounded-lg divide-y">
+      <div className="bg-card border rounded-lg divide-y overflow-hidden">
         {notifications.map((notification) => (
           <div
             key={notification.id}
             onClick={() => handleNotificationClick(notification)}
-            className="p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+            className={notificationItemClass(notification.isRead, "cursor-pointer p-4")}
           >
             <div className="flex gap-3">
               {!notification.isRead ? (
