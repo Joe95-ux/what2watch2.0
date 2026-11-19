@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
@@ -19,6 +19,7 @@ import {
   DASHBOARD_STAT_META,
   DEFAULT_DASHBOARD_LAYOUT,
   dashboardLandingHref,
+  normalizeDashboardLayout,
   type DashboardLanding,
   type DashboardLayout,
   type DashboardSectionId,
@@ -71,7 +72,7 @@ export function DashboardCustomizeDialog({
   const queryClient = useQueryClient();
   const router = useRouter();
   const pathname = usePathname();
-  const { data: preferences } = useUserPreferences();
+  const { data: preferences, isFetched } = useUserPreferences();
   const layout = useMemo(
     () => normalizeDashboardLayout(preferences?.dashboardLayout),
     [preferences?.dashboardLayout]
@@ -79,12 +80,18 @@ export function DashboardCustomizeDialog({
   const [draft, setDraft] = useState<Draft>(() => draftFromLayout(DEFAULT_DASHBOARD_LAYOUT));
   const [selectedStats, setSelectedStats] = useState<DashboardStatId[]>(DEFAULT_DASHBOARD_LAYOUT.statIds);
   const [saving, setSaving] = useState(false);
+  const seededForOpen = useRef(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      seededForOpen.current = false;
+      return;
+    }
+    if (!isFetched || seededForOpen.current) return;
+    seededForOpen.current = true;
     setDraft(draftFromLayout(layout));
     setSelectedStats(layout.statIds);
-  }, [open, layout]);
+  }, [open, isFetched, layout]);
 
   const chosenStats = draft.statOrder.filter((id) => selectedStats.includes(id));
 

@@ -117,12 +117,13 @@ export function normalizeDashboardLayout(raw: unknown): DashboardLayout {
   const hiddenSections = Array.isArray(source.hiddenSections)
     ? source.hiddenSections.filter(isSectionId).filter((id, index, list) => list.indexOf(id) === index)
     : [];
-  const requestedStats = Array.isArray(source.statIds) ? source.statIds.filter(isStatId) : [];
-  const statIds = uniqueInOrder(requestedStats, DEFAULT_DASHBOARD_LAYOUT.statIds).slice(0, 4);
-  while (statIds.length < 4) {
-    const next = DASHBOARD_STAT_IDS.find((id) => !statIds.includes(id));
-    if (!next) break;
-    statIds.push(next);
+  const requestedStats = (
+    Array.isArray(source.statIds) ? source.statIds.filter(isStatId) : []
+  ).filter((id, index, list) => list.indexOf(id) === index);
+  const statIds = requestedStats.slice(0, 4);
+  for (const id of [...DEFAULT_DASHBOARD_LAYOUT.statIds, ...DASHBOARD_STAT_IDS]) {
+    if (statIds.length >= 4) break;
+    if (!statIds.includes(id)) statIds.push(id);
   }
   const pickSource =
     source.pickDefaults && typeof source.pickDefaults === "object"
