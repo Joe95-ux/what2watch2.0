@@ -177,10 +177,16 @@ const fetchViewingLogsByContent = async (tmdbId: number, mediaType: "movie" | "t
 };
 
 // Hook to fetch viewing logs
-export function useViewingLogs(limit?: number, orderBy: "watchedAt" | "createdAt" = "watchedAt", order: "asc" | "desc" = "desc") {
+export function useViewingLogs(
+  limit?: number,
+  orderBy: "watchedAt" | "createdAt" = "watchedAt",
+  order: "asc" | "desc" = "desc",
+  enabled = true
+) {
   return useQuery<ViewingLog[]>({
     queryKey: ["viewing-logs", limit, orderBy, order],
     queryFn: () => fetchViewingLogs(limit, orderBy, order),
+    enabled,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }

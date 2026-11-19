@@ -10,6 +10,7 @@ interface UserPreferences {
   maxYear?: number;
   selectedProviders?: number[];
   primaryColor?: "neutral" | "emerald" | "red" | "blue";
+  dashboardLayout?: unknown;
   onboardingCompleted: boolean;
 }
 

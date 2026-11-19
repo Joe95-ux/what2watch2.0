@@ -23,6 +23,7 @@ import { PickForTonightConfidenceRow } from "@/components/dashboard/pick-for-ton
 import { useUser, useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
 import type { PickForTonightCandidate, PickForTonightResponse } from "@/lib/pick-for-tonight-types";
+import type { DashboardPickDefaults } from "@/lib/dashboard-layout";
 import { getPickForTonightBucket } from "@/lib/pick-for-tonight-bucket";
 import { applyPickPoolRerank, type RerankMode } from "@/lib/pick-for-tonight-scoring";
 import { cn } from "@/lib/utils";
@@ -83,8 +84,9 @@ function writePickCacheToStorage(payload: PickCachePayload): void {
   }
 }
 
-export function usePickForTonight() {
+export function usePickForTonight(savedDefaults?: DashboardPickDefaults, defaultsReady = true) {
   const initialCache = readPickCacheFromStorage();
+  const initialCacheRef = useRef(initialCache);
   const [showRow, setShowRow] = useState(() =>
     Boolean(initialCache?.data?.picks?.length || initialCache?.insufficientMessage)
   );
@@ -100,6 +102,19 @@ export function usePickForTonight() {
   const pickInFlightRef = useRef(false);
   const hydratedFromCache = initialCache != null;
   const [refreshGeneration, setRefreshGeneration] = useState(0);
+  const defaultsKey = savedDefaults
+    ? `${savedDefaults.picksHidden ? 1 : 0}${savedDefaults.onlyUnseen ? 1 : 0}${savedDefaults.trendingToday ? 1 : 0}`
+    : "";
+  const [appliedDefaultsKey, setAppliedDefaultsKey] = useState<string | null>(null);
+  if (defaultsReady && savedDefaults && appliedDefaultsKey !== defaultsKey) {
+    const firstApply = appliedDefaultsKey === null;
+    setAppliedDefaultsKey(defaultsKey);
+    setPicksHidden(savedDefaults.picksHidden);
+    if (!(firstApply && initialCacheRef.current)) {
+      setOnlyUnseen(savedDefaults.onlyUnseen);
+      setTrendingToday(savedDefaults.trendingToday);
+    }
+  }
 
   const runPick = useCallback(
     async (options?: {

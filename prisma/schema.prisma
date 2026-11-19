@@ -285,6 +285,9 @@ model UserPreferences {
   
   // Primary color theme preference
   primaryColor String? @default("emerald") // "neutral", "emerald", "red" (legacy "blue" maps to emerald)
+
+  // Home dashboard layout: section order, hidden sections, stat row, landing page, pick defaults
+  dashboardLayout Json?
   
   // Onboarding completed flag
   onboardingCompleted Boolean @default(false)

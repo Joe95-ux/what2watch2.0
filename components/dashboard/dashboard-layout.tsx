@@ -65,6 +65,7 @@ import { useAvatar } from "@/contexts/avatar-context";
 import { useClerk } from "@clerk/nextjs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DashboardSubnav } from "./dashboard-subnav";
+import { DashboardCustomizeDialog } from "./dashboard-customize-dialog";
 import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 interface DashboardLayoutProps {
@@ -85,6 +86,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   // or hydration mismatches data-state expanded/collapsed. Sync after mount + on resize.
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [themeIconMounted, setThemeIconMounted] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -452,10 +454,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       </DropdownMenu>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton disabled tooltip="Customize">
+                      <SidebarMenuButton tooltip="Customize" onClick={() => setCustomizeOpen(true)}>
                         <Palette />
                         <span>Customize</span>
-                        <span className="ml-auto text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">Soon</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </SidebarMenu>
@@ -515,6 +516,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </SidebarFooter>
       </Sidebar>
+      <DashboardCustomizeDialog open={customizeOpen} onOpenChange={setCustomizeOpen} />
       <SidebarInset className="overflow-x-hidden min-w-0">
         {/* Dashboard Subnav - Fixed under navbar */}
         <DashboardSubnav />

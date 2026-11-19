@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { isReservedUserName } from "@/lib/reserved-user-names";
+import { normalizeDashboardLayout } from "@/lib/dashboard-layout";
 
 export async function POST(request: NextRequest): Promise<NextResponse<{ success: boolean } | { error: string }>> {
   try {
@@ -15,7 +16,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
     }
 
     const body = await request.json();
-    const { favoriteGenres, preferredTypes, onboardingCompleted, selectedProviders, primaryColor } = body;
+    const { favoriteGenres, preferredTypes, onboardingCompleted, selectedProviders, primaryColor, dashboardLayout } = body;
+    const layoutOnly =
+      dashboardLayout !== undefined &&
+      favoriteGenres === undefined &&
+      preferredTypes === undefined &&
+      onboardingCompleted === undefined &&
+      selectedProviders === undefined &&
+      primaryColor === undefined;
 
     // Find or create user
     let user = await db.user.findUnique({
@@ -48,6 +56,22 @@ export async function POST(request: NextRequest): Promise<NextResponse<{ success
           avatarUrl: clerkUser.image_url || null,
         },
       });
+    }
+
+    if (layoutOnly) {
+      const layout = normalizeDashboardLayout(dashboardLayout);
+      await db.userPreferences.upsert({
+        where: { userId: user.id },
+        create: {
+          userId: user.id,
+          dashboardLayout: layout,
+        },
+        update: {
+          dashboardLayout: layout,
+          updatedAt: new Date(),
+        },
+      });
+      return NextResponse.json({ success: true });
     }
 
     // Update or create preferences

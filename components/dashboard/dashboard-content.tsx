@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
@@ -13,7 +13,7 @@ import PlaylistCard from "@/components/browse/playlist-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Clock, Film, Heart, Share2 } from "lucide-react";
+import { BookOpen, CalendarCheck, Clock, Film, Heart, PenLine, Share2 } from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/carousel";
 import { usePlaylistAnalytics } from "@/hooks/use-playlist-analytics";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { useViewingLogs } from "@/hooks/use-viewing-logs";
+import { normalizeDashboardLayout, type DashboardStatId } from "@/lib/dashboard-layout";
 import { usePersonalizedContent } from "@/hooks/use-movies";
 import { useFavoriteYouTubeVideos } from "@/hooks/use-favorite-youtube-videos";
 import { useYouTubeVideoWatchlist } from "@/hooks/use-youtube-video-watchlist";
@@ -56,7 +58,19 @@ export default function DashboardContent() {
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylists();
   const { data: recentlyViewed, isLoading: isLoadingRecentlyViewed } = useRecentlyViewed();
   const { data: playlistAnalytics, isLoading: isLoadingPlaylistAnalytics } = usePlaylistAnalytics(); // Show all data by default
-  const { data: preferences } = useUserPreferences();
+  const { data: preferences, isFetched: preferencesFetched } = useUserPreferences();
+  const homeLayout = useMemo(
+    () => normalizeDashboardLayout(preferences?.dashboardLayout),
+    [preferences?.dashboardLayout]
+  );
+  const needsDiaryStats =
+    homeLayout.statIds.includes("diaryLogs") || homeLayout.statIds.includes("watchedThisWeek");
+  const { data: diaryLogs = [], isLoading: isLoadingDiaryLogs } = useViewingLogs(
+    undefined,
+    "watchedAt",
+    "desc",
+    needsDiaryStats
+  );
   const { data: favoriteYouTubeVideos = [], isLoading: isLoadingYouTubeFavorites } = useFavoriteYouTubeVideos();
   const { data: youtubeWatchlist = [], isLoading: isLoadingYouTubeWatchlist } = useYouTubeVideoWatchlist();
   const { data: youtubePlaylists = [], isLoading: isLoadingYouTubePlaylists } = useUserYouTubePlaylists();
@@ -169,8 +183,13 @@ export default function DashboardContent() {
         shares,
         visits,
       },
+      diaryLogCount: diaryLogs.length,
+      watchedThisWeekCount: diaryLogs.filter((log) => {
+        const watchedAt = new Date(log.watchedAt).getTime();
+        return Number.isFinite(watchedAt) && watchedAt >= Date.now() - 7 * 24 * 60 * 60 * 1000;
+      }).length,
     };
-  }, [favorites, playlists, recentlyViewed, playlistAnalytics]);
+  }, [favorites, playlists, recentlyViewed, playlistAnalytics, diaryLogs]);
 
   const displayName = user?.username || user?.fullName || user?.firstName || "User";
   const greeting = useMemo(() => {
@@ -200,7 +219,7 @@ export default function DashboardContent() {
   }, [favoriteYouTubeVideos.length, youtubeWatchlist.length, youtubePlaylists.length]);
 
   const isLoadingYouTubeSection = isLoadingYouTubeFavorites || isLoadingYouTubeWatchlist || isLoadingYouTubePlaylists;
-  const pickForTonight = usePickForTonight();
+  const pickForTonight = usePickForTonight(homeLayout.pickDefaults, preferencesFetched);
   const [pickTimestamp, setPickTimestamp] = useState(() =>
     new Intl.DateTimeFormat("en-US", {
       weekday: "long",
@@ -297,7 +316,7 @@ export default function DashboardContent() {
             </div>
             <div className="flex items-center gap-1">
               <p className="text-xs sm:text-sm text-muted-foreground">{pickTimestamp}</p>
-              {(pickForTonight.showRow || pickForTonight.picksHidden) && (
+              {preferencesFetched && (pickForTonight.showRow || pickForTonight.picksHidden) && (
                 <PickForTonightActionsMenu
                   picksHidden={pickForTonight.picksHidden}
                   onPicksHiddenChange={pickForTonight.setPicksHidden}
@@ -312,7 +331,7 @@ export default function DashboardContent() {
               )}
             </div>
           </div>
-          {!pickForTonight.picksHidden && (
+          {preferencesFetched && !pickForTonight.picksHidden && (
             <PickForTonightSilentSurface
               loading={pickForTonight.loading}
               data={pickForTonight.data}
@@ -330,39 +349,67 @@ export default function DashboardContent() {
 
         {/* KPI Stats Grid (link page analytics style) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border border-border rounded-lg overflow-hidden mb-4 sm:mb-6 md:mb-8">
-          {[
-            {
-              label: "Watchlist",
-              value: stats.watchlistCount,
-              isLoading: isLoadingFavorites,
-              href: "/dashboard/my-list",
-              helper: "Saved titles",
-              icon: <Heart className="h-5 w-5 text-pink-500" />,
-            },
-            {
-              label: "Playlists",
-              value: stats.playlistCount,
-              isLoading: isLoadingPlaylists,
-              href: "/dashboard/playlists",
-              helper: "Curated lists",
-              icon: <BookOpen className="h-5 w-5 text-blue-500" />,
-            },
-            {
-              label: "Recently Viewed",
-              value: stats.recentlyViewedCount,
-              isLoading: isLoadingRecentlyViewed,
-              helper: "Items viewed",
-              icon: <Clock className="h-5 w-5 text-violet-500" />,
-            },
-            {
-              label: "Playlist Reach",
-              value: stats.playlistReach.total,
-              isLoading: isLoadingPlaylistAnalytics,
-              href: "/dashboard/my-stats",
-              helper: `${stats.playlistReach.visits.toLocaleString()} visits · ${stats.playlistReach.shares.toLocaleString()} shares`,
-              icon: <Share2 className="h-5 w-5 text-emerald-500" />,
-            },
-          ].map((stat, index) => {
+          {homeLayout.statIds.map((statId, index) => {
+            const statCatalog: Record<
+              DashboardStatId,
+              {
+                label: string;
+                value: number;
+                isLoading: boolean;
+                href?: string;
+                helper: string;
+                icon: ReactNode;
+              }
+            > = {
+              watchlist: {
+                label: "Watchlist",
+                value: stats.watchlistCount,
+                isLoading: isLoadingFavorites,
+                href: "/dashboard/my-list",
+                helper: "Saved titles",
+                icon: <Heart className="h-5 w-5 text-pink-500" />,
+              },
+              playlists: {
+                label: "Playlists",
+                value: stats.playlistCount,
+                isLoading: isLoadingPlaylists,
+                href: "/dashboard/playlists",
+                helper: "Curated lists",
+                icon: <BookOpen className="h-5 w-5 text-blue-500" />,
+              },
+              recentlyViewed: {
+                label: "Recently viewed",
+                value: stats.recentlyViewedCount,
+                isLoading: isLoadingRecentlyViewed,
+                helper: "Items viewed",
+                icon: <Clock className="h-5 w-5 text-violet-500" />,
+              },
+              playlistReach: {
+                label: "Playlist reach",
+                value: stats.playlistReach.total,
+                isLoading: isLoadingPlaylistAnalytics,
+                href: "/dashboard/my-stats",
+                helper: `${stats.playlistReach.visits.toLocaleString()} visits · ${stats.playlistReach.shares.toLocaleString()} shares`,
+                icon: <Share2 className="h-5 w-5 text-emerald-500" />,
+              },
+              diaryLogs: {
+                label: "Diary logs",
+                value: stats.diaryLogCount,
+                isLoading: isLoadingDiaryLogs,
+                href: "/dashboard/diary",
+                helper: "Entries in your diary",
+                icon: <PenLine className="h-5 w-5 text-amber-500" />,
+              },
+              watchedThisWeek: {
+                label: "Watched this week",
+                value: stats.watchedThisWeekCount,
+                isLoading: isLoadingDiaryLogs,
+                href: "/dashboard/diary",
+                helper: "Logged in the last 7 days",
+                icon: <CalendarCheck className="h-5 w-5 text-emerald-500" />,
+              },
+            };
+            const stat = statCatalog[statId];
             const columnsPerRow = 4;
             const totalRows = Math.ceil(4 / columnsPerRow);
             const currentRow = Math.floor(index / columnsPerRow) + 1;
@@ -399,21 +446,23 @@ export default function DashboardContent() {
 
             if (stat.href) {
               return (
-                <Link key={stat.label} href={stat.href} className={cn("block h-full", cellClassName)}>
+                <Link key={statId} href={stat.href} className={cn("block h-full", cellClassName)}>
                   {cellContent}
                 </Link>
               );
             }
             return (
-              <div key={stat.label} className={cn("h-full", cellClassName)}>
+              <div key={statId} className={cn("h-full", cellClassName)}>
                 {cellContent}
               </div>
             );
           })}
         </div>
 
-        {/* Your Services Section */}
-        <div className="mb-12">
+        {homeLayout.sectionOrder.map((sectionId) => {
+          if (homeLayout.hiddenSections.includes(sectionId)) return null;
+          if (sectionId === "services") return (
+        <div key={sectionId} className="mb-12">
           <h2 className="text-2xl font-medium mb-6">Your Streaming Services</h2>
           
           {selectedProviderObjects.length > 0 ? (
@@ -490,9 +539,9 @@ export default function DashboardContent() {
             </div>
           )}
         </div>
-
-        {/* Continue Watching Section */}
-        {isLoadingRecentlyViewed ? (
+          );
+          if (sectionId === "continue") return (
+        <Fragment key={sectionId}>{isLoadingRecentlyViewed ? (
           <div className="mb-12">
             <Skeleton className="h-7 w-48 mb-6 !bg-gray-200 dark:!bg-accent" />
             <div className="relative group/carousel overflow-hidden">
@@ -524,10 +573,10 @@ export default function DashboardContent() {
             items={recentlyViewedItems}
             type={recentlyViewedItems.length > 0 ? ("title" in recentlyViewedItems[0] ? "movie" : "tv") : "movie"}
           />
-        ) : null}
-
-        {/* Made for [Username] Section */}
-        {favoriteGenres.length > 0 && (
+        ) : null}</Fragment>
+          );
+          if (sectionId === "madeForYou") return (
+        <Fragment key={sectionId}>{favoriteGenres.length > 0 ? (
           isLoadingPersonalized ? (
             <div className="mb-12">
               <Skeleton className="h-7 w-48 mb-6 !bg-gray-200 dark:!bg-accent" />
@@ -560,11 +609,10 @@ export default function DashboardContent() {
               items={personalizedRowItems}
               type={preferredTypes.length === 1 ? preferredTypes[0] : "movie"}
             />
-          ) : null
-        )}
-
-        {/* My List Section */}
-        {isLoadingFavorites ? (
+          ) : null) : null}</Fragment>
+          );
+          if (sectionId === "myList") return (
+        <Fragment key={sectionId}>{isLoadingFavorites ? (
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <Skeleton className="h-7 w-48 !bg-gray-200 dark:!bg-accent" />
@@ -615,10 +663,10 @@ export default function DashboardContent() {
               </Link>
             </div>
           </div>
-        )}
-
-        {/* My Playlists Section */}
-        {isLoadingPlaylists ? (
+        )}</Fragment>
+          );
+          if (sectionId === "playlists") return (
+        <Fragment key={sectionId}>{isLoadingPlaylists ? (
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <Skeleton className="h-7 w-48 !bg-gray-200 dark:!bg-accent" />
@@ -699,18 +747,23 @@ export default function DashboardContent() {
               </Link>
             </div>
           </div>
-        )}
-
+        )}</Fragment>
+          );
+          if (sectionId === "youtube") return (
         <YouTubeSnapshotSection
+          key={sectionId}
           isLoading={isLoadingYouTubeSection}
           totals={youtubeTotals}
           highlightVideos={youtubeHighlightVideos}
         />
-
-        {/* Trend Alerts Widget */}
-        <div className="mb-12 max-w-2xl">
+          );
+          if (sectionId === "trendAlerts") return (
+        <div key={sectionId} className="mb-12 max-w-2xl">
           <TrendAlertsWidget />
         </div>
+          );
+          return null;
+        })}
       </div>
 
       {/* Select Services Modal */}
