@@ -4,6 +4,7 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useDashboardEntryHref } from "@/hooks/use-dashboard-entry-href";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -20,9 +21,13 @@ import {
  */
 export function DashboardSubnav() {
   const pathname = usePathname();
+  const dashboardHref = useDashboardEntryHref();
 
-  // Generate breadcrumbs from pathname
+  // Generate breadcrumbs from pathname. Dashboard follows the saved landing page.
   const breadcrumbs = generateBreadcrumbs(pathname);
+  if (breadcrumbs[0]?.label === "Dashboard") {
+    breadcrumbs[0] = { ...breadcrumbs[0], href: dashboardHref };
+  }
 
   return (
     <div className="fixed top-[64px] left-0 right-0 z-40 h-12 border-b border-border/50 bg-background/95 backdrop-blur-sm">

@@ -138,8 +138,9 @@ export function DashboardCustomizeDialog({
       await queryClient.invalidateQueries({ queryKey: ["user-preferences"] });
       toast.success("Home layout saved");
       onOpenChange(false);
-      if (pathname === "/dashboard" && next.landing !== "home") {
-        router.push(dashboardLandingHref(next.landing));
+      const href = dashboardLandingHref(next.landing);
+      if (layout.landing !== next.landing && pathname !== href) {
+        router.push(href);
       }
     } catch {
       toast.error("Could not save the home layout");
@@ -154,7 +155,7 @@ export function DashboardCustomizeDialog({
       onOpenChange={onOpenChange}
       title="Customize home"
       description="Choose what the dashboard home shows. Theme and notifications stay in Settings."
-      dialogClassName="sm:max-w-lg"
+      dialogClassName="sm:max-w-[40rem]"
       footer={
         <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <Link
@@ -191,7 +192,7 @@ export function DashboardCustomizeDialog({
         <section className="space-y-3">
           <div>
             <h3 className="text-sm font-medium">Open Dashboard on</h3>
-            <p className="text-xs text-muted-foreground">The sidebar Dashboard item starts here.</p>
+            <p className="text-xs text-muted-foreground">Dashboard opens on this page.</p>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {DASHBOARD_LANDINGS.map((item) => {

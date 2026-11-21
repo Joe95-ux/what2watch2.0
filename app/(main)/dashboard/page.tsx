@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import DashboardContent from "@/components/dashboard/dashboard-content";

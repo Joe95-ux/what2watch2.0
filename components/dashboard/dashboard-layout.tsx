@@ -66,6 +66,7 @@ import { useClerk } from "@clerk/nextjs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DashboardSubnav } from "./dashboard-subnav";
 import { DashboardCustomizeDialog } from "./dashboard-customize-dialog";
+import { useDashboardEntryHref } from "@/hooks/use-dashboard-entry-href";
 import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
 
 interface DashboardLayoutProps {
@@ -87,6 +88,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [themeIconMounted, setThemeIconMounted] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const dashboardHref = useDashboardEntryHref();
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -120,7 +122,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   // User links
   const userLinks = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: dashboardHref, label: "Dashboard", icon: LayoutDashboard, navId: "dashboard" },
     { href: "/dashboard/activity", label: "Activity", icon: Activity },
     ...(isAdmin ? [{ href: "/dashboard/watching", label: "Watching", icon: Radio, badge: watchingBadgeCount }] : []),
     { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
@@ -199,7 +201,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       // For other routes, match exact path or paths starting with href + "/"
                       // But exclude child routes that have their own menu items
                       let isActive = false;
-                      if (item.href === "/dashboard") {
+                      if ("navId" in item && item.navId === "dashboard") {
+                        isActive = pathname === "/dashboard";
+                      } else if (item.href === "/dashboard") {
                         isActive = pathname === item.href;
                       } else {
                         // Check if pathname matches exactly
@@ -218,7 +222,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                         }
                       }
                       return (
-                        <SidebarMenuItem key={item.href}>
+                        <SidebarMenuItem key={`${item.label}-${item.href}`}>
                           <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
                             <SidebarNavLink href={item.href} className="flex items-center w-full">
                               <Icon

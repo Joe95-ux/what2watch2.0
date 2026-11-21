@@ -18,6 +18,7 @@ import { useWatchingDashboard } from "@/hooks/use-watching";
 import { UnifiedNotificationCenterMobile } from "@/components/notifications/unified-notification-center-mobile";
 import Logo from "@/components/Logo";
 import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
+import { useDashboardEntryHref } from "@/hooks/use-dashboard-entry-href";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -47,6 +48,7 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
     (youtubeVisibility?.mode === "INVITE_ONLY" && !youtubeVisibility?.hasAccess);
   const { signOut } = useClerk();
   const router = useRouter();
+  const dashboardHref = useDashboardEntryHref();
   const { setTheme, theme } = useTheme();
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -143,12 +145,12 @@ export default function MobileNav({ navLinks, pathname, onLinkClick }: MobileNav
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <Link 
-                href="/dashboard" 
+                href={dashboardHref} 
                 onClick={(e) => {
                   e.preventDefault();
                   onLinkClick();
                   setTimeout(() => {
-                    router.push("/dashboard");
+                    router.push(dashboardHref);
                   }, 100);
                 }} 
                 className="flex-1 cursor-pointer"

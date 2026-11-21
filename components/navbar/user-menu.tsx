@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { YouTubeBrandIcon } from "@/components/ui/youtube-brand-icon";
+import { useDashboardEntryHref } from "@/hooks/use-dashboard-entry-href";
 
 interface UserMenuProps {
   hasHeroSection?: boolean;
@@ -18,6 +19,7 @@ interface UserMenuProps {
 
 export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dashboardHref = useDashboardEntryHref();
 
   const handleLinkClick = () => {
     setTimeout(() => setIsDropdownOpen(false), 100);
@@ -70,7 +72,7 @@ export function UserMenu({ hasHeroSection = false }: UserMenuProps) {
           {/* Other Items */}
           <div className="space-y-0">
             <Link
-              href="/dashboard"
+              href={dashboardHref}
               onClick={handleLinkClick}
               className="flex items-center rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
             >
